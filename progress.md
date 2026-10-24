@@ -1,7 +1,8 @@
 # Q2 2026 progress
 
-Written by `Q2-2026.html` through the GitHub API whenever a session is logged; each change is a commit.
-Hand edits are fine (keep the table layout); `git pull` first, the page will ask to reload if it was open.
+Written by `Q2-2026.html` through the GitHub API whenever a session is logged; each change is a commit
+to this `data` branch (the site's code is on `main`). Hand edits are fine (keep the table layout):
+`git fetch origin data` first; the page will ask to reload if it was open.
 
 ## Current working sets
 
