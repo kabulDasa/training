@@ -143,6 +143,11 @@ main{max-width:1100px;margin:0 auto;padding:24px}
 .delbtn{background:var(--red-dim);border:1px solid rgba(239,68,68,.4);color:var(--red);width:24px;height:24px;border-radius:5px;cursor:pointer;font-size:12px;font-weight:700;line-height:1;transition:all .15s}
 .delbtn:hover{background:var(--red);color:#fff}
 .savestatus{margin-bottom:16px;padding:8px 12px;border-radius:8px;font-size:13px;background:var(--legs-dim);color:var(--legs);border:1px solid rgba(16,185,129,.35)}
+.logbtn:disabled,.delbtn:disabled,.pbtn:disabled{opacity:.35;cursor:not-allowed;pointer-events:none}
+.ghform{display:flex;flex-direction:column;gap:10px;max-width:460px}
+.ghform label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted);font-weight:600}
+.ghform input{background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 10px;font-size:14px}
+.ghbtns{display:flex;gap:8px;align-items:center}
 .savestatus-err{background:var(--red-dim);color:var(--red);border-color:rgba(239,68,68,.4)}
 </style>
 </head>
@@ -169,7 +174,7 @@ main{max-width:1100px;margin:0 auto;padding:24px}
 
 <!-- PROGRAM -->
 <div id="tab-program" class="tp active">
-  <div class="daynote">Tap the backoff/set circles to log what you actually hit, then press Log to advance. Progress is saved to progress.md and committed to git on every log — there are no fixed weeks.</div>
+  <div class="daynote">Tap the backoff/set circles to log what you actually hit, then press Log to advance. Progress is saved to progress.md on GitHub and committed on every log — there are no fixed weeks.</div>
   <div id="sgrid" class="sgrid"></div>
 </div>
 
@@ -210,7 +215,7 @@ main{max-width:1100px;margin:0 auto;padding:24px}
     </table>
     <div id="logempty" class="emptychart" style="display:none">No sessions logged yet.</div>
   </div>
-  <button class="pbtn" onclick="resetAll()">Reset all progress</button>
+  <button class="pbtn resetbtn" onclick="resetAll()">Reset all progress</button>
 </div>
 
 <!-- SETTINGS -->
@@ -221,10 +226,26 @@ main{max-width:1100px;margin:0 auto;padding:24px}
     <div id="settingsTable"></div>
     <div class="settings-note">Weighted pull-up and dip loads are added belt weight. Squat load is bar weight.</div>
   </div>
+  <div class="cc">
+    <div class="ctitle">GitHub sync</div>
+    <div class="csub">Progress is read from and committed to progress.md in this repository. Logging needs a
+      fine-grained token with <b>Contents: Read and write</b> on this repository only. It is kept in this
+      browser on this device, never in the repo.</div>
+    <div class="ghform">
+      <label>Repository <input id="ghRepo" autocomplete="off" spellcheck="false"></label>
+      <label>Branch <input id="ghBranch" autocomplete="off" spellcheck="false"></label>
+      <label>Token <input id="ghToken" type="password" autocomplete="off" spellcheck="false"></label>
+      <div class="ghbtns">
+        <button class="logbtn" onclick="saveGhSettings()">Save &amp; reload</button>
+        <button class="pbtn" id="ghForget" onclick="forgetGhToken()">Forget token</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 </main>
 
+<script src="progress.js"></script>
 <script>
 /* name of the one-time Apple Shortcut (created manually in Shortcuts.app) that
    replaces the "Q2 2026 Training" note's body with whatever text we pass it */
@@ -244,11 +265,24 @@ const DEFAULT_STATE = {
   frontsquat:   {weight:22.5, reps:20, sets:2},
 };
 
-/* Progress lives in progress.md, served and written by server.py (every save is a git
-   commit). PROGRESS_REV is the file's revision when loaded; the server refuses a save made
-   against a stale revision (another tab, or a hand edit of progress.md). */
-let PROGRESS_REV = null;
+/* Progress lives in progress.md in the GitHub repo and is read and written through the
+   GitHub contents API (progress.js), so every save is a commit. PROGRESS_SHA is the file's
+   blob sha when loaded; GitHub refuses a save made against a stale sha (another device or
+   tab, or a hand edit), and the page then reloads. Writing needs a token, kept per device. */
+const GH_DEFAULTS = {repo:'kabulDasa/training', branch:'main', path:'progress.md', token:''};
+function loadGhConfig(){
+  try{ return Object.assign({}, GH_DEFAULTS, JSON.parse(localStorage.getItem('q2_github') || '{}')); }
+  catch(_){ return {...GH_DEFAULTS}; }
+}
+let GH = loadGhConfig();
+let READONLY = !GH.token;
+let PROGRESS_SHA = null;
 let SAVE_CHAIN = Promise.resolve();
+
+function store(){
+  const [owner, repo] = GH.repo.split('/');
+  return Progress.makeStore({owner, repo, branch:GH.branch, path:GH.path, token:GH.token});
+}
 
 function mergeState(s){
   /* per-field merge, so a blank cell in a hand-edited progress.md falls back to the default */
@@ -272,56 +306,80 @@ function showStatus(msg, isError){
   el.className = 'savestatus' + (isError ? ' savestatus-err' : '');
   el.style.display = msg ? 'block' : 'none';
 }
+function readonlyNote(){
+  return READONLY ? 'Read-only: add a GitHub token in Settings to log sessions.' : '';
+}
 async function loadProgress(){
   try{
-    const r = await fetch('/api/progress', {cache:'no-store'});
-    const body = await r.json();
-    if(!r.ok) throw new Error(body.error || r.status);
-    STATE = mergeState(body.state);
-    HISTORY = body.history;
-    PROGRESS_REV = body.rev;
-    showStatus('');
+    const {data, sha} = await store().load();
+    STATE = mergeState(data.state);
+    HISTORY = data.history;
+    PROGRESS_SHA = sha;
+    showStatus(readonlyNote(), READONLY);
   }catch(e){
-    showStatus('Could not load progress.md (' + e.message + '). Start the app with: python3 server.py', true);
+    showStatus(`Could not load ${GH.path} from ${GH.repo}: ${e.message}`, true);
     throw e;
   }
 }
-/* Save STATE + HISTORY to progress.md. Saves run one after another so each sends the
-   revision returned by the previous one. message becomes the git commit message;
-   by default it describes the most recent log entry. */
+/* Commit STATE + HISTORY as progress.md. Saves run one after another so each sends the
+   sha returned by the previous one. message becomes the commit message; by default it
+   describes the most recent log entry. */
 function saveState(message){
   if(!message){
     const h = HISTORY[HISTORY.length-1];
     message = h ? `Log ${h.exercise}: ${h.result}` : 'Update progress';
   }
   /* snapshot now: later logs may change STATE before this save runs */
-  const snap = JSON.parse(JSON.stringify({state:STATE, history:HISTORY, message}));
+  const snap = JSON.parse(JSON.stringify({state:STATE, history:HISTORY}));
   SAVE_CHAIN = SAVE_CHAIN.then(async ()=>{
-    if(PROGRESS_REV===null) throw new Error('progress not loaded');
-    if(PROGRESS_REV==='conflict') return;  /* reload pending after a 409 */
-    const r = await fetch('/api/progress', {
-      method:'PUT', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({...snap, rev:PROGRESS_REV}),
-    });
-    const body = await r.json();
-    if(r.status===409){
-      PROGRESS_REV = 'conflict';  /* skip any saves still queued behind this one */
-      alert('progress.md changed since this page loaded (another tab or a hand edit). Reloading — log that set again.');
+    if(READONLY) throw new Error('no GitHub token (Settings)');
+    if(PROGRESS_SHA===null) throw new Error('progress not loaded');
+    if(PROGRESS_SHA==='conflict') return;  /* reload pending */
+    showStatus('Saving…');
+    try{
+      PROGRESS_SHA = await store().save(snap, PROGRESS_SHA, message);
+    }catch(e){
+      if(!(e instanceof Progress.ConflictError)) throw e;
+      PROGRESS_SHA = 'conflict';  /* skip any saves still queued behind this one */
+      alert('progress.md changed on GitHub since this page loaded (another device, tab or a hand edit). Reloading — log that set again.');
       location.reload();
       return;
     }
-    if(!r.ok) throw new Error(body.error || r.status);
-    PROGRESS_REV = body.rev;
-    if(!body.note.startsWith('committed') && body.note!=='no change'){
-      showStatus('Saved to progress.md but ' + body.note, true);  /* stays up: the change isn't tracked */
-      return;
-    }
-    showStatus('Saved · ' + body.note);
+    showStatus('Saved · committed to ' + GH.repo);
     setTimeout(()=>{ if(document.getElementById('savestatus').textContent.startsWith('Saved ·')) showStatus(''); }, 3000);
   }).catch(e=>{
-    showStatus('NOT saved: ' + e.message + '. Is server.py running? Reload before logging more.', true);
+    showStatus('NOT saved: ' + e.message + '. Reload before logging more.', true);
   });
   return SAVE_CHAIN;
+}
+/* log/undo/reset buttons only work with a token */
+function applyReadonly(){
+  document.querySelectorAll('.logbtn,.delbtn,.resetbtn').forEach(b=>{ b.disabled = READONLY; });
+}
+
+/* ---------- GitHub settings panel ---------- */
+function renderGhSettings(){
+  document.getElementById('ghRepo').value = GH.repo;
+  document.getElementById('ghBranch').value = GH.branch;
+  document.getElementById('ghToken').value = '';
+  document.getElementById('ghToken').placeholder = GH.token ? 'saved on this device — paste to replace' : 'github_pat_…';
+  document.getElementById('ghForget').style.display = GH.token ? '' : 'none';
+}
+function saveGhSettings(){
+  const repo = document.getElementById('ghRepo').value.trim();
+  const branch = document.getElementById('ghBranch').value.trim() || 'main';
+  const token = document.getElementById('ghToken').value.trim();
+  if(!/^[\w.-]+\/[\w.-]+$/.test(repo)){ alert('Repository must look like owner/name'); return; }
+  writeGhConfig({...GH, repo, branch, token: token || GH.token});
+}
+function forgetGhToken(){
+  if(!confirm('Remove the GitHub token from this device? Logging stops until you add one again.')) return;
+  writeGhConfig({...GH, token:''});
+}
+function writeGhConfig(cfg){
+  try{ localStorage.setItem('q2_github', JSON.stringify(cfg)); }
+  catch(_){ alert('This browser blocks storage, so the token can\'t be kept (private browsing?).'); return; }
+  location.reload();
 }
 
 /* ---------- sync current Day 1/2/3 state to the Notes app via Shortcuts ---------- */
@@ -908,7 +966,7 @@ function showTab(id,btn){
   document.getElementById('tab-'+id).classList.add('active');
   btn.classList.add('active');
   if(id==='chart') renderChart();
-  if(id==='settings') renderSettings();
+  if(id==='settings'){ renderSettings(); renderGhSettings(); }
 }
 
 function resetAll(){
@@ -1032,11 +1090,13 @@ function renderChart(){
       return `<tr><td class="tm">${d.toLocaleDateString()} ${d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</td><td>${esc(h.exercise)}</td><td>${esc(h.result)}</td><td class="${cls}">${label}</td><td>${action}</td></tr>`;
     }).join('');
   }
+  applyReadonly();
 }
 
 function render(){
   renderHeaderStats();
   document.getElementById('sgrid').innerHTML = renderDay1() + renderDay2() + renderDay3();
+  applyReadonly();
 }
 
 /* render only once progress.md is loaded, so nothing is logged against default loads */
