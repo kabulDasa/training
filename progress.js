@@ -61,6 +61,9 @@ function tables(text){
 
 function parse(text){
   const t = tables(text);
+  /* a broken heading would otherwise load as empty and the next save would wipe the file */
+  for(const s of ['Current working sets', 'Session log'])
+    if(!(s in t)) throw new Error(`progress.md has no "## ${s}" section`);
   const state = {};
   for(const row of t['Current working sets'] || []){
     const key = row[0];
@@ -127,9 +130,21 @@ function b64decode(b64){
 
 class ConflictError extends Error {}
 
+const TIMEOUT_MS = 20000;
+/* GitHub's wording when the sha sent with a PUT is no longer the file's current sha */
+const STALE_SHA_RE = /does not match|is at [0-9a-f]+ but expected|sha/i;
+
 /* cfg: {owner, repo, branch, path, token}. token may be empty for reads of a public repo. */
 function makeStore(cfg, fetchImpl){
-  const f = fetchImpl || ((...a) => fetch(...a));
+  const rawFetch = fetchImpl || ((...a) => fetch(...a));
+  /* a weak signal must not leave a save hanging forever with later saves queued behind it */
+  async function f(u, opts){
+    const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timer = ctl && setTimeout(() => ctl.abort(), TIMEOUT_MS);
+    try{ return await rawFetch(u, ctl ? {...opts, signal: ctl.signal} : opts); }
+    catch(e){ throw e && e.name === 'AbortError' ? new Error('GitHub did not answer within 20 s') : e; }
+    finally{ if(timer) clearTimeout(timer); }
+  }
   const url = `https://api.github.com/repos/${encodeURIComponent(cfg.owner)}/${encodeURIComponent(cfg.repo)}/contents/${cfg.path.split('/').map(encodeURIComponent).join('/')}`;
   const headers = () => {
     const h = {'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28'};
@@ -150,7 +165,10 @@ function makeStore(cfg, fetchImpl){
       const r = await f(`${url}?ref=${encodeURIComponent(cfg.branch)}`, {headers: headers(), cache: 'no-store'});
       if(!r.ok) await fail(r);
       const body = await r.json();
+      if(body.type !== 'file' || body.encoding !== 'base64' || typeof body.content !== 'string' || !body.content)
+        throw new Error(`${cfg.path} is not a readable file (over 1 MB, or a folder?)`);
       const data = parse(b64decode(body.content));
+      validate(data);
       return {data, sha: body.sha};
     },
     /* commit data as progress.md on top of sha -> new sha. Throws ConflictError if sha is stale. */
@@ -163,7 +181,7 @@ function makeStore(cfg, fetchImpl){
       if(r.status === 409 || r.status === 422){
         let msg = '';
         try{ msg = (await r.json()).message || ''; }catch(_){}
-        if(r.status === 409 || /sha/i.test(msg)) throw new ConflictError('progress.md changed on GitHub since this page loaded');
+        if(STALE_SHA_RE.test(msg)) throw new ConflictError('progress.md changed on GitHub since this page loaded');
         throw new Error(msg || String(r.status));
       }
       if(!r.ok) await fail(r);

@@ -146,7 +146,7 @@ main{max-width:1100px;margin:0 auto;padding:24px}
 .logbtn:disabled,.delbtn:disabled,.pbtn:disabled{opacity:.35;cursor:not-allowed;pointer-events:none}
 .ghform{display:flex;flex-direction:column;gap:10px;max-width:460px}
 .ghform label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted);font-weight:600}
-.ghform input{background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 10px;font-size:14px}
+.ghform input{background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 10px;font-size:16px}
 .ghbtns{display:flex;gap:8px;align-items:center}
 .savestatus-err{background:var(--red-dim);color:var(--red);border-color:rgba(239,68,68,.4)}
 </style>
@@ -354,7 +354,7 @@ function saveState(message){
 }
 /* log/undo/reset buttons only work with a token */
 function applyReadonly(){
-  document.querySelectorAll('.logbtn,.delbtn,.resetbtn').forEach(b=>{ b.disabled = READONLY; });
+  document.querySelectorAll('#sgrid .logbtn, #logtbody .delbtn, .resetbtn').forEach(b=>{ b.disabled = READONLY; });
 }
 
 /* ---------- GitHub settings panel ---------- */
@@ -542,7 +542,7 @@ function latestIndexFor(exercise){
 }
 function popLatest(exercise){
   const idx = latestIndexFor(exercise);
-  const key = EXERCISE_KEY[exercise];
+  const key = Object.hasOwn(EXERCISE_KEY, exercise) ? EXERCISE_KEY[exercise] : null;
   if(idx===-1 || !key) return;
   if(!confirm(`Remove the most recent ${exercise} log and revert its working set to before that session?`)) return;
   HISTORY.splice(idx,1);
@@ -1083,9 +1083,9 @@ function renderChart(){
       const d = new Date(h.date);
       const cls = h.outcome==='hold' ? 'tag-hold' : h.outcome==='double' ? 'tag-double' : 'tag-normal';
       const label = h.outcome==='hold' ? 'Hold' : h.outcome==='double' ? 'Double progression' : 'Progressed';
-      const isTop = i === latestIndexFor(h.exercise) && EXERCISE_KEY[h.exercise];
+      const isTop = i === latestIndexFor(h.exercise) && Object.hasOwn(EXERCISE_KEY, h.exercise);
       const action = isTop
-        ? `<button class="delbtn" onclick="popLatest('${h.exercise}')" title="Remove this most recent ${h.exercise} log and revert its working set to before it">✕</button>`
+        ? `<button class="delbtn" onclick="popLatest(HISTORY[${i}].exercise)" title="Remove this most recent ${esc(h.exercise)} log and revert its working set to before it">✕</button>`
         : '';
       return `<tr><td class="tm">${d.toLocaleDateString()} ${d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</td><td>${esc(h.exercise)}</td><td>${esc(h.result)}</td><td class="${cls}">${label}</td><td>${action}</td></tr>`;
     }).join('');

@@ -1,7 +1,7 @@
 # Q2 2026 progress
 
-Written by `server.py` whenever a session is logged in `Q2-2026.html`; each change is a git commit.
-Hand edits are fine while the page is closed (keep the table layout).
+Written by `Q2-2026.html` through the GitHub API whenever a session is logged; each change is a commit.
+Hand edits are fine (keep the table layout); `git pull` first, the page will ask to reload if it was open.
 
 ## Current working sets
 

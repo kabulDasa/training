@@ -26,6 +26,11 @@ test('empty', () => {
   assert.deepEqual(P.parse(P.serialize(e)), e);
 });
 
+test('real progress.md has the current header', () => {
+  const text = fs.readFileSync(path.join(__dirname, '..', 'progress.md'), 'utf8');
+  assert.equal(text, P.serialize(P.parse(text)));
+});
+
 test('real progress.md round-trips byte for byte below the header', () => {
   const text = fs.readFileSync(path.join(__dirname, '..', 'progress.md'), 'utf8');
   const data = P.parse(text);
@@ -73,13 +78,15 @@ function fakeGitHub(initialText) {
   const fetch = async (url, opts = {}) => {
     calls.push({url, opts});
     const json = (status, body) => ({ok: status < 300, status, json: async () => body});
-    if (!opts.method) return json(200, {content: P.b64encode(text).replace(/(.{60})/g, '$1\n'), sha});
+    if (!opts.method) return json(200, {type: 'file', encoding: 'base64', content: P.b64encode(text).replace(/(.{60})/g, '$1\n'), sha});
     const body = JSON.parse(opts.body);
-    if (body.sha !== sha) return json(409, {message: 'is at sha0 but expected x'});
+    if (gh.failWith) { const [s, m] = gh.failWith; gh.failWith = null; return json(s, {message: m}); }
+    if (body.sha !== sha) return json(409, {message: `progress.md does not match ${body.sha}`});
     text = P.b64decode(body.content); sha = 'sha' + (++n);
     return json(200, {content: {sha}});
   };
-  return {fetch, calls, get text() { return text; }};
+  const gh = {fetch, calls, failWith: null, get text() { return text; }, set text(t) { text = t; }};
+  return gh;
 }
 
 test('store loads, saves with sha, and reports conflicts', async () => {
@@ -100,6 +107,29 @@ test('store loads, saves with sha, and reports conflicts', async () => {
 
   await assert.rejects(store.save(SAMPLE, sha, 'stale'), P.ConflictError);
   await assert.rejects(store.save({state: [], history: []}, sha2, 'bad'));  // validated before sending
+
+  // a 409 that isn't about the sha (e.g. a branch ruleset) is shown, not treated as a conflict
+  gh.failWith = [409, 'Repository rule violations found'];
+  await assert.rejects(store.save(SAMPLE, sha2, 'x'), e => !(e instanceof P.ConflictError) && /rule/.test(e.message));
+});
+
+test('load refuses a file whose sections are missing or invalid', async () => {
+  const cfg = {owner: 'o', repo: 'r', branch: 'main', path: 'progress.md', token: ''};
+  const broken = fakeGitHub(P.serialize(SAMPLE).replace('## Session log', '# Session log'));
+  await assert.rejects(P.makeStore(cfg, broken.fetch).load(), /Session log/);
+  const badOutcome = fakeGitHub(P.serialize(SAMPLE).replace('| normal |', '| maybe |'));
+  await assert.rejects(P.makeStore(cfg, badOutcome.fetch).load(), /bad history entry/);
+});
+
+test('a hung request times out', async () => {
+  // fetch that never resolves until aborted
+  const hang = (_, opts) => new Promise((_, rej) => opts.signal.addEventListener('abort', () => rej(Object.assign(new Error('aborted'), {name: 'AbortError'}))));
+  const store = P.makeStore({owner: 'o', repo: 'r', branch: 'main', path: 'progress.md', token: ''}, hang);
+  const t = Date.now();
+  const orig = global.setTimeout;
+  global.setTimeout = (fn) => orig(fn, 10);  // speed up the 20 s timer
+  try { await assert.rejects(store.load(), /did not answer/); } finally { global.setTimeout = orig; }
+  assert.ok(Date.now() - t < 1000);
 });
 
 test('store without a token sends no Authorization header', async () => {
