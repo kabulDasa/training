@@ -142,6 +142,8 @@ main{max-width:1100px;margin:0 auto;padding:24px}
 .tag-hold{color:var(--red)}.tag-normal{color:var(--legs)}.tag-double{color:var(--gold)}
 .delbtn{background:var(--red-dim);border:1px solid rgba(239,68,68,.4);color:var(--red);width:24px;height:24px;border-radius:5px;cursor:pointer;font-size:12px;font-weight:700;line-height:1;transition:all .15s}
 .delbtn:hover{background:var(--red);color:#fff}
+.savestatus{margin-bottom:16px;padding:8px 12px;border-radius:8px;font-size:13px;background:var(--legs-dim);color:var(--legs);border:1px solid rgba(16,185,129,.35)}
+.savestatus-err{background:var(--red-dim);color:var(--red);border-color:rgba(239,68,68,.4)}
 </style>
 </head>
 <body>
@@ -163,10 +165,11 @@ main{max-width:1100px;margin:0 auto;padding:24px}
 </div>
 
 <main>
+<div id="savestatus" class="savestatus" style="display:none"></div>
 
 <!-- PROGRAM -->
 <div id="tab-program" class="tp active">
-  <div class="daynote">Tap the backoff/set circles to log what you actually hit, then press Log to advance. State is saved on this device and carries forward every session — there are no fixed weeks.</div>
+  <div class="daynote">Tap the backoff/set circles to log what you actually hit, then press Log to advance. Progress is saved to progress.md and committed to git on every log — there are no fixed weeks.</div>
   <div id="sgrid" class="sgrid"></div>
 </div>
 
@@ -241,12 +244,16 @@ const DEFAULT_STATE = {
   frontsquat:   {weight:22.5, reps:20, sets:2},
 };
 
-function loadState(){
-  const raw = localStorage.getItem('q2_state');
-  const s = raw ? JSON.parse(raw) : {};
-  const merged = Object.assign(JSON.parse(JSON.stringify(DEFAULT_STATE)), s);
-  /* Replace the old bodyweight-only row state with the new dumbbell-row start. */
-  if(!s.invertedrow || s.invertedrow.weight===undefined) merged.invertedrow = {...DEFAULT_STATE.invertedrow};
+/* Progress lives in progress.md, served and written by server.py (every save is a git
+   commit). PROGRESS_REV is the file's revision when loaded; the server refuses a save made
+   against a stale revision (another tab, or a hand edit of progress.md). */
+let PROGRESS_REV = null;
+let SAVE_CHAIN = Promise.resolve();
+
+function mergeState(s){
+  /* per-field merge, so a blank cell in a hand-edited progress.md falls back to the default */
+  const merged = JSON.parse(JSON.stringify(DEFAULT_STATE));
+  Object.keys(merged).forEach(k=>{ if(s[k]) Object.assign(merged[k], s[k]); });
   /* pull-up/dip top-set rep target is a fixed program constant — advance() never
      mutates it, only weight does — so always take it from DEFAULT_STATE. Otherwise a
      stale saved value from before a program update (e.g. the old 3-rep target) would
@@ -256,12 +263,66 @@ function loadState(){
   merged.dip.reps = DEFAULT_STATE.dip.reps;
   return merged;
 }
-function saveState(){ localStorage.setItem('q2_state', JSON.stringify(STATE)); }
-function loadHistory(){ return JSON.parse(localStorage.getItem('q2_history') || '[]'); }
-function saveHistory(){ localStorage.setItem('q2_history', JSON.stringify(HISTORY)); }
+let STATE = mergeState({});
+let HISTORY = [];
 
-let STATE = loadState();
-let HISTORY = loadHistory();
+function showStatus(msg, isError){
+  const el = document.getElementById('savestatus');
+  el.textContent = msg;
+  el.className = 'savestatus' + (isError ? ' savestatus-err' : '');
+  el.style.display = msg ? 'block' : 'none';
+}
+async function loadProgress(){
+  try{
+    const r = await fetch('/api/progress', {cache:'no-store'});
+    const body = await r.json();
+    if(!r.ok) throw new Error(body.error || r.status);
+    STATE = mergeState(body.state);
+    HISTORY = body.history;
+    PROGRESS_REV = body.rev;
+    showStatus('');
+  }catch(e){
+    showStatus('Could not load progress.md (' + e.message + '). Start the app with: python3 server.py', true);
+    throw e;
+  }
+}
+/* Save STATE + HISTORY to progress.md. Saves run one after another so each sends the
+   revision returned by the previous one. message becomes the git commit message;
+   by default it describes the most recent log entry. */
+function saveState(message){
+  if(!message){
+    const h = HISTORY[HISTORY.length-1];
+    message = h ? `Log ${h.exercise}: ${h.result}` : 'Update progress';
+  }
+  /* snapshot now: later logs may change STATE before this save runs */
+  const snap = JSON.parse(JSON.stringify({state:STATE, history:HISTORY, message}));
+  SAVE_CHAIN = SAVE_CHAIN.then(async ()=>{
+    if(PROGRESS_REV===null) throw new Error('progress not loaded');
+    if(PROGRESS_REV==='conflict') return;  /* reload pending after a 409 */
+    const r = await fetch('/api/progress', {
+      method:'PUT', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({...snap, rev:PROGRESS_REV}),
+    });
+    const body = await r.json();
+    if(r.status===409){
+      PROGRESS_REV = 'conflict';  /* skip any saves still queued behind this one */
+      alert('progress.md changed since this page loaded (another tab or a hand edit). Reloading — log that set again.');
+      location.reload();
+      return;
+    }
+    if(!r.ok) throw new Error(body.error || r.status);
+    PROGRESS_REV = body.rev;
+    if(!body.note.startsWith('committed') && body.note!=='no change'){
+      showStatus('Saved to progress.md but ' + body.note, true);  /* stays up: the change isn't tracked */
+      return;
+    }
+    showStatus('Saved · ' + body.note);
+    setTimeout(()=>{ if(document.getElementById('savestatus').textContent.startsWith('Saved ·')) showStatus(''); }, 3000);
+  }).catch(e=>{
+    showStatus('NOT saved: ' + e.message + '. Is server.py running? Reload before logging more.', true);
+  });
+  return SAVE_CHAIN;
+}
 
 /* ---------- sync current Day 1/2/3 state to the Notes app via Shortcuts ---------- */
 function buildNotesText(){
@@ -359,7 +420,6 @@ function pushHistory(exercise, result, outcome, weight, volume){
     weight: weight!=null ? weight : null,
     volume: volume!=null ? volume : null,
   });
-  saveHistory();
 }
 
 /* ---------- exercise key <-> display-name map, and shared progression math ----------
@@ -424,14 +484,13 @@ function latestIndexFor(exercise){
 }
 function popLatest(exercise){
   const idx = latestIndexFor(exercise);
-  if(idx===-1) return;
+  const key = EXERCISE_KEY[exercise];
+  if(idx===-1 || !key) return;
   if(!confirm(`Remove the most recent ${exercise} log and revert its working set to before that session?`)) return;
   HISTORY.splice(idx,1);
-  saveHistory();
-  const key = EXERCISE_KEY[exercise];
   STATE[key] = JSON.parse(JSON.stringify(DEFAULT_STATE[key]));
   HISTORY.filter(h=>h.exercise===exercise).forEach(h=>advance(key, h.outcome, STATE[key]));
-  saveState();
+  saveState(`Undo latest ${exercise} log`);
   clearPending(key);
   render();
   renderChart();
@@ -839,6 +898,8 @@ function renderSettings(){
   document.getElementById('settingsTable').innerHTML = `<div class="settings-wrap"><table class="settings-table"><thead><tr><th>Day</th><th>Lift</th><th>Current prescription</th><th>Progression rule</th></tr></thead><tbody>${rows.map(([day,lift,current,rule])=>`<tr><td class="setting-group">${day}</td><td class="setting-lift">${lift}</td><td class="setting-current">${current}</td><td>${rule}</td></tr>`).join('')}</tbody></table></div>`;
 }
 
+/* progress.md is hand-editable, so text from it is escaped before going into innerHTML */
+function esc(t){ return String(t).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]); }
 function tx(id){ const el=document.getElementById(id); if(el) el.classList.toggle('open'); }
 
 function showTab(id,btn){
@@ -852,11 +913,10 @@ function showTab(id,btn){
 
 function resetAll(){
   if(!confirm('Reset all logged progress and current working sets back to the Q2 2026 starting point?')) return;
-  localStorage.removeItem('q2_state');
-  localStorage.removeItem('q2_history');
   ['pullup','latpulldown','invertedrow','bicepcurl','dip','ohp','shoulderfly','tricepext','squat','frontsquat'].forEach(clearPending);
-  STATE = loadState();
-  HISTORY = loadHistory();
+  STATE = mergeState({});
+  HISTORY = [];
+  saveState('Reset all progress');
   render();
   renderChart();
 }
@@ -965,11 +1025,11 @@ function renderChart(){
       const d = new Date(h.date);
       const cls = h.outcome==='hold' ? 'tag-hold' : h.outcome==='double' ? 'tag-double' : 'tag-normal';
       const label = h.outcome==='hold' ? 'Hold' : h.outcome==='double' ? 'Double progression' : 'Progressed';
-      const isTop = i === latestIndexFor(h.exercise);
+      const isTop = i === latestIndexFor(h.exercise) && EXERCISE_KEY[h.exercise];
       const action = isTop
         ? `<button class="delbtn" onclick="popLatest('${h.exercise}')" title="Remove this most recent ${h.exercise} log and revert its working set to before it">✕</button>`
         : '';
-      return `<tr><td class="tm">${d.toLocaleDateString()} ${d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</td><td>${h.exercise}</td><td>${h.result}</td><td class="${cls}">${label}</td><td>${action}</td></tr>`;
+      return `<tr><td class="tm">${d.toLocaleDateString()} ${d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</td><td>${esc(h.exercise)}</td><td>${esc(h.result)}</td><td class="${cls}">${label}</td><td>${action}</td></tr>`;
     }).join('');
   }
 }
@@ -979,7 +1039,8 @@ function render(){
   document.getElementById('sgrid').innerHTML = renderDay1() + renderDay2() + renderDay3();
 }
 
-render();
+/* render only once progress.md is loaded, so nothing is logged against default loads */
+loadProgress().then(render, ()=>{});
 </script>
 </body>
 </html>
