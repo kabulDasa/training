@@ -1,7 +1,8 @@
 /* progress.md format + GitHub storage for Q2-2026.html.
    progress.md holds two Markdown tables: "Current working sets" (Key | Weight | Reps | Sets) and
    "Session log" (oldest first, one row per logged session). The page reads and writes it through
-   the GitHub contents API, so every save is a commit. Loaded as a plain <script> in the page and
+   the GitHub contents API on the repo's `data` branch, so every save is a commit there and never
+   touches `main`, which GitHub Pages serves the site from. Loaded as a plain <script> in the page and
    with require() in the node tests. */
 (function(root){
 'use strict';
@@ -13,8 +14,9 @@ const KEY_RE = /^[a-z][a-z0-9]*$/;
 
 const HEADER = `# Q2 2026 progress
 
-Written by \`Q2-2026.html\` through the GitHub API whenever a session is logged; each change is a commit.
-Hand edits are fine (keep the table layout); \`git pull\` first, the page will ask to reload if it was open.
+Written by \`Q2-2026.html\` through the GitHub API whenever a session is logged; each change is a commit
+to this \`data\` branch (the site's code is on \`main\`). Hand edits are fine (keep the table layout):
+\`git fetch origin data\` first; the page will ask to reload if it was open.
 `;
 
 /* ---------- markdown format ---------- */
@@ -155,7 +157,7 @@ function makeStore(cfg, fetchImpl){
     let msg = r.status + '';
     try{ msg = (await r.json()).message || msg; }catch(_){}
     if(r.status === 401) msg = 'GitHub token rejected (expired or revoked?)';
-    if(r.status === 404) msg = `${cfg.owner}/${cfg.repo}/${cfg.path} not found, or the token can't see it`;
+    if(r.status === 404) msg = `${cfg.path} not found on branch ${cfg.branch} of ${cfg.owner}/${cfg.repo}, or the token can't see it`;
     if(r.status === 403 && /rate limit/i.test(msg)) msg = 'GitHub rate limit hit: add a token in Settings';
     throw new Error(msg);
   }

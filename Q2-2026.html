@@ -228,12 +228,12 @@ main{max-width:1100px;margin:0 auto;padding:24px}
   </div>
   <div class="cc">
     <div class="ctitle">GitHub sync</div>
-    <div class="csub">Progress is read from and committed to progress.md in this repository. Logging needs a
-      fine-grained token with <b>Contents: Read and write</b> on this repository only. It is kept in this
-      browser on this device, never in the repo.</div>
+    <div class="csub">Progress is read from and committed to progress.md on the <b>data</b> branch of this
+      repository (the site itself is served from <b>main</b>). Logging needs a fine-grained token with
+      <b>Contents: Read and write</b> on this repository only. It is kept in this browser on this device,
+      never in the repo.</div>
     <div class="ghform">
       <label>Repository <input id="ghRepo" autocomplete="off" spellcheck="false"></label>
-      <label>Branch <input id="ghBranch" autocomplete="off" spellcheck="false"></label>
       <label>Token <input id="ghToken" type="password" autocomplete="off" spellcheck="false"></label>
       <div class="ghbtns">
         <button class="logbtn" onclick="saveGhSettings()">Save &amp; reload</button>
@@ -265,14 +265,21 @@ const DEFAULT_STATE = {
   frontsquat:   {weight:22.5, reps:20, sets:2},
 };
 
-/* Progress lives in progress.md in the GitHub repo and is read and written through the
-   GitHub contents API (progress.js), so every save is a commit. PROGRESS_SHA is the file's
-   blob sha when loaded; GitHub refuses a save made against a stale sha (another device or
-   tab, or a hand edit), and the page then reloads. Writing needs a token, kept per device. */
-const GH_DEFAULTS = {repo:'kabulDasa/training', branch:'main', path:'progress.md', token:''};
+/* Progress lives in progress.md on the repo's `data` branch and is read and written through
+   the GitHub contents API (progress.js), so every save is a commit there; `main` (which Pages
+   serves) is never written by the page. PROGRESS_SHA is the file's blob sha when loaded; GitHub
+   refuses a save made against a stale sha (another device or tab, or a hand edit), and the page
+   then reloads. Writing needs a token, kept per device. */
+const GH_DEFAULTS = {repo:'kabulDasa/training', branch:'data', path:'progress.md', token:''};
+/* only the repo and token are per-device settings. Configs saved before the move to `data`
+   also hold branch 'main' and path, which are ignored so those devices switch over. */
 function loadGhConfig(){
-  try{ return Object.assign({}, GH_DEFAULTS, JSON.parse(localStorage.getItem('q2_github') || '{}')); }
-  catch(_){ return {...GH_DEFAULTS}; }
+  let saved = {};
+  try{ saved = JSON.parse(localStorage.getItem('q2_github') || '{}') || {}; }catch(_){}
+  const cfg = {...GH_DEFAULTS};
+  if(typeof saved.repo === 'string' && saved.repo) cfg.repo = saved.repo;
+  if(typeof saved.token === 'string') cfg.token = saved.token;
+  return cfg;
 }
 let GH = loadGhConfig();
 let READONLY = !GH.token;
@@ -317,7 +324,7 @@ async function loadProgress(){
     PROGRESS_SHA = sha;
     showStatus(readonlyNote(), READONLY);
   }catch(e){
-    showStatus(`Could not load ${GH.path} from ${GH.repo}: ${e.message}`, true);
+    showStatus(`Could not load ${GH.path} from ${GH.repo} (${GH.branch}): ${e.message}`, true);
     throw e;
   }
 }
@@ -345,7 +352,7 @@ function saveState(message){
       location.reload();
       return;
     }
-    showStatus('Saved · committed to ' + GH.repo);
+    showStatus('Saved · committed to ' + GH.repo + ' (' + GH.branch + ')');
     setTimeout(()=>{ if(document.getElementById('savestatus').textContent.startsWith('Saved ·')) showStatus(''); }, 3000);
   }).catch(e=>{
     showStatus('NOT saved: ' + e.message + '. Reload before logging more.', true);
@@ -360,24 +367,22 @@ function applyReadonly(){
 /* ---------- GitHub settings panel ---------- */
 function renderGhSettings(){
   document.getElementById('ghRepo').value = GH.repo;
-  document.getElementById('ghBranch').value = GH.branch;
   document.getElementById('ghToken').value = '';
   document.getElementById('ghToken').placeholder = GH.token ? 'saved on this device — paste to replace' : 'github_pat_…';
   document.getElementById('ghForget').style.display = GH.token ? '' : 'none';
 }
 function saveGhSettings(){
   const repo = document.getElementById('ghRepo').value.trim();
-  const branch = document.getElementById('ghBranch').value.trim() || 'main';
   const token = document.getElementById('ghToken').value.trim();
   if(!/^[\w.-]+\/[\w.-]+$/.test(repo)){ alert('Repository must look like owner/name'); return; }
-  writeGhConfig({...GH, repo, branch, token: token || GH.token});
+  writeGhConfig({repo, token: token || GH.token});
 }
 function forgetGhToken(){
   if(!confirm('Remove the GitHub token from this device? Logging stops until you add one again.')) return;
-  writeGhConfig({...GH, token:''});
+  writeGhConfig({repo: GH.repo, token:''});
 }
 function writeGhConfig(cfg){
-  try{ localStorage.setItem('q2_github', JSON.stringify(cfg)); }
+  try{ localStorage.setItem('q2_github', JSON.stringify({repo: cfg.repo, token: cfg.token})); }
   catch(_){ alert('This browser blocks storage, so the token can\'t be kept (private browsing?).'); return; }
   location.reload();
 }
