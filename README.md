@@ -30,8 +30,8 @@ file and reload.
 
 Each Session log row's **Before** cell is the working set that log replaced (`107.5 kg`,
 `12.5 kg, 18 reps, 2 sets`); undo (✕ on an exercise's newest row) puts it back. Rows logged before
-that column existed have none, so their ✕ is dimmed and only explains: `git revert` the commit
-that logged one instead.
+that column existed have none, so their ✕ is dimmed and only explains: to undo one, delete the row
+and set the load under Current working sets by hand.
 
 ## Other files
 

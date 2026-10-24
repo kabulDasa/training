@@ -546,7 +546,7 @@ function latestIndexFor(key){
   return -1;
 }
 const NO_UNDO = 'Logged before the page recorded the working set each log replaces, so it can\'t be undone here. '
-  + 'Fix the load in progress.md by hand, or git revert the commit that logged it.';
+  + 'To undo it, delete the row in progress.md and set the load under Current working sets by hand.';
 function popLatest(idx){
   const h = HISTORY[idx];
   const key = h && keyOf(h.exercise);
