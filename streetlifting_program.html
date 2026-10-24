@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Streetlifting — 12-Week PPL</title>
+<style>
+:root {
+  --bg: #0f1117;
+  --surface: #1a1e2e;
+  --surface2: #252b3d;
+  --border: #2d3348;
+  --text: #e2e8f0;
+  --muted: #64748b;
+  --pull: #3b82f6;
+  --pull-dim: rgba(59,130,246,0.12);
+  --push: #f97316;
+  --push-dim: rgba(249,115,22,0.12);
+  --legs: #10b981;
+  --legs-dim: rgba(16,185,129,0.12);
+  --purple: #a855f7;
+  --purple-dim: rgba(168,85,247,0.12);
+  --gold: #f59e0b;
+  --gold-dim: rgba(245,158,11,0.12);
+  --red: #ef4444;
+  --red-dim: rgba(239,68,68,0.12);
+  --r: 10px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:15px;line-height:1.5}
+
+/* HEADER */
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:18px 24px}
+.hi{max-width:1100px;margin:0 auto;display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
+h1{font-size:21px;font-weight:800;color:var(--gold);letter-spacing:-.3px}
+.sub{color:var(--muted);font-size:13px;margin-top:2px}
+.hstats{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start}
+.stat{text-align:right}
+.slabel{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.sval{font-size:13px;font-weight:600}
+.pbtn{background:var(--surface2);border:1px solid var(--border);color:var(--muted);padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px;transition:border-color .15s;align-self:flex-start}
+.pbtn:hover{border-color:var(--gold);color:var(--text)}
+
+/* TABS */
+.tabs{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;display:flex;overflow-x:auto}
+.tb{background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);padding:12px 16px;cursor:pointer;font-size:14px;font-weight:500;white-space:nowrap;transition:color .15s,border-color .15s}
+.tb:hover{color:var(--text)}
+.tb.active{color:var(--gold);border-bottom-color:var(--gold)}
+
+/* MAIN */
+main{max-width:1100px;margin:0 auto;padding:24px}
+.tp{display:none}
+.tp.active{display:block}
+
+/* WEEK NAV */
+.wnav{display:flex;align-items:center;gap:8px;margin-bottom:20px}
+.wpills{display:flex;gap:4px;flex-wrap:wrap;flex:1}
+.wp{background:var(--surface2);border:1px solid var(--border);color:var(--muted);border-radius:20px;padding:4px 11px;font-size:12px;cursor:pointer;transition:all .15s;white-space:nowrap}
+.wp:hover{border-color:var(--gold);color:var(--text)}
+.wp.active{background:var(--gold);border-color:var(--gold);color:#000;font-weight:700}
+.wp.deload{border-color:var(--pull);color:var(--pull)}
+.wp.deload.active{background:var(--pull);color:#fff}
+.wp.test{border-color:var(--legs);color:var(--legs)}
+.wp.test.active{background:var(--legs);color:#fff}
+.nbtn{background:var(--surface2);border:1px solid var(--border);color:var(--text);width:32px;height:32px;border-radius:6px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:border-color .15s}
+.nbtn:hover{border-color:var(--gold)}
+
+/* WEEK HEADER */
+.whc{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px 18px;margin-bottom:20px;display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap}
+.wnum{font-size:30px;font-weight:800;color:var(--gold);line-height:1;min-width:64px}
+.winfo{flex:1;min-width:200px}
+.tbadge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+.tb-build {background:var(--gold-dim);color:var(--gold)}
+.tb-deload{background:var(--pull-dim);color:var(--pull)}
+.tb-test  {background:var(--legs-dim);color:var(--legs)}
+.winstr{font-size:13px;color:var(--muted)}
+.callout{border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:14px}
+.co-blue {background:var(--pull-dim);border:1px solid rgba(59,130,246,.35)}
+.co-blue strong{color:var(--pull)}
+.co-green{background:var(--legs-dim);border:1px solid rgba(16,185,129,.35)}
+.co-green strong{color:var(--legs)}
+
+/* SESSIONS */
+.sgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+@media(max-width:840px){.sgrid{grid-template-columns:1fr}}
+.sc{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.sch{padding:11px 15px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border)}
+.sdot{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;flex-shrink:0}
+.dot-pull{background:var(--pull-dim);color:var(--pull)}
+.dot-push{background:var(--push-dim);color:var(--push)}
+.dot-legs{background:var(--legs-dim);color:var(--legs)}
+.stitle{font-weight:700;font-size:14px}
+.ssub{font-size:12px;color:var(--muted)}
+.sbody{padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+
+/* EXERCISE ROW */
+.er{background:var(--surface2);border-radius:8px;padding:10px 12px}
+.etop{display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;user-select:none}
+.ename{font-weight:600;font-size:14px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.b-isf {background:var(--gold-dim);  color:var(--gold);  font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;letter-spacing:.3px;text-transform:uppercase;flex-shrink:0}
+.b-aux {background:var(--pull-dim);  color:var(--pull);  font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;letter-spacing:.3px;text-transform:uppercase;flex-shrink:0}
+.b-acc {background:var(--surface);   color:var(--muted); font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;letter-spacing:.3px;text-transform:uppercase;border:1px solid var(--border);flex-shrink:0}
+.eload{text-align:right;flex-shrink:0}
+.escheme{font-weight:700;font-size:14px;color:var(--gold)}
+.eweight{font-size:11px;color:var(--muted)}
+.ecues{margin-top:8px;padding-top:8px;border-top:1px solid var(--border);display:none}
+.ecues.open{display:block}
+.esets{display:flex;gap:5px;margin-top:8px;flex-wrap:wrap}
+.eset{width:28px;height:28px;border-radius:6px;border:1.5px solid var(--border);background:var(--surface);color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;user-select:none;padding:0;flex-shrink:0}
+.eset:hover{border-color:var(--gold);color:var(--text)}
+.eset.done{background:var(--legs-dim);border-color:var(--legs);color:var(--legs)}
+.er.all-done{border-color:var(--legs)}
+.eset-bonus{border-color:rgba(245,158,11,.35);color:var(--gold)}
+.eset-bonus:hover{border-color:var(--gold)}
+.eset-bonus.done{background:var(--gold-dim);border-color:var(--gold);color:var(--gold)}
+.eoutcome{margin-top:6px}
+.eout{display:inline-block;font-size:11px;padding:3px 8px;border-radius:4px;font-weight:600}
+.eout-ok{background:var(--legs-dim);color:var(--legs)}
+.eout-bonus{background:var(--gold-dim);color:var(--gold)}
+.eout-miss{background:var(--red-dim);color:var(--red)}
+.eproj-line{font-size:11px;text-align:right;margin-top:2px;min-height:14px}
+.eproj-ok{color:var(--legs)}.eproj-bonus{color:var(--gold)}.eproj-miss{color:var(--red)}
+.ewu{display:flex;align-items:center;gap:4px;margin-top:8px;flex-wrap:wrap;font-size:11px}
+.ewu-label{color:var(--muted);text-transform:uppercase;letter-spacing:.4px;font-weight:600;font-size:10px;margin-right:2px;flex-shrink:0}
+.ewu-set{padding:2px 6px;border-radius:4px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-weight:600}
+.ewu-arr{color:var(--border)}
+.cl{list-style:none;display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted)}
+.cl li::before{content:'→ ';color:var(--gold)}
+.cl li span{color:var(--text)}
+
+/* CHART */
+.cc{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:22px;overflow-x:auto;margin-bottom:16px}
+.ctitle{font-size:15px;font-weight:700;margin-bottom:4px}
+.csub{font-size:13px;color:var(--muted);margin-bottom:18px}
+.cleg{display:flex;gap:18px;margin-top:14px;font-size:13px;flex-wrap:wrap}
+.ldot{width:12px;height:12px;border-radius:50%;display:inline-block;vertical-align:middle;margin-right:5px}
+
+/* GUIDE */
+.gc{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);margin-bottom:10px;overflow:hidden}
+.gh{padding:13px 18px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;font-weight:700;font-size:14px;user-select:none}
+.gh:hover{background:var(--surface2)}
+.gchev{color:var(--muted);font-size:13px;transition:transform .2s}
+.gchev.open{transform:rotate(180deg)}
+.gb{display:none;padding:4px 18px 18px;border-top:1px solid var(--border)}
+.gb.open{display:block}
+.sbox{background:var(--gold-dim);border-left:3px solid var(--gold);padding:9px 13px;border-radius:0 6px 6px 0;font-size:13px;margin:12px 0}
+.sbox strong{color:var(--gold)}
+.fbox{background:var(--red-dim);border-left:3px solid var(--red);padding:9px 13px;border-radius:0 6px 6px 0;font-size:13px;margin:10px 0}
+.fbox strong{color:var(--red)}
+.gcols{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:12px}
+@media(max-width:600px){.gcols{grid-template-columns:1fr}}
+.gclabel{font-size:13px;font-weight:700;margin-bottom:6px}
+.gcl{list-style:none;font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:4px}
+.gcl li::before{content:'→ ';color:var(--gold)}
+
+/* RECOVERY */
+.rc{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px;margin-bottom:12px}
+.rtitle{font-size:14px;font-weight:700;border-bottom:1px solid var(--border);padding-bottom:8px;margin-bottom:12px}
+.fbar-wrap{display:flex;align-items:center;gap:10px;margin:10px 0}
+.fbar{flex:1;height:12px;border-radius:6px;overflow:hidden;display:flex}
+.fb-ok{background:var(--legs);flex:6}.fb-warn{background:var(--gold);flex:1}.fb-stop{background:var(--red);flex:3}
+.fleg{display:flex;gap:14px;font-size:12px;flex-wrap:wrap;margin-top:6px}
+.wgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:8px}
+@media(max-width:600px){.wgrid{grid-template-columns:1fr}}
+.wi{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 12px;font-size:13px;color:var(--muted)}
+.dt{width:100%;border-collapse:collapse;font-size:13px}
+.dt th{text-align:left;padding:6px 8px;color:var(--muted);border-bottom:1px solid var(--border);font-weight:600}
+.dt td{padding:7px 8px;border-bottom:1px solid var(--border);vertical-align:top}
+.dt tr:last-child td{border-bottom:none}
+.tm{color:var(--muted)}.tg{color:var(--legs)}.ta{color:var(--gold);font-weight:600}
+
+@media print{.tb,.wnav,.pbtn,.tabs{display:none!important}.tp{display:block!important}body{background:#fff;color:#000}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hi">
+    <div>
+      <h1>Streetlifting · 12-Week PPL</h1>
+      <div class="sub">Push / Pull / Legs · 3×/week · 1 main · 1 aux · 2 accessories per session</div>
+    </div>
+    <div class="hstats">
+      <div class="stat"><div class="slabel">Athlete</div><div class="sval">73.5 kg · u74</div></div>
+      <div class="stat"><div class="slabel">Pull-up / Dip start</div><div class="sval">+8 kg · 81.5 kg total</div></div>
+      <div class="stat"><div class="slabel">Squat start</div><div class="sval">80 kg × 5</div></div>
+      <div class="stat"><div class="slabel">Increment</div><div class="sval">1.25 kg belt · 2.5 kg squat</div></div>
+      <button class="pbtn" onclick="window.print()">Print / PDF</button>
+    </div>
+  </div>
+</header>
+
+<div class="tabs">
+  <button class="tb active" onclick="showTab('program',this)">Program</button>
+  <button class="tb" onclick="showTab('chart',this)">Chart</button>
+  <button class="tb" onclick="showTab('guide',this)">Exercise Guide</button>
+  <button class="tb" onclick="showTab('recovery',this)">Recovery</button>
+</div>
+
+<main>
+
+<!-- PROGRAM -->
+<div id="tab-program" class="tp active">
+  <div class="wnav">
+    <button class="nbtn" onclick="changeWeek(-1)">&#8249;</button>
+    <div class="wpills" id="wpills"></div>
+    <button class="nbtn" onclick="changeWeek(1)">&#8250;</button>
+    <button class="nbtn" onclick="clearWeek()" title="Clear set tracking for this week" style="width:auto;padding:0 10px;font-size:11px;color:var(--muted)">✕ sets</button>
+  </div>
+  <div id="wheader"></div>
+  <div id="sgrid" class="sgrid"></div>
+  <div style="margin-top:12px;font-size:12px;color:var(--muted);text-align:center">Click any exercise for cues · ← → to navigate · Tap set numbers to track · Sets saved across sessions</div>
+</div>
+
+<!-- CHART -->
+<div id="tab-chart" class="tp">
+  <div class="cc">
+    <div class="ctitle">Load Progression — All Three Lifts</div>
+    <div class="csub">Pull-up / Dip: BW (73.5 kg) + belt · Squat: bar weight · weights shown are projected based on your recorded outcomes</div>
+    <svg id="csvg" viewBox="0 0 860 280" style="width:100%;height:auto;display:block"></svg>
+    <div class="cleg">
+      <span><span class="ldot" style="background:var(--pull)"></span>Pull-up (total load)</span>
+      <span><span class="ldot" style="background:var(--push)"></span>Dip (total load)</span>
+      <span><span class="ldot" style="background:var(--legs)"></span>Squat (bar weight)</span>
+    </div>
+  </div>
+  <div class="cc">
+    <div class="ctitle">Weekly Load Table</div>
+    <table class="dt" style="margin-top:4px">
+      <thead><tr><th>Wk</th><th>Type</th><th>Ph</th><th>Monday — Pull</th><th>Wednesday — Push</th><th>Friday — Legs</th></tr></thead>
+      <tbody id="ltbody"></tbody>
+      <tfoot><tr style="font-size:11px;color:var(--muted)"><td colspan="3">Progression</td><td>Double: +1 rep/wk → +1.25 kg belt</td><td>Dip: double +1 rep/wk → +1.25 kg · OHP +2.5 kg/wk · Tri: double +2 reps → +2.5 kg · Lat: double +2 reps → +1 kg/side</td><td>Squat +2.5 kg/wk · RDL +5 kg/wk</td></tr></tfoot>
+    </table>
+  </div>
+</div>
+
+<!-- GUIDE -->
+<div id="tab-guide" class="tp">
+
+  <div class="gc">
+    <div class="gh" onclick="tg('pu')"><span style="color:var(--pull)">Pull Day · Weighted Pull-Up — Main ISF lift</span><span class="gchev" id="icon-pu">▼</span></div>
+    <div class="gb" id="guide-pu">
+      <div class="sbox"><strong>ISF Standard:</strong> Dead hang start — arms fully extended, no shrug. Chin clearly above bar. Return to full dead hang. Pronated (overhand) grip. No kipping or swinging.</div>
+      <div class="gcols">
+        <div><div class="gclabel">Cues</div>
+          <ul class="gcl"><li>Depress and retract scapula to initiate — "shoulder blades to back pockets"</li><li>Drive elbows down toward hips, not flared out</li><li>Chin clearly above bar — not grazing it</li><li>Lower to full dead hang every rep, no short ROM</li></ul>
+        </div>
+        <div><div class="gclabel">Progression</div>
+          <ul class="gcl"><li>+1.25 kg belt when all sets hit rep target with ≥ 1 RIR on last set</li><li>Hold weight if last set was a true 0 RIR grind</li><li>Technical failure (no dead hang, chin not over bar) = missed rep</li></ul>
+        </div>
+      </div>
+      <div class="fbox"><strong>Powerlifting-background faults:</strong> Shrug-starting with traps instead of lats · Not returning to a full dead hang (short ROM habit from barbell work) · Grip drifting supinated under fatigue</div>
+    </div>
+  </div>
+
+  <div class="gc">
+    <div class="gh" onclick="tg('mu')"><span style="color:var(--purple)">Pull Day · Muscle-Up — Aux (banded progression)</span><span class="gchev" id="icon-mu">▼</span></div>
+    <div class="gb" id="guide-mu">
+      <div class="sbox"><strong>ISF Standard:</strong> Dead hang start. Pull explosively — transition over bar without kipping or twisting. Full lockout above bar. Return to dead hang.</div>
+      <p style="font-size:13px;color:var(--muted);margin:8px 0">Starting at ~50 kg effective BW (heavy band). Progress through band sizes over 12 weeks. Goal: unassisted BW muscle-up by Week 12.</p>
+      <ul class="gcl" style="font-size:13px"><li><strong>Phase 1 (Wks 1–4) — heavy band ~50 kg eff:</strong> Consolidate transition pattern. Advance when 3×3 is consistently clean.</li><li><strong>Phase 2 (Wks 5–8) — medium band ~60 kg eff:</strong> Next lighter band. Brief regression expected — normal. Advance when clean again.</li><li><strong>Phase 3 (Wks 9–12) — light band → unassisted:</strong> Lightest band, then unassisted attempts. 1 clean rep beats 3 scrambled ones.</li></ul>
+      <p style="font-size:13px;color:var(--muted);margin-top:10px"><strong style="color:var(--text)">The turnover:</strong> At peak pull height — shoot elbows back and lean chest over bar simultaneously. This is the learned motor skill, not a strength issue. Your lat mass from the 210 kg deadlift is not the limiting factor here.</p>
+    </div>
+  </div>
+
+  <div class="gc">
+    <div class="gh" onclick="tg('tfl')"><span style="color:var(--pull)">Pull Day · Tuck Front Lever — Acc</span><span class="gchev" id="icon-tfl">▼</span></div>
+    <div class="gb" id="guide-tfl">
+      <p style="font-size:13px;color:var(--muted);margin:8px 0">Isometric hold that builds posterior shoulder strength, scapular stability, and straight-arm pulling — all directly relevant to the weighted pull-up and muscle-up transition. A progression toward the full front lever.</p>
+      <div class="gcols">
+        <div><div class="gclabel">Position</div>
+          <ul class="gcl"><li>Hang from bar, arms straight (no bent elbows)</li><li>Knees pulled to chest (tuck)</li><li>Press bar down to bring body as close to horizontal as possible</li><li>Scapula depressed and retracted — same as pull-up initiation, but held statically</li></ul>
+        </div>
+        <div><div class="gclabel">Progression</div>
+          <ul class="gcl"><li>Start with 3 × 5 s holds in strict position</li><li>Add 1–2 seconds per session when the hold feels stable throughout</li><li>Target by Week 12: 3 × 10–12 s clean</li><li>Advance to advanced tuck (legs more extended) when 12 s is easy</li></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="gc">
+    <div class="gh" onclick="tg('dp')"><span style="color:var(--push)">Push Day · Weighted Dip — Main ISF lift</span><span class="gchev" id="icon-dp">▼</span></div>
+    <div class="gb" id="guide-dp">
+      <div class="sbox"><strong>ISF Standard:</strong> Full lockout start, no shrug. Shoulders drop clearly below elbows at bottom. Press to full lockout. No swinging or bouncing.</div>
+      <div class="gcols">
+        <div><div class="gclabel">Cues</div>
+          <ul class="gcl"><li>Slight forward lean — not perfectly upright (shoulder health)</li><li>Scapula protracted and depressed throughout</li><li>Control the descent — no drop-and-bounce</li><li>Full lockout at top — partial reps are no-lifts in competition</li></ul>
+        </div>
+        <div><div class="gclabel">Depth note</div>
+          <ul class="gcl"><li>Shoulder clearly below elbow = competition standard</li><li>Going excessively deep stresses the AC joint — reach the standard, don't overshoot</li><li>Depth confirmed at competition standard — ready to load from day 1</li></ul>
+        </div>
+      </div>
+      <div class="fbox"><strong>Common faults:</strong> Excessive forward lean collapse · Incomplete lockout at top · Shoulders shrugging up at the bottom</div>
+    </div>
+  </div>
+
+  <div class="gc">
+    <div class="gh" onclick="tg('ohp')"><span style="color:var(--push)">Push Day · Overhead Press — Aux</span><span class="gchev" id="icon-ohp">▼</span></div>
+    <div class="gb" id="guide-ohp">
+      <p style="font-size:13px;color:var(--muted);margin:8px 0">Builds overhead pressing strength that complements the dip lockout and shoulder stability. Also develops the pressing pattern for dip-phase of the muscle-up.</p>
+      <div class="gcols">
+        <div><div class="gclabel">Cues</div>
+          <ul class="gcl"><li>Grip just outside shoulder width, wrists straight over elbows</li><li>Brace core — rib cage down before pressing</li><li>Bar path: straight up, slight backward arc to keep over mid-foot</li><li>Full lockout at top, lower under control</li></ul>
+        </div>
+        <div><div class="gclabel">Loading</div>
+          <ul class="gcl"><li>Start at a weight you can do 8 reps at RPE 7</li><li>Add 2.5 kg when you can hit 8 reps with ≥ 2 RIR consistently</li><li>Aux lift — keep 2–3 RIR; this supports the dip, it doesn't compete with it</li></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="gc">
+    <div class="gh" onclick="tg('sq')"><span style="color:var(--legs)">Leg Day · Competition Squat — Main ISF lift</span><span class="gchev" id="icon-sq">▼</span></div>
+    <div class="gb" id="guide-sq">
+      <div class="sbox"><strong>ISF Standard:</strong> Hip crease below the top of the knee. Same depth requirement as powerlifting. Command structure varies by federation — confirm with your target fed's rulebook.</div>
+      <p style="font-size:13px;color:var(--muted);margin:8px 0">Powerlifting technique carries directly. Week 1 at 80 kg is an intentional conservative re-entry after the recent deadlift-focused block. Progress: +2.5 kg (one 1.25 kg plate per side) when all 3×5 complete with ≥1 rep in reserve.</p>
+      <div class="fbox" style="border-color:var(--gold);background:var(--gold-dim)"><strong style="color:var(--gold)">Lower back note:</strong> Squat is trained 1×/week (Leg Day only). If lower back fatigue ≥ 7/10 before this session, reduce to 2 sets or skip. Pull and Push sessions that week are unaffected.</div>
+    </div>
+  </div>
+
+  <div class="gc">
+    <div class="gh" onclick="tg('rdl')"><span style="color:var(--legs)">Leg Day · Romanian Deadlift — Aux</span><span class="gchev" id="icon-rdl">▼</span></div>
+    <div class="gb" id="guide-rdl">
+      <p style="font-size:13px;color:var(--muted);margin:8px 0">Hamstring and glute builder with direct posterior chain carryover to the squat and to the hip hinge strength underlying your 210 kg deadlift. Lower back stress is moderate — monitor fatigue and do not push this one when already tired from squats.</p>
+      <div class="gcols">
+        <div><div class="gclabel">Cues</div>
+          <ul class="gcl"><li>Hip hinge — push hips back, bar stays close to legs</li><li>Soft knee bend throughout — not a stiff-leg deadlift</li><li>Lower until hamstring tension stops the descent (not floor)</li><li>Drive hips forward to return — same pattern as deadlift lockout</li></ul>
+        </div>
+        <div><div class="gclabel">Loading</div>
+          <ul class="gcl"><li>Start at 40 kg — RDL technique is different from conventional deadlift</li><li>3 × 6 · add 5 kg when all sets complete with ≥ 1 RIR on last set</li><li>Keep 1–2 RIR — posterior chain is already taxed from squats</li></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="gc">
+    <div class="gh" onclick="tg('acc')"><span>Chin-Up · Tuck Front Lever · Knee Raises · Tricep Ext · Lateral Raises — Accessory Reference</span><span class="gchev" id="icon-acc">▼</span></div>
+    <div class="gb" id="guide-acc">
+      <table class="dt" style="margin-top:8px">
+        <thead><tr><th>Exercise</th><th>Session</th><th>Sets × Reps</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td>Tuck Front Lever</td><td>Pull</td><td>3 × 5–10 s</td><td class="tm">Scapular stability, straight-arm strength — front lever progression</td></tr>
+          <tr><td>Hanging Knee Raises</td><td>Pull + Legs</td><td>3 × 12–15</td><td class="tm">Core anti-flexion; dead hang grip reinforces pull-up bottom position</td></tr>
+          <tr><td>Tricep Extensions</td><td>Push</td><td>3 × 10–12</td><td class="tm">Dip lockout strength and elbow health</td></tr>
+          <tr><td>Lateral Raises</td><td>Push</td><td>3 × 12–15</td><td class="tm">Medial delt balance and shoulder health</td></tr>
+          <tr><td>Chin-up (supinated)</td><td>Legs</td><td>3 × 5–8</td><td class="tm">BW pull volume on a non-pull day; different grip pattern to pronated pull-up; bicep and lat auxiliary</td></tr>
+          <tr><td>Romanian Deadlift</td><td>Legs (Aux)</td><td>3 × 6–8</td><td class="tm">Hamstring and glute development; posterior chain carryover to squat and deadlift</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- RECOVERY -->
+<div id="tab-recovery" class="tp">
+  <div class="rc">
+    <div class="rtitle">Lower Back Fatigue — Check Before Each Session</div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:10px">Rate 1–10. Primary systemic fatigue indicator. Most directly affects Leg Day (squat + RDL) — Pull and Push are low-back neutral.</p>
+    <div class="fbar-wrap"><span style="font-size:12px;color:var(--muted)">1</span><div class="fbar"><div class="fb-ok"></div><div class="fb-warn"></div><div class="fb-stop"></div></div><span style="font-size:12px;color:var(--muted)">10</span></div>
+    <div class="fleg">
+      <span><span style="color:var(--legs)">■</span> 1–6 → Train as prescribed</span>
+      <span><span style="color:var(--gold)">■</span> 7 → Skip or reduce squats and RDL. Pull/Push unaffected.</span>
+      <span><span style="color:var(--red)">■</span> 8–10 → Leg Day becomes active recovery only</span>
+    </div>
+  </div>
+
+  <div class="rc">
+    <div class="rtitle">Progression Rules</div>
+    <table class="dt">
+      <thead><tr><th>Lift</th><th>Increment</th><th>Add when</th><th>Hold when</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Pull-up</strong></td><td>Double: +1 rep/wk → +1.25 kg belt</td><td class="tg">Rep week: same weight, add 1 rep · Weight week: earned by hitting 4 × 3 with ≥ 1 RIR</td><td class="tm">0 RIR grind — stay at current weight and reps</td></tr>
+        <tr><td><strong>Dip</strong></td><td>Double: +1 rep/wk → +1.25 kg belt</td><td class="tg">Rep week: same weight, add 1 rep · Weight week: earned by hitting 4 × 3 with ≥ 1 RIR</td><td class="tm">0 RIR grind or incomplete lockouts appearing</td></tr>
+        <tr><td><strong>Squat</strong></td><td>+2.5 kg (1.25 kg per side)</td><td class="tg">All 3 × 5 complete with ≥ 1 RIR on last set</td><td class="tm">Any missed rep, or lower back ≥ 7/10 before session</td></tr>
+        <tr><td><strong>OHP (aux)</strong></td><td>+2.5 kg (start 30 kg)</td><td class="tg">All 3 × 5 complete with ≥ 1 RIR on last set</td><td class="tm">Any missed rep — repeat the weight</td></tr>
+        <tr><td><strong>Tricep Ext (acc)</strong></td><td>Double: +2 reps/wk → +2.5 kg (start 10 kg)</td><td class="tg">Rep week: same weight, add 2 reps · Weight week: earned by hitting 3 × 12 with ≥ 1 RIR</td><td class="tm">Any missed rep — stay at current weight and reps</td></tr>
+        <tr><td><strong>Lat Raises (acc)</strong></td><td>Double: +2 reps/wk → +1 kg/side (start 4 kg)</td><td class="tg">Rep week: same weight, add 2 reps · Weight week: earned by hitting 3 × 14 with ≥ 1 RIR</td><td class="tm">Any missed rep — stay at current weight and reps</td></tr>
+        <tr><td><strong>RDL (aux)</strong></td><td>+5 kg (start 40 kg)</td><td class="tg">All 3 × 6 complete with ≥ 1 RIR on last set</td><td class="tm">Posterior fatigue carrying over to squats</td></tr>
+        <tr><td><strong>Tuck FL</strong></td><td>+1–2 s per session</td><td class="tg">Hold clean throughout — no hips dropping</td><td class="tm">Position breaks during the hold</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="rc">
+    <div class="rtitle">MRV Warning Signs — Reduce Volume 20% if 2+ Apply</div>
+    <div class="wgrid">
+      <div class="wi">Sleep quality decreases</div><div class="wi">Elevated morning heart rate</div>
+      <div class="wi">Motivation or enjoyment drops</div><div class="wi">Performance stalls or regresses</div>
+      <div class="wi">Persistent soreness (72+ hours)</div><div class="wi">Technique breaks under submaximal loads</div>
+      <div class="wi">Getting sick more frequently</div><div class="wi">Mood or irritability issues</div>
+    </div>
+  </div>
+
+  <div class="rc">
+    <div class="rtitle">ISF Competition Standards</div>
+    <table class="dt">
+      <thead><tr><th>Lift</th><th>Valid start</th><th>Valid completion</th><th>Auto no-lift</th></tr></thead>
+      <tbody>
+        <tr><td><strong style="color:var(--pull)">Pull-Up</strong></td><td>Dead hang, no shrug</td><td>Chin clearly above bar, return to dead hang</td><td class="tm">Kipping, chin not over bar, supinated grip</td></tr>
+        <tr><td><strong style="color:var(--push)">Dip</strong></td><td>Full lockout, no shrug</td><td>Shoulder below elbow, full lockout</td><td class="tm">Bouncing, partial lockout, swinging</td></tr>
+        <tr><td><strong style="color:var(--purple)">Muscle-Up</strong></td><td>Dead hang</td><td>Full lockout above bar, return to dead hang</td><td class="tm">Kipping, twisting, incomplete lockout</td></tr>
+        <tr><td><strong style="color:var(--legs)">Squat</strong></td><td>Standing, bar on back</td><td>Hip crease below knee, full lockout</td><td class="tm">Depth not reached, hitching</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+</main>
+
+<script>
+const BW = 73.5;
+
+// ohp/tri/lat/rdl project at +2.5/+2.5/+1/+5 kg per session when earned
+const WEEKS = [
+  {num:1, type:'build', phase:1, pull:7.5,   push:7.5,   pullReps:2, pushReps:2, squat:80,    ohp:30,   tri:10,  triReps:10, lat:4, latReps:12, rdl:40, tflSecs:5,  kneeReps:12, cuReps:5  },
+  {num:2, type:'build', phase:1, pull:7.5,   push:7.5,   pullReps:3, pushReps:3, squat:82.5,  ohp:32.5, tri:10,  triReps:12, lat:4, latReps:14, rdl:45, tflSecs:6,  kneeReps:13, cuReps:6  },
+  {num:3, type:'build', phase:1, pull:8.75,  push:8.75,  pullReps:2, pushReps:2, squat:85,    ohp:35,   tri:12.5,triReps:10, lat:5, latReps:12, rdl:50, tflSecs:7,  kneeReps:14, cuReps:7  },
+  {num:4, type:'build', phase:1, pull:8.75,  push:8.75,  pullReps:3, pushReps:3, squat:87.5,  ohp:37.5, tri:12.5,triReps:12, lat:5, latReps:14, rdl:55, tflSecs:8,  kneeReps:15, cuReps:8  },
+  {num:5, type:'build', phase:2, pull:10,    push:10,    pullReps:2, pushReps:2, squat:90,    ohp:40,   tri:15,  triReps:10, lat:6, latReps:12, rdl:60, tflSecs:9,  kneeReps:16, cuReps:9  },
+  {num:6, type:'build', phase:2, pull:10,    push:10,    pullReps:3, pushReps:3, squat:92.5,  ohp:42.5, tri:15,  triReps:12, lat:6, latReps:14, rdl:65, tflSecs:10, kneeReps:17, cuReps:10 },
+  {num:7, type:'deload',phase:2, pull:7.5,   push:7.5,   pullReps:3, pushReps:3, squat:75,    ohp:30,   tri:10,  triReps:10, lat:4, latReps:12, rdl:40, tflSecs:5,  kneeReps:10, cuReps:5  },
+  {num:8, type:'build', phase:2, pull:11.25, push:11.25, pullReps:2, pushReps:2, squat:92.5,  ohp:42.5, tri:17.5,triReps:10, lat:7, latReps:12, rdl:65, tflSecs:11, kneeReps:18, cuReps:11 },
+  {num:9, type:'build', phase:3, pull:11.25, push:11.25, pullReps:3, pushReps:3, squat:95,    ohp:45,   tri:17.5,triReps:12, lat:7, latReps:14, rdl:70, tflSecs:12, kneeReps:19, cuReps:12 },
+  {num:10,type:'build', phase:3, pull:12.5,  push:12.5,  pullReps:2, pushReps:2, squat:97.5,  ohp:47.5, tri:20,  triReps:10, lat:8, latReps:12, rdl:75, tflSecs:13, kneeReps:20, cuReps:13 },
+  {num:11,type:'build', phase:3, pull:12.5,  push:12.5,  pullReps:3, pushReps:3, squat:100,   ohp:50,   tri:20,  triReps:12, lat:8, latReps:14, rdl:80, tflSecs:14, kneeReps:21, cuReps:14 },
+  {num:12,type:'test',  phase:3, pull:13.75, push:13.75, pullReps:2, pushReps:2, squat:102.5, ohp:52.5, tri:22.5,triReps:10, lat:9, latReps:12, rdl:85, tflSecs:15, kneeReps:22, cuReps:15 },
+];
+
+const MU = {
+  1:'Banded MU — heavy band (~50 kg eff.)',
+  2:'Banded MU — medium band (~60 kg eff.)',
+  3:'Light band / unassisted attempts',
+};
+
+function fmt(v){ return v.toFixed(2).replace(/\.?0+$/,''); }
+function typeLabel(t){ return {build:'Build',deload:'Deload',test:'Assessment'}[t]; }
+function wInstr(w){
+  if(w.type==='deload') return 'Belt back to Week 1. Squat at 75 kg. 50% volume, no failure — mandatory recovery.';
+  if(w.type==='test')   return 'Peak week. Main lifts include an AMRAP final set to calibrate Block 2 training maxes.';
+  return `Phase ${w.phase} · +1.25 kg belt (pull/dip) · +2.5 kg bar (squat) when rep target beaten with ≥ 1 RIR.`;
+}
+
+// Build a single exercise row
+function er(uid, name, badgeCls, badgeLabel, scheme, weightLine, cues, isMain, wuHtml){
+  const setCount = parseInt(scheme.match(/^(\d+)/)?.[1] || '0');
+  const bonusBtn = isMain ? `<button id="bonus-${uid}" class="eset eset-bonus" onclick="toggleBonus(event,'${uid}')" title="Bonus set — hit it to earn a double jump next session">★</button>` : '';
+  const setsHtml = setCount > 0
+    ? `<div class="esets" id="sets-${uid}">${Array.from({length:setCount},(_,j)=>`<button class="eset" onclick="toggleSet(event,'${uid}',${j})">${j+1}</button>`).join('')}${bonusBtn}</div>`
+    : '';
+  const outcomeHtml = isMain ? `<div class="eoutcome" id="outcome-${uid}"></div>` : '';
+  const cHtml = cues.map(c=>`<li><span>${c}</span></li>`).join('');
+  const targetLabel = isMain ? `<span style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">target</span> ` : '';
+  return `<div class="er" id="er-${uid}" data-sets="${setCount}">
+    <div class="etop" onclick="tx('${uid}')">
+      <div class="ename">${name}<span class="${badgeCls}">${badgeLabel}</span></div>
+      <div class="eload">
+        <div class="escheme">${scheme}</div>
+        <div class="eweight">${targetLabel}${weightLine}</div>
+        ${isMain ? `<div id="proj-${uid}" class="eproj-line"></div>` : ''}
+      </div>
+    </div>
+    ${wuHtml ? `<div class="ewu"><span class="ewu-label">Warm-up</span>${wuHtml}</div>` : ''}
+    ${setsHtml}
+    ${outcomeHtml}
+    <div class="ecues" id="${uid}"><ul class="cl">${cHtml}</ul></div>
+  </div>`;
+}
+
+function renderPull(w, i){
+  const d = w.type==='deload', t = w.type==='test';
+  const pBelt = w.pull, pTotal = fmt(BW+pBelt);
+  const puScheme  = d ? '3 × 3–4' : t ? `4 × ${w.pullReps} + AMRAP` : `4 × ${w.pullReps}`;
+  const muScheme  = d ? '2 × 2' : '3 × 3';
+  const tflScheme = d ? '2 × 5 s' : `3 × ${w.tflSecs} s`;
+  const kneeScheme= d ? '2 × 10' : `3 × ${w.kneeReps}`;
+  const puWarmup = warmupLine(calcCalWarmups(pBelt), 'cal');
+  return `<div class="sc">
+    <div class="sch"><div class="sdot dot-pull">↑</div><div><div class="stitle">Pull Day</div><div class="ssub">Monday · Pull-up / Muscle-up / Tuck FL / Knee Raises</div></div></div>
+    <div class="sbody">
+      ${er(`pu${i}`,'Weighted Pull-Up','b-isf','ISF',puScheme,`+${pBelt} kg · ${pTotal} kg total`,[
+        'Pronated grip — dead hang start, arms fully extended',
+        'Chin clearly above bar — not grazing, clearly above',
+        'Lower to full dead hang every rep',
+        d ? 'Deload — 3+ RIR, technique focus, no grinding'
+          : t ? 'Final set: AMRAP at this weight — record reps for Block 2 planning'
+          : w.pullReps===2 ? 'Weight week — hit 4 × 2. Add 1 rep next week (same weight).' : 'Rep week — hit 4 × 3 with ≥ 1 RIR · next week: +1.25 kg belt, back to 4 × 2.',
+      ], true, puWarmup)}
+      ${er(`mu${i}`,'Muscle-Up','b-aux','Aux',muScheme,MU[w.phase],[
+        'Dead hang start — same standard as pull-up',
+        'Explosive pull — aim chest to bar, not just chin',
+        'Turnover: shoot elbows back + lean chest over bar simultaneously',
+        'Full lockout above bar to complete',
+        d ? 'Deload — 2 careful reps, technique only' : 'Rest fully between sets — quality over quantity',
+      ])}
+      ${er(`tfl${i}`,'Tuck Front Lever','b-acc','Acc',tflScheme,'Bodyweight — isometric hold',[
+        'Dead hang grip, arms straight throughout — no bent elbows',
+        'Pull knees to chest (tuck) while pressing bar down',
+        'Goal: body as close to horizontal as possible',
+        'Add 1–2 s per session when position holds cleanly throughout',
+      ])}
+      ${er(`kr1${i}`,'Hanging Knee Raises','b-acc','Acc',kneeScheme,'Bodyweight',[
+        'Dead hang bottom — same grip reinforcement as pull-up',
+        'Raise knees to chest under control, lower fully',
+        'Add weight (medicine ball between knees) when 15 reps is easy',
+      ])}
+    </div>
+  </div>`;
+}
+
+function renderPush(w, i){
+  const d = w.type==='deload', t = w.type==='test';
+  const dBelt = w.push, dTotal = fmt(BW+dBelt);
+  const dipScheme = d ? '3 × 3–4' : t ? `4 × ${w.pushReps} + AMRAP` : `4 × ${w.pushReps}`;
+  const dpWarmup = warmupLine(calcCalWarmups(dBelt), 'cal');
+  return `<div class="sc">
+    <div class="sch"><div class="sdot dot-push">↓</div><div><div class="stitle">Push Day</div><div class="ssub">Wednesday · Dip / OHP / Triceps / Laterals</div></div></div>
+    <div class="sbody">
+      ${er(`dp${i}`,'Weighted Dip','b-isf','ISF',dipScheme,`+${dBelt} kg · ${dTotal} kg total`,[
+        'Full lockout start — shoulders not shrugged',
+        'Scapula protracted and depressed throughout',
+        'Shoulders clearly below elbows at bottom',
+        'Full lockout at top — no partial reps',
+        d ? 'Deload — 3+ RIR, focus on position not load'
+          : t ? 'Final set: AMRAP at this weight'
+          : w.pushReps===2 ? 'Weight week — hit 4 × 2. Add 1 rep next week (same weight).' : 'Rep week — hit 4 × 3 with ≥ 1 RIR · next week: +1.25 kg belt, back to 4 × 2.',
+      ], true, dpWarmup)}
+      ${er(`ohp${i}`,'Overhead Press','b-aux','Aux',d?'2 × 5':'3 × 5',`${w.ohp} kg`,[
+        'Grip just outside shoulder width, wrists stacked over elbows',
+        'Brace core, rib cage down before pressing',
+        'Full lockout at top, lower under control',
+        '+2.5 kg next session when all 3×5 complete with ≥ 1 RIR',
+      ])}
+      ${er(`tri${i}`,'Tricep Extensions','b-acc','Acc',d?'2 × 10':`3 × ${w.triReps}`,`${w.tri} kg`,[
+        'Dip lockout strength and elbow health',
+        'Full extension at bottom, controlled return',
+        d ? 'Deload — light weight, technique focus' : w.triReps===10 ? 'Weight week — hit 3 × 10. Add 2 reps next week (same weight).' : 'Rep week — hit 3 × 12 with ≥ 1 RIR · next week: +2.5 kg, back to 3 × 10.',
+      ])}
+      ${er(`lat${i}`,'Lateral Raises','b-acc','Acc',d?'2 × 12':`3 × ${w.latReps}`,`${w.lat} kg / side`,[
+        'Medial delt balance and shoulder health',
+        'Slight forward lean, lead with elbows not wrists',
+        'No momentum — strict movement',
+        d ? 'Deload — light weight, strict movement' : w.latReps===12 ? 'Weight week — hit 3 × 12. Add 2 reps next week (same weight).' : 'Rep week — hit 3 × 14 with ≥ 1 RIR · next week: +1 kg/side, back to 3 × 12.',
+      ])}
+    </div>
+  </div>`;
+}
+
+function renderLegs(w, i){
+  const d = w.type==='deload', t = w.type==='test';
+  const sqScheme  = d ? '2 × 4' : t ? '3 × 5 + AMRAP' : '3 × 5';
+  const rdlScheme = d ? '2 × 6' : '3 × 6';
+  const kneeScheme= d ? '2 × 10' : `3 × ${w.kneeReps}`;
+  const cuScheme  = d ? '2 × 5' : `3 × ${w.cuReps}`;
+  const sqWarmup = warmupLine(calcSquatWarmups(w.squat), 'sq');
+  return `<div class="sc">
+    <div class="sch"><div class="sdot dot-legs">▽</div><div><div class="stitle">Leg Day</div><div class="ssub">Friday · Squat / RDL / Knee Raises / Chin-up</div></div></div>
+    <div class="sbody">
+      ${er(`sq${i}`,'Competition Squat','b-isf','ISF',sqScheme,`${w.squat} kg`,[
+        'ISF standard: hip crease below top of knee',
+        'Powerlifting technique carries directly',
+        'Week 1 at 80 kg — conservative re-entry, intentional',
+        d ? 'Deload — lighter weight, technique only, no grinding'
+          : t ? 'Final set: AMRAP at this weight'
+          : '+2.5 kg next session when all 3×5 complete with ≥ 1 RIR',
+        'If lower back ≥ 7/10 → reduce to 2 sets or skip',
+      ], true, sqWarmup)}
+      ${er(`rdl${i}`,'Romanian Deadlift','b-aux','Aux',d?'2 × 6':'3 × 6',`${w.rdl} kg`,[
+        'Hip hinge — push hips back, bar stays close to legs',
+        'Lower until hamstring tension stops you — not the floor',
+        'Drive hips forward to return',
+        '+5 kg next session when all 3×6 complete with ≥ 1 RIR',
+      ])}
+      ${er(`kr2${i}`,'Hanging Knee Raises','b-acc','Acc',kneeScheme,'Bodyweight',[
+        'Active recovery feel on leg day — lighter CNS demand',
+        'Raise knees to chest, lower fully each rep',
+      ])}
+      ${er(`cu${i}`,'Chin-Up','b-acc','Acc',cuScheme,'Bodyweight',[
+        'Supinated grip — different pattern to pronated competition pull-up',
+        'BW only — auxiliary volume, not a strength target',
+        'Dead hang start and full lockout — same standards',
+        'Finishes the week with a pulling stimulus at low fatigue',
+      ])}
+    </div>
+  </div>`;
+}
+
+let cw = 0;
+
+function renderPills(){
+  document.getElementById('wpills').innerHTML = WEEKS.map((w,i)=>{
+    const cls = ['wp', w.type==='deload'?'deload':'', w.type==='test'?'test':'', i===cw?'active':''].filter(Boolean).join(' ');
+    const sfx = w.type==='deload'?' ⟳':w.type==='test'?' ★':'';
+    return `<button class="${cls}" onclick="setWeek(${i})">W${w.num}${sfx}</button>`;
+  }).join('');
+}
+
+function renderHeader(){
+  const w = WEEKS[cw];
+  const callout = w.type==='deload'
+    ? `<div class="callout co-blue"><strong>Deload Week:</strong> Belt back to Week 1. Squat at 75 kg. 50% volume across all sessions. No failure. This is what makes the Phase 3 numbers possible.</div>`
+    : w.type==='test'
+    ? `<div class="callout co-green"><strong>Assessment Week:</strong> Continue projected load. Each main lift ends with an AMRAP set at working weight. Record reps to set Block 2 training maxes.</div>`
+    : '';
+  document.getElementById('wheader').innerHTML = `${callout}
+    <div class="whc">
+      <div class="wnum">W${w.num}</div>
+      <div class="winfo">
+        <span class="tbadge tb-${w.type}">${typeLabel(w.type)}</span>
+        <div class="winstr" style="margin-top:5px">${wInstr(w)}</div>
+      </div>
+      <div class="mu-phase-pill" style="background:var(--purple-dim);border:1px solid rgba(168,85,247,.3);border-radius:8px;padding:8px 14px;font-size:12px;align-self:center;flex-shrink:0">
+        <strong style="color:var(--purple);display:block">MU: ${MU[w.phase]}</strong>
+        <span style="color:var(--muted);font-size:11px">Pull Day — 3 × 3</span>
+      </div>
+    </div>`;
+}
+
+function renderSessions(){
+  const w = WEEKS[cw], i = w.num;
+  document.getElementById('sgrid').innerHTML = renderPull(w,i) + renderPush(w,i) + renderLegs(w,i);
+  restoreSetStates();
+}
+
+function tx(id){ const el=document.getElementById(id); if(el) el.classList.toggle('open'); }
+function setWeek(i){ cw=Math.max(0,Math.min(11,i)); renderPills(); renderHeader(); renderSessions(); }
+function changeWeek(d){ setWeek(cw+d); }
+
+function showTab(id,btn){
+  document.querySelectorAll('.tp').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tb').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+
+function tg(id){
+  document.getElementById('guide-'+id).classList.toggle('open');
+  document.getElementById('icon-'+id).classList.toggle('open');
+}
+
+function toggleSet(e, uid, idx){
+  e.stopPropagation();
+  const key = 'sl_' + uid;
+  const state = JSON.parse(localStorage.getItem(key) || '{}');
+  state[idx] = !state[idx];
+  localStorage.setItem(key, JSON.stringify(state));
+  applySetState(uid, state);
+}
+
+function applySetState(uid, state){
+  const container = document.getElementById('sets-' + uid);
+  if (!container) return;
+  const card = document.getElementById('er-' + uid);
+  const n = parseInt(card.dataset.sets);
+  let allDone = n > 0;
+  container.querySelectorAll('.eset:not(.eset-bonus)').forEach((btn, i) => {
+    const done = !!state[i];
+    btn.classList.toggle('done', done);
+    if (!done) allDone = false;
+  });
+  card.classList.toggle('all-done', allDone);
+  restoreOutcome(uid);
+}
+
+function restoreSetStates(){
+  document.querySelectorAll('.er[id]').forEach(card => {
+    const uid = card.id.slice(3);
+    const state = JSON.parse(localStorage.getItem('sl_' + uid) || '{}');
+    applySetState(uid, state);
+  });
+  updateProjected();
+}
+
+function updateProjected(){
+  const pullP = computeProjectionChain('pu','pull');
+  const pushP = computeProjectionChain('dp','push');
+  const sqP   = computeProjectionChain('sq','squat');
+  renderProjLine('pu', cw, 'pull',  pullP);
+  renderProjLine('dp', cw, 'push',  pushP);
+  renderProjLine('sq', cw, 'squat', sqP);
+  drawChart();
+}
+
+function computeProjectionChain(prefix, lift){
+  const nSets = lift==='squat' ? 3 : 4;
+  // Build an index chain: each entry is the WEEKS index whose values this week
+  // will actually use. Bonus = skip 1 extra index; incomplete = stay; normal/no-data = advance 1.
+  const idxChain = [0];
+  for(let i=1; i<WEEKS.length; i++){
+    const prev = WEEKS[i-1];
+    const prevUid = prefix+prev.num;
+    const prevState = JSON.parse(localStorage.getItem('sl_'+prevUid) || '{}');
+    const prevBonus = JSON.parse(localStorage.getItem('sl_'+prevUid+'_b') || 'false');
+    const prevAny = Object.values(prevState).some(Boolean) || prevBonus;
+    const prevAll = prevAny && Array.from({length:nSets},(_,j)=>!!prevState[j]).every(Boolean);
+    const step = (prevAll && prevBonus) ? 2 : (!prevAny || prevAll) ? 1 : 0;
+    let ni = Math.min(idxChain[i-1] + step, WEEKS.length-1);
+    while(ni < WEEKS.length-1 && WEEKS[ni].type === 'deload') ni++;
+    idxChain.push(ni);
+  }
+  return idxChain.map(idx => {
+    const w = WEEKS[idx];
+    return {
+      weight: w[lift],
+      reps: lift==='pull' ? w.pullReps : lift==='push' ? w.pushReps : null
+    };
+  });
+}
+
+function renderProjLine(prefix, i, lift, projs){
+  const w = WEEKS[i];
+  const el = document.getElementById('proj-'+prefix+w.num);
+  if(!el) return;
+  if(i===0 || w.type==='deload'){ el.innerHTML=''; return; }
+  const prev=WEEKS[i-1];
+  const prevUid=prefix+prev.num;
+  const prevState=JSON.parse(localStorage.getItem('sl_'+prevUid) || '{}');
+  const prevBonus=JSON.parse(localStorage.getItem('sl_'+prevUid+'_b') || 'false');
+  const prevAny=Object.values(prevState).some(Boolean) || prevBonus;
+  if(!prevAny){ el.innerHTML=''; return; }
+  const nSets=lift==='squat' ? 3 : 4;
+  const prevAll=Array.from({length:nSets},(_,j)=>!!prevState[j]).every(Boolean);
+  const cls = !prevAll ? 'eproj-miss' : prevBonus ? 'eproj-bonus' : 'eproj-ok';
+  const icon= !prevAll ? '↺' : prevBonus ? '⚡' : '✓';
+  const p = projs[i];
+  const text = lift==='squat' ? `${p.weight} kg` : `+${p.weight} kg × ${p.reps}`;
+  el.innerHTML = `<span class="${cls}">${icon} proj: ${text}</span>`;
+}
+
+function clearWeek(){
+  document.querySelectorAll('.er[id]').forEach(card => {
+    const uid = card.id.slice(3);
+    localStorage.removeItem('sl_' + uid);
+    localStorage.removeItem('sl_' + uid + '_b');
+    applySetState(uid, {});
+  });
+}
+
+function toggleBonus(e, uid){
+  e.stopPropagation();
+  const key = 'sl_' + uid + '_b';
+  const done = !JSON.parse(localStorage.getItem(key) || 'false');
+  localStorage.setItem(key, JSON.stringify(done));
+  restoreOutcome(uid);
+}
+
+function restoreOutcome(uid){
+  const outcome = document.getElementById('outcome-' + uid);
+  if (!outcome) return;
+  const card = document.getElementById('er-' + uid);
+  const n = parseInt(card.dataset.sets);
+  const state = JSON.parse(localStorage.getItem('sl_' + uid) || '{}');
+  const bonusDone = JSON.parse(localStorage.getItem('sl_' + uid + '_b') || 'false');
+  const bonusBtn = document.getElementById('bonus-' + uid);
+  if (bonusBtn) bonusBtn.classList.toggle('done', bonusDone);
+  const anyTouched = Object.values(state).some(Boolean) || bonusDone;
+  if (!anyTouched){ outcome.innerHTML = ''; return; }
+  const allDone = n > 0 && Array.from({length:n},(_,i)=>!!state[i]).every(Boolean);
+  if (allDone && bonusDone)
+    outcome.innerHTML = '<span class="eout eout-bonus">⚡ Bonus — double jump next session</span>';
+  else if (allDone)
+    outcome.innerHTML = '<span class="eout eout-ok">✓ Mandatory done — normal progression</span>';
+  else
+    outcome.innerHTML = '<span class="eout eout-miss">↺ Mandatory incomplete — weight repeats</span>';
+}
+
+function calcCalWarmups(belt){
+  if(!belt) return [];
+  const n = Math.min(3, Math.max(2, Math.floor(belt/3)));
+  const pts = [];
+  for(let i=1;i<=n;i++) pts.push(Math.round(belt*i/(n+1)/1.25)*1.25);
+  return [0,...pts];
+}
+
+function calcSquatWarmups(working){
+  const bar=20;
+  if(working<=bar+10) return [bar];
+  const step=Math.max(5, Math.round((working-bar)/3/5)*5);
+  const pts=[];
+  for(let s=bar;s<working;s+=step) pts.push(s);
+  return pts;
+}
+
+function warmupLine(sets, type){
+  return sets.map(s=>
+    type==='cal'
+      ? `<span class="ewu-set">${s===0?'BW':'+'+s+' kg'}</span>`
+      : `<span class="ewu-set">${s} kg</span>`
+  ).join('<span class="ewu-arr"> → </span>');
+}
+
+function drawChart(){
+  const svg=document.getElementById('csvg');
+  const W=860,H=280,pad={t:24,r:30,b:38,l:52};
+  const cW=W-pad.l-pad.r, cH=H-pad.t-pad.b;
+  const pullProjs=computeProjectionChain('pu','pull');
+  const pushProjs=computeProjectionChain('dp','push');
+  const sqProjs  =computeProjectionChain('sq','squat');
+  const pulls =pullProjs.map(p=>BW+p.weight);
+  const pushes=pushProjs.map(p=>BW+p.weight);
+  const squats=sqProjs.map(p=>p.weight);
+  const all=[...pulls,...pushes,...squats];
+  const minV=Math.floor(Math.min(...all)/5)*5-2, maxV=Math.ceil(Math.max(...all)/5)*5+4;
+  const xS=n=>pad.l+((n-1)/11)*cW, yS=v=>pad.t+cH-((v-minV)/(maxV-minV))*cH;
+  let h='';
+  for(let v=Math.ceil(minV/5)*5;v<=maxV;v+=5){
+    h+=`<line x1="${pad.l}" y1="${yS(v)}" x2="${W-pad.r}" y2="${yS(v)}" stroke="#2d3348" stroke-width="1"/>`;
+    h+=`<text x="${pad.l-6}" y="${yS(v)+4}" text-anchor="end" font-size="11" fill="#64748b">${v}</text>`;
+  }
+  const dx=xS(7);
+  h+=`<line x1="${dx}" y1="${pad.t}" x2="${dx}" y2="${H-pad.b}" stroke="#3b82f6" stroke-width="1" stroke-dasharray="5,3" opacity="0.5"/>`;
+  h+=`<text x="${dx+4}" y="${pad.t+14}" font-size="11" fill="#3b82f6">Deload</text>`;
+  const mkPath=(vals,color,dash)=>{
+    const pts=WEEKS.map(w=>`${xS(w.num)},${yS(vals[w.num-1])}`).join(' L ');
+    h+=`<path d="M ${pts}" stroke="${color}" stroke-width="2.5" fill="none" stroke-linejoin="round"${dash?' stroke-dasharray="5,3"':''} opacity="0.9"/>`;
+  };
+  mkPath(squats,'#10b981',false); mkPath(pushes,'#f97316',true); mkPath(pulls,'#3b82f6',false);
+  WEEKS.forEach(w=>{
+    const x=xS(w.num),y=yS(pulls[w.num-1]);
+    const c=w.type==='deload'?'#94a3b8':w.type==='test'?'#10b981':'#3b82f6';
+    h+=`<circle cx="${x}" cy="${y}" r="4" fill="${c}" stroke="#0f1117" stroke-width="2"/>`;
+    h+=`<text x="${x}" y="${y-(w.num%2?10:-16)}" text-anchor="middle" font-size="10" fill="${c}">${fmt(pulls[w.num-1])}</text>`;
+    const ys=yS(squats[w.num-1]);
+    h+=`<circle cx="${x}" cy="${ys}" r="4" fill="${w.type==='deload'?'#94a3b8':'#10b981'}" stroke="#0f1117" stroke-width="2"/>`;
+  });
+  WEEKS.forEach(w=>{
+    const c=w.type==='deload'?'#3b82f6':w.type==='test'?'#10b981':'#64748b';
+    h+=`<text x="${xS(w.num)}" y="${H-pad.b+16}" text-anchor="middle" font-size="11" fill="${c}">W${w.num}</text>`;
+  });
+  h+=`<text x="${pad.l-38}" y="${pad.t+cH/2}" text-anchor="middle" font-size="11" fill="#64748b" transform="rotate(-90,${pad.l-38},${pad.t+cH/2})">kg</text>`;
+  svg.innerHTML=h;
+}
+
+function buildTable(){
+  const m = (label, val, sub) => `<span style="font-size:12px"><strong>${label}:</strong> ${val}</span>${sub?`<span style="color:var(--muted);font-size:11px"> ${sub}</span>`:''}`;
+  document.getElementById('ltbody').innerHTML=WEEKS.map(w=>{
+    const s=w.type==='deload'?'color:var(--pull)':w.type==='test'?'color:var(--legs)':'';
+    return `<tr style="${s}">
+      <td><strong>W${w.num}</strong></td><td>${typeLabel(w.type)}</td><td>P${w.phase}</td>
+      <td>${m('Pull-up',`+${w.pull} kg × ${w.pullReps}`,`(${fmt(BW+w.pull)} total)`)}</td>
+      <td style="line-height:1.8">${m('Dip',`+${w.push} kg × ${w.pushReps}`,`(${fmt(BW+w.push)} total)`)}<br>${m('OHP',`${w.ohp} kg`)} · ${m('Tri',`${w.tri} kg × ${w.triReps}`)} · ${m('Lat',`${w.lat} kg × ${w.latReps}`)}</td>
+      <td style="line-height:1.8">${m('Squat',`${w.squat} kg`)}<br>${m('RDL',`${w.rdl} kg`)}</td>
+    </tr>`;
+  }).join('');
+}
+
+document.addEventListener('keydown',e=>{if(e.key==='ArrowLeft')changeWeek(-1);if(e.key==='ArrowRight')changeWeek(1);});
+setWeek(0); drawChart(); buildTable();
+</script>
+</body>
+</html>
