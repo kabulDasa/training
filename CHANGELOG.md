@@ -10,3 +10,7 @@
 - The tracker is serverless and hosted on GitHub Pages: it reads and commits `progress.md` through the
   GitHub API with a per-device token (Settings → GitHub sync), so it works from a phone. `server.py` is gone.
 - Removed `jumpcut-editor.html`.
+- Undo (✕ in the session log) now puts back the exact working set from before that log, saved in a
+  new Before column in `progress.md`, instead of replaying the whole history from the starting loads
+  (which landed on wrong loads, e.g. 137.5 kg instead of 107.5 kg). Dumbbell Row and Inverted Row
+  share one undo. Rows logged before this change can't be undone from the page.

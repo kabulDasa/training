@@ -50,6 +50,11 @@ git worktree add ../training-data data
 Edit `progress.md` there, commit, `git push origin data`. Next time, `git pull` in that worktree first.
 A page that was open will refuse to save over the newer file and reload. Never merge `data` into `main`.
 
+Each Session log row's **Before** cell is the working set that log replaced (`107.5 kg`,
+`12.5 kg, 18 reps, 2 sets`); undo (✕ on an exercise's newest row) puts it back. Rows logged before
+that column existed have none, so their ✕ is dimmed and only explains: to undo one, delete the row
+and set the load under Current working sets by hand.
+
 ## Other files
 
 - `AGENTS.md`: training-coach instructions for AI agents
@@ -57,13 +62,6 @@ A page that was open will refuse to save over the newer file and reload. Never m
 - `streetlifting_tests.feature`: acceptance scenarios for the program pages
 - `Q2-2026.md`: original program notes
 - `Q2-2026-alt.html`, `streetlifting_program.html`: older pages (static)
-
-## Known issues
-
-- Undo (✕ in the session log) recomputes the working set by replaying that exercise's whole log
-  from the program's starting loads. Logs from before the current defaults (July–Oct 2026) can make
-  it land on the wrong load. Check the Settings tab after undoing; `git revert` the commit on `data`
-  if wrong.
 
 ## Development
 

@@ -142,6 +142,7 @@ main{max-width:1100px;margin:0 auto;padding:24px}
 .tag-hold{color:var(--red)}.tag-normal{color:var(--legs)}.tag-double{color:var(--gold)}
 .delbtn{background:var(--red-dim);border:1px solid rgba(239,68,68,.4);color:var(--red);width:24px;height:24px;border-radius:5px;cursor:pointer;font-size:12px;font-weight:700;line-height:1;transition:all .15s}
 .delbtn:hover{background:var(--red);color:#fff}
+.delbtn-off,.delbtn-off:hover{background:none;color:var(--red);opacity:.35}
 .savestatus{margin-bottom:16px;padding:8px 12px;border-radius:8px;font-size:13px;background:var(--legs-dim);color:var(--legs);border:1px solid rgba(16,185,129,.35)}
 .logbtn:disabled,.delbtn:disabled,.pbtn:disabled{opacity:.35;cursor:not-allowed;pointer-events:none}
 .ghform{display:flex;flex-direction:column;gap:10px;max-width:460px}
@@ -478,21 +479,24 @@ function outcomeBadge(outcome, holdLabel, normalLabel, doubleLabel){
   return `<span class="eout eout-ok">✓ ${normalLabel}</span>`;
 }
 
+/* called before advance(), so before is the working set this log replaces (what undo restores) */
 function pushHistory(exercise, result, outcome, weight, volume){
   HISTORY.push({
     date:new Date().toISOString(), exercise, result, outcome,
     weight: weight!=null ? weight : null,
     volume: volume!=null ? volume : null,
+    before: keyOf(exercise) ? {...STATE[keyOf(exercise)]} : null,
   });
 }
 
 /* ---------- exercise key <-> display-name map, and shared progression math ----------
    advance() is the single source of truth for how an outcome mutates an exercise's
    state. Every logXxx() calls it AFTER recording history (so history reflects what was
-   actually performed). Each exercise's log entries form a stack — only the most recent
-   entry for a given movement can be popped (see popLatest()), which replays that
-   movement's own remaining entries from its default state to recompute its current
-   working set. Older entries are immutable; you can't rewrite history out of order. */
+   actually performed, and the entry's before holds the working set it replaced). Each
+   exercise key's log entries form a stack — only the most recent entry for a key can be
+   popped (see popLatest()), which puts back that entry's before. Older entries are
+   immutable; you can't rewrite history out of order. Dumbbell Row replaced Inverted Row
+   and shares its key, so the two names are one stack. */
 const EXERCISE_KEY = {
   'Pull-up':'pullup', 'Lat Pulldown':'latpulldown', 'Inverted Row':'invertedrow', 'Dumbbell Row':'invertedrow', 'Bicep Curl':'bicepcurl',
   'Dip':'dip', 'OHP':'ohp', 'Shoulder Fly':'shoulderfly', 'Tricep Extension':'tricepext',
@@ -542,19 +546,22 @@ function advance(key, outcome, s){
       break;
   }
 }
-function latestIndexFor(exercise){
-  for(let i=HISTORY.length-1;i>=0;i--) if(HISTORY[i].exercise===exercise) return i;
+function keyOf(exercise){ return Object.hasOwn(EXERCISE_KEY, exercise) ? EXERCISE_KEY[exercise] : null; }
+function latestIndexFor(key){
+  for(let i=HISTORY.length-1;i>=0;i--) if(keyOf(HISTORY[i].exercise)===key) return i;
   return -1;
 }
-function popLatest(exercise){
-  const idx = latestIndexFor(exercise);
-  const key = Object.hasOwn(EXERCISE_KEY, exercise) ? EXERCISE_KEY[exercise] : null;
-  if(idx===-1 || !key) return;
-  if(!confirm(`Remove the most recent ${exercise} log and revert its working set to before that session?`)) return;
+const NO_UNDO = 'Logged before the page recorded the working set each log replaces, so it can\'t be undone here. '
+  + 'To undo it, delete the row in progress.md and set the load under Current working sets by hand.';
+function popLatest(idx){
+  const h = HISTORY[idx];
+  const key = h && keyOf(h.exercise);
+  if(!key || latestIndexFor(key)!==idx) return;
+  if(!h.before){ alert(NO_UNDO); return; }
+  if(!confirm(`Remove the most recent ${h.exercise} log and revert its working set to before that session?`)) return;
   HISTORY.splice(idx,1);
-  STATE[key] = JSON.parse(JSON.stringify(DEFAULT_STATE[key]));
-  HISTORY.filter(h=>h.exercise===exercise).forEach(h=>advance(key, h.outcome, STATE[key]));
-  saveState(`Undo latest ${exercise} log`);
+  Object.assign(STATE[key], h.before);
+  saveState(`Undo latest ${h.exercise} log`);
   clearPending(key);
   render();
   renderChart();
@@ -1089,10 +1096,11 @@ function renderChart(){
       const d = new Date(h.date);
       const cls = h.outcome==='hold' ? 'tag-hold' : h.outcome==='double' ? 'tag-double' : 'tag-normal';
       const label = h.outcome==='hold' ? 'Hold' : h.outcome==='double' ? 'Double progression' : 'Progressed';
-      const isTop = i === latestIndexFor(h.exercise) && Object.hasOwn(EXERCISE_KEY, h.exercise);
-      const action = isTop
-        ? `<button class="delbtn" onclick="popLatest(HISTORY[${i}].exercise)" title="Remove this most recent ${esc(h.exercise)} log and revert its working set to before it">✕</button>`
-        : '';
+      const key = keyOf(h.exercise);
+      const action = !key || i !== latestIndexFor(key) ? ''
+        : h.before
+        ? `<button class="delbtn" onclick="popLatest(${i})" title="Remove this most recent ${esc(h.exercise)} log and revert its working set to before it">✕</button>`
+        : `<button class="delbtn delbtn-off" onclick="popLatest(${i})" title="${esc(NO_UNDO)}">✕</button>`;
       return `<tr><td class="tm">${d.toLocaleDateString()} ${d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</td><td>${esc(h.exercise)}</td><td>${esc(h.result)}</td><td class="${cls}">${label}</td><td>${action}</td></tr>`;
     }).join('');
   }

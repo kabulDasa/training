@@ -1,14 +1,17 @@
 /* progress.md format + GitHub storage for Q2-2026.html.
    progress.md holds two Markdown tables: "Current working sets" (Key | Weight | Reps | Sets) and
-   "Session log" (oldest first, one row per logged session). The page reads and writes it through
-   the GitHub contents API on the repo's `data` branch, so every save is a commit there and never
-   touches `main`, which GitHub Pages serves the site from. Loaded as a plain <script> in the page and
-   with require() in the node tests. */
+   "Session log" (oldest first, one row per logged session; Before is the working set the log
+   replaced, which undo restores, and is blank on rows logged before the column existed). The page
+   reads and writes it through the GitHub contents API on the repo's `data` branch, so every save is
+   a commit there and never touches `main`, which GitHub Pages serves the site from. Loaded as a plain
+   <script> in the page and with require() in the node tests. */
 (function(root){
 'use strict';
 
 const STATE_FIELDS = ['weight', 'reps', 'sets'];
-const HISTORY_FIELDS = ['date', 'exercise', 'result', 'outcome', 'weight', 'volume'];
+const HISTORY_FIELDS = ['date', 'exercise', 'result', 'outcome', 'weight', 'volume', 'before'];
+/* Before cell units, e.g. "12.5 kg, 18 reps, 2 sets" */
+const UNITS = {weight: ['kg', 'kg'], reps: ['rep', 'reps'], sets: ['set', 'sets']};
 const OUTCOMES = ['hold', 'normal', 'double'];
 const KEY_RE = /^[a-z][a-z0-9]*$/;
 
@@ -29,6 +32,23 @@ function num(text){
   return n;
 }
 function fmt(v){ return v == null ? '' : String(v); }
+/* working set {weight, reps, sets} <-> "12.5 kg, 18 reps, 2 sets"; null <-> '' */
+function fmtSet(set){
+  if(set == null) return '';
+  return STATE_FIELDS.filter(f => f in set).map(f => `${set[f]} ${UNITS[f][set[f] === 1 ? 0 : 1]}`).join(', ');
+}
+function parseSet(text){
+  text = text.trim();
+  if(!text) return null;
+  const set = {};
+  for(const part of text.split(',')){
+    const m = /^(\S+)\s+(\S+)$/.exec(part.trim());
+    const f = m && STATE_FIELDS.find(k => UNITS[k].includes(m[2]));
+    if(!f || f in set) throw new Error(`bad working set: ${JSON.stringify(text)}`);
+    set[f] = num(m[1]);
+  }
+  return set;
+}
 function cell(text){ return String(text).replace(/\\/g, '\\\\').replace(/\|/g, '\\|').replace(/\n/g, ' '); }
 
 /* split a table row into cells, honouring \| and \\ escapes */
@@ -78,8 +98,8 @@ function parse(text){
     state[key] = entry;
   }
   const history = (t['Session log'] || []).map(row => {
-    const [date, exercise, result, outcome, weight, volume] = HISTORY_FIELDS.map((_, i) => row[i] || '');
-    return {date, exercise, result, outcome, weight: num(weight), volume: num(volume)};
+    const [date, exercise, result, outcome, weight, volume, before] = HISTORY_FIELDS.map((_, i) => row[i] || '');
+    return {date, exercise, result, outcome, weight: num(weight), volume: num(volume), before: parseSet(before)};
   });
   return {state, history};
 }
@@ -90,14 +110,20 @@ function serialize(data){
   for(const [key, entry] of Object.entries(data.state))
     lines.push('| ' + [key, ...STATE_FIELDS.map(f => fmt(entry[f]))].join(' | ') + ' |');
   lines.push('', '## Session log', '',
-    '| Date | Exercise | Result | Outcome | Weight (kg) | Volume (kg × reps) |',
-    '|---|---|---|---|---|---|');
+    '| Date | Exercise | Result | Outcome | Weight (kg) | Volume (kg × reps) | Before |',
+    '|---|---|---|---|---|---|---|');
   for(const h of data.history)
-    lines.push('| ' + [cell(h.date), cell(h.exercise), cell(h.result), h.outcome, fmt(h.weight), fmt(h.volume)].join(' | ') + ' |');
+    lines.push('| ' + [cell(h.date), cell(h.exercise), cell(h.result), h.outcome, fmt(h.weight), fmt(h.volume), fmtSet(h.before)].join(' | ') + ' |');
   return lines.join('\n') + '\n';
 }
 
 function isNum(v){ return typeof v === 'number' && Number.isFinite(v); }
+
+/* a non-empty working set ({} would be written as an empty cell and read back as null) */
+function isSet(v){
+  return !!v && typeof v === 'object' && !Array.isArray(v) && Object.keys(v).length > 0
+    && Object.entries(v).every(([f, n]) => STATE_FIELDS.includes(f) && isNum(n));
+}
 
 /* throw unless data looks like {state: {key: {...}}, history: [...]} */
 function validate(data){
@@ -114,6 +140,7 @@ function validate(data){
       if(typeof h[f] !== 'string' || !h[f]) throw new Error(`history entry missing ${f}`);
     for(const f of ['weight', 'volume'])
       if(h[f] != null && !isNum(h[f])) throw new Error(`bad history ${f}`);
+    if(h.before != null && !isSet(h.before)) throw new Error('bad history before');
   }
 }
 
