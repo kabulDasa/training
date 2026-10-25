@@ -3,6 +3,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const {execFileSync} = require('node:child_process');
 const P = require('../progress.js');
 
 const SAMPLE = {
@@ -33,17 +34,37 @@ test('empty', () => {
   assert.deepEqual(P.parse(P.serialize(e)), e);
 });
 
-test('real progress.md has the current header', () => {
-  const text = fs.readFileSync(path.join(__dirname, '..', 'progress.md'), 'utf8');
-  assert.equal(text, P.serialize(P.parse(text)));
+/* progress.md lives on the `data` branch, not in this checkout. The fixture is a trimmed copy;
+   the real file is checked too when `git fetch origin data` has been run (no network here). */
+const ROOT = path.join(__dirname, '..');
+const FIXTURE = fs.readFileSync(path.join(__dirname, 'fixtures', 'progress.md'), 'utf8');
+function dataBranchFile() {
+  try {
+    return execFileSync('git', ['show', 'origin/data:progress.md'],
+      {cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], maxBuffer: 64 << 20});
+  } catch (e) {
+    if (e.status === 128) return null;  // git: no such ref (not fetched) or not a repo
+    throw e;
+  }
+}
+const REAL = dataBranchFile();
+const body = t => t.slice(t.indexOf('## Current working sets'));
+
+test('fixture progress.md has the current header and round-trips', () => {
+  P.validate(P.parse(FIXTURE));
+  assert.equal(FIXTURE, P.serialize(P.parse(FIXTURE)));
 });
 
-test('real progress.md round-trips byte for byte below the header', () => {
-  const text = fs.readFileSync(path.join(__dirname, '..', 'progress.md'), 'utf8');
-  const data = P.parse(text);
-  P.validate(data);
-  const body = t => t.slice(t.indexOf('## Current working sets'));
-  assert.equal(body(P.serialize(data)), body(text));
+test('origin/data progress.md round-trips byte for byte below the header',
+  {skip: REAL === null && 'no origin/data (git fetch origin data)'}, () => {
+    const data = P.parse(REAL);
+    P.validate(data);
+    assert.equal(body(P.serialize(data)), body(REAL));
+  });
+
+test('progress.md is not tracked on this branch', () => {
+  // it lives on the data branch only, so a copy here could only go stale
+  assert.equal(execFileSync('git', ['ls-files', 'progress.md'], {cwd: ROOT, encoding: 'utf8'}), '');
 });
 
 test('hand edit without closing pipe', () => {
@@ -134,10 +155,10 @@ function fakeGitHub(initialText) {
 
 test('store loads, saves with sha, and reports conflicts', async () => {
   const gh = fakeGitHub(P.serialize(SAMPLE));
-  const store = P.makeStore({owner: 'kabulDasa', repo: 'training', branch: 'main', path: 'progress.md', token: 'tkn'}, gh.fetch);
+  const store = P.makeStore({owner: 'kabulDasa', repo: 'training', branch: 'data', path: 'progress.md', token: 'tkn'}, gh.fetch);
   const {data, sha} = await store.load();
   assert.deepEqual(data, SAMPLE);
-  assert.equal(gh.calls[0].url, 'https://api.github.com/repos/kabulDasa/training/contents/progress.md?ref=main');
+  assert.equal(gh.calls[0].url, 'https://api.github.com/repos/kabulDasa/training/contents/progress.md?ref=data');
   assert.equal(gh.calls[0].opts.headers.Authorization, 'Bearer tkn');
 
   const next = {...SAMPLE, state: {...SAMPLE.state, squat: {weight: 110}}};
@@ -146,7 +167,7 @@ test('store loads, saves with sha, and reports conflicts', async () => {
   assert.deepEqual(P.parse(gh.text), next);
   const put = JSON.parse(gh.calls[1].opts.body);
   assert.equal(put.message, 'Log Squat');
-  assert.equal(put.branch, 'main');
+  assert.equal(put.branch, 'data');
 
   await assert.rejects(store.save(SAMPLE, sha, 'stale'), P.ConflictError);
   await assert.rejects(store.save({state: [], history: []}, sha2, 'bad'));  // validated before sending
@@ -157,17 +178,23 @@ test('store loads, saves with sha, and reports conflicts', async () => {
 });
 
 test('load refuses a file whose sections are missing or invalid', async () => {
-  const cfg = {owner: 'o', repo: 'r', branch: 'main', path: 'progress.md', token: ''};
+  const cfg = {owner: 'o', repo: 'r', branch: 'data', path: 'progress.md', token: ''};
   const broken = fakeGitHub(P.serialize(SAMPLE).replace('## Session log', '# Session log'));
   await assert.rejects(P.makeStore(cfg, broken.fetch).load(), /Session log/);
   const badOutcome = fakeGitHub(P.serialize(SAMPLE).replace('| normal |', '| maybe |'));
   await assert.rejects(P.makeStore(cfg, badOutcome.fetch).load(), /bad history entry/);
 });
 
+test('a missing file names the branch', async () => {
+  const notFound = async () => ({ok: false, status: 404, json: async () => ({message: 'Not Found'})});
+  const store = P.makeStore({owner: 'o', repo: 'r', branch: 'data', path: 'progress.md', token: ''}, notFound);
+  await assert.rejects(store.load(), /progress\.md not found on branch data of o\/r/);
+});
+
 test('a hung request times out', async () => {
   // fetch that never resolves until aborted
   const hang = (_, opts) => new Promise((_, rej) => opts.signal.addEventListener('abort', () => rej(Object.assign(new Error('aborted'), {name: 'AbortError'}))));
-  const store = P.makeStore({owner: 'o', repo: 'r', branch: 'main', path: 'progress.md', token: ''}, hang);
+  const store = P.makeStore({owner: 'o', repo: 'r', branch: 'data', path: 'progress.md', token: ''}, hang);
   const t = Date.now();
   const orig = global.setTimeout;
   global.setTimeout = (fn) => orig(fn, 10);  // speed up the 20 s timer
@@ -177,6 +204,6 @@ test('a hung request times out', async () => {
 
 test('store without a token sends no Authorization header', async () => {
   const gh = fakeGitHub(P.serialize(SAMPLE));
-  await P.makeStore({owner: 'o', repo: 'r', branch: 'main', path: 'progress.md', token: ''}, gh.fetch).load();
+  await P.makeStore({owner: 'o', repo: 'r', branch: 'data', path: 'progress.md', token: ''}, gh.fetch).load();
   assert.equal(gh.calls[0].opts.headers.Authorization, undefined);
 });
