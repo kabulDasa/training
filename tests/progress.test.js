@@ -13,9 +13,16 @@ const SAMPLE = {
   },
   history: [
     {date: '2026-10-24T15:03:06.790Z', exercise: 'Pull-up',
-     result: '3 reps top @ +23.75 kg, 2×5 backoff @ +18.75 kg', outcome: 'normal', weight: 23.75, volume: 187.5},
+     result: '3 reps top @ +23.75 kg, 2×5 backoff @ +18.75 kg', outcome: 'normal', weight: 23.75, volume: 187.5,
+     before: {weight: 23.75, reps: 3}},
     {date: '2026-10-24T15:04:00.000Z', exercise: 'OHP',
-     result: 'odd | text \\ with escapes', outcome: 'hold', weight: null, volume: null},
+     result: 'odd | text \\ with escapes', outcome: 'hold', weight: null, volume: null, before: null},
+    {date: '2026-10-25T09:00:00.000Z', exercise: 'Lat Pulldown',
+     result: '2 × 18 @ 12.45 kg', outcome: 'normal', weight: null, volume: 448.2,
+     before: {weight: 12.45, reps: 18, sets: 2}},
+    {date: '2026-10-25T09:30:00.000Z', exercise: 'Squat',
+     result: '3 reps top @ 107.5 kg, 1×5 backoff @ 85 kg', outcome: 'hold', weight: 107.5, volume: 425,
+     before: {weight: 107.5}},
   ],
 };
 
@@ -44,6 +51,36 @@ test('hand edit without closing pipe', () => {
   assert.deepEqual(P.parse(text).state.squat, {weight: 110});
 });
 
+test('Before cell is readable and parses back', () => {
+  const text = P.serialize(SAMPLE);
+  assert.match(text, /\| 23\.75 kg, 3 reps \|\n/);
+  assert.match(text, /\| 12\.45 kg, 18 reps, 2 sets \|\n/);
+  assert.match(text, /\| 107\.5 kg \|\n/);
+  const one = {...SAMPLE, history: [{...SAMPLE.history[0], before: {weight: 0, reps: 1, sets: 1}}]};
+  assert.match(P.serialize(one), /\| 0 kg, 1 rep, 1 set \|\n/);
+  assert.deepEqual(P.parse(P.serialize(one)), one);
+  // hand edits: any order, singular or plural
+  const edited = text.replace('| 23.75 kg, 3 reps |', '| 3 rep,  25 kg |');
+  assert.deepEqual(P.parse(edited).history[0].before, {reps: 3, weight: 25});
+});
+
+test('Session log without a Before column (older files) loads with before null', () => {
+  // drop the last cell of every Session log line
+  const [head, log] = P.serialize(SAMPLE).split('## Session log');
+  const old = head + '## Session log' + log.replace(/ \| [^|\n]*\|$/gm, ' |').replace('---|\n', '\n');
+  assert.doesNotMatch(old, /Before|kg \|$/m);
+  const data = P.parse(old);
+  P.validate(data);
+  assert.deepEqual(data.history.map(h => h.before), [null, null, null, null]);
+  assert.match(P.serialize(data), /\| Before \|/);
+});
+
+test('bad Before cells rejected', () => {
+  const text = P.serialize(SAMPLE);
+  for (const bad of ['107.5 lbs', '107.5', 'kg 107.5', 'x kg', '1 kg, 2 kg', '1 kg,', '1 kg 2 reps'])
+    assert.throws(() => P.parse(text.replace('| 107.5 kg |', `| ${bad} |`)), /working set|finite/, bad);
+});
+
 test('bad key and non-finite cells rejected', () => {
   assert.throws(() => P.parse(P.serialize(SAMPLE).replace('| squat |', '| Squat! |')));
   assert.throws(() => P.parse(P.serialize(SAMPLE).replace('| squat | 107.5 |', '| squat | nan |')));
@@ -63,6 +100,12 @@ test('validate', () => {
     {state: {}, history: [{...h0, exercise: ''}]},
     {state: {}, history: [{...h0, volume: true}]},
     {state: {}, history: [{...h0, weight: Infinity}]},
+    {state: {}, history: [{...h0, before: {}}]},
+    {state: {}, history: [{...h0, before: []}]},
+    {state: {}, history: [{...h0, before: 25}]},
+    {state: {}, history: [{...h0, before: {weight: '25'}}]},
+    {state: {}, history: [{...h0, before: {weight: NaN}}]},
+    {state: {}, history: [{...h0, before: {bogus: 1}}]},
   ]) assert.throws(() => P.validate(bad), undefined, JSON.stringify(bad));
 });
 
