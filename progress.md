@@ -2,7 +2,7 @@
 
 Written by `Q2-2026.html` through the GitHub API whenever a session is logged; each change is a commit
 to this `data` branch (the site's code is on `main`). Hand edits are fine (keep the table layout):
-`git fetch origin data` first; the page will ask to reload if it was open.
+pull the `data` branch first; the page will ask to reload if it was open.
 
 ## Current working sets
 
@@ -176,3 +176,4 @@ to this `data` branch (the site's code is on `main`). Hand edits are fine (keep 
 | 2026-10-24T15:03:12.731Z | Dip | 3 reps top @ +26.25 kg, 2×5 backoff @ +21.25 kg | normal | 26.25 | 212.5 |
 | 2026-10-24T15:03:15.315Z | Shoulder Fly | 2 × 23 @ 10 kg | normal |  | 460 |
 | 2026-10-24T15:03:50.894Z | Tricep Extension | 2 × 16 @ 12.5 kg | normal |  | 400 |
+| 2026-10-25T00:18:01.657Z | Squat | 3 reps top @ 107.5 kg, 1×5 backoff @ 85 kg | hold | 107.5 | 425 |
