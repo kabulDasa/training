@@ -271,13 +271,14 @@ const DEFAULT_STATE = {
    refuses a save made against a stale sha (another device or tab, or a hand edit), and the page
    then reloads. Writing needs a token, kept per device. */
 const GH_DEFAULTS = {repo:'kabulDasa/training', branch:'data', path:'progress.md', token:''};
+const REPO_RE = /^[\w.-]+\/[\w.-]+$/;
 /* only the repo and token are per-device settings. Configs saved before the move to `data`
    also hold branch 'main' and path, which are ignored so those devices switch over. */
 function loadGhConfig(){
   let saved = {};
   try{ saved = JSON.parse(localStorage.getItem('q2_github') || '{}') || {}; }catch(_){}
   const cfg = {...GH_DEFAULTS};
-  if(typeof saved.repo === 'string' && saved.repo) cfg.repo = saved.repo;
+  if(typeof saved.repo === 'string' && REPO_RE.test(saved.repo)) cfg.repo = saved.repo;
   if(typeof saved.token === 'string') cfg.token = saved.token;
   return cfg;
 }
@@ -374,7 +375,7 @@ function renderGhSettings(){
 function saveGhSettings(){
   const repo = document.getElementById('ghRepo').value.trim();
   const token = document.getElementById('ghToken').value.trim();
-  if(!/^[\w.-]+\/[\w.-]+$/.test(repo)){ alert('Repository must look like owner/name'); return; }
+  if(!REPO_RE.test(repo)){ alert('Repository must look like owner/name'); return; }
   writeGhConfig({repo, token: token || GH.token});
 }
 function forgetGhToken(){

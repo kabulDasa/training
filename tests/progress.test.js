@@ -29,12 +29,16 @@ test('empty', () => {
 
 /* progress.md lives on the `data` branch, not in this checkout. The fixture is a trimmed copy;
    the real file is checked too when `git fetch origin data` has been run (no network here). */
+const ROOT = path.join(__dirname, '..');
 const FIXTURE = fs.readFileSync(path.join(__dirname, 'fixtures', 'progress.md'), 'utf8');
 function dataBranchFile() {
   try {
     return execFileSync('git', ['show', 'origin/data:progress.md'],
-      {cwd: path.join(__dirname, '..'), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore']});
-  } catch (_) { return null; }
+      {cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], maxBuffer: 64 << 20});
+  } catch (e) {
+    if (e.status === 128) return null;  // git: no such ref (not fetched) or not a repo
+    throw e;
+  }
 }
 const REAL = dataBranchFile();
 const body = t => t.slice(t.indexOf('## Current working sets'));
@@ -51,9 +55,9 @@ test('origin/data progress.md round-trips byte for byte below the header',
     assert.equal(body(P.serialize(data)), body(REAL));
   });
 
-test('progress.md is not on main', () => {
+test('progress.md is not tracked on this branch', () => {
   // it lives on the data branch only, so a copy here could only go stale
-  assert.equal(fs.existsSync(path.join(__dirname, '..', 'progress.md')), false);
+  assert.equal(execFileSync('git', ['ls-files', 'progress.md'], {cwd: ROOT, encoding: 'utf8'}), '');
 });
 
 test('hand edit without closing pipe', () => {

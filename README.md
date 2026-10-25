@@ -33,8 +33,10 @@ page is read-only. Note that every GitHub Pages site under `kabuldasa.github.io`
 storage, so only put pages you trust there. Revoke a lost device's token on GitHub.
 
 A fine-grained token can't be limited to one branch, so `main` has a repository ruleset (pull request
-required, no force pushes or deletion) that stops the token, or anything else, from writing the
-site's code directly. Code changes land on `main` through pull requests only.
+required, no force pushes or deletion, no bypass) that stops the token, or anything else, from writing
+the site's code directly; code changes land on `main` through pull requests only. `data` has its own
+ruleset (no force pushes or deletion) so the log history can't be rewritten. The token can still
+create other branches, but nothing serves them.
 
 ### Editing progress.md by hand
 
