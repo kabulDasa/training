@@ -1,7 +1,8 @@
 /* Weekly working sets per movement pattern, from the session log, for the H2 Chart tab.
    Working sets are read from each log's result text: main lifts are the top set plus the backoff sets
    ("3 reps top @ +25 kg, 2×5 backoff @ +20 kg" = 3), skill work with a band is the top set plus the
-   backoffs ("Green band × 3, 3 backoff" = 4), everything else is "<sets> × <reps>". Each working set
+   backoffs ("Green band × 3, 3 backoff" = 4), everything else is "<sets> × <reps>" (the prescribed sets:
+   a hold still logs them all, since the sets were done, just short of the target reps). Each working set
    counts once, to its movement's pattern (movements.js); retired skill movements still count.
    Weeks are ISO weeks (Monday to Sunday) in local time, so a session counts in the week it was trained.
    Loaded as a plain <script> in the page and with require() in the node tests. */

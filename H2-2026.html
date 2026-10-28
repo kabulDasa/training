@@ -244,7 +244,7 @@ main{max-width:1100px;margin:0 auto;padding:24px}
 <div id="tab-chart" class="tp">
   <div class="cc">
     <div class="ctitle">Weekly Volume — Sets per Movement Pattern</div>
-    <div class="csub">Working sets per week (Monday to Sunday) for each movement pattern: main lifts count the top set plus backoff sets, accessories their sets. Darker = fewer sets, empty = none that week. The current week is marked * and is still filling up.</div>
+    <div class="csub">Working sets per week (Monday to Sunday) for each movement pattern: main lifts count the top set plus backoff sets, accessories and OHP their prescribed sets (a session logged as a hold still counts them: the sets were done, short of the target reps). Darker = fewer sets, empty = none that week. The current week is marked * and is still filling up.</div>
     <div id="chartHolderPattern"></div>
     <div class="cleg" id="patternScale"></div>
   </div>
@@ -1303,7 +1303,7 @@ const PATTERN_RAMP = ['#104281','#184f95','#1c5cab','#256abf','#2a78d6','#3987e5
 function renderPatternGrid(){
   const holder = document.getElementById('chartHolderPattern');
   const scale = document.getElementById('patternScale');
-  const {weeks} = Volume.weeklyByPattern(HISTORY);
+  const {weeks, skipped} = Volume.weeklyByPattern(HISTORY);
   if(weeks.length === 0){
     holder.innerHTML = '<div class="emptychart">No sessions logged yet — log a few sessions from the Program tab to see this chart.</div>';
     scale.innerHTML = '';
@@ -1313,7 +1313,8 @@ function renderPatternGrid(){
   const avg = Volume.recentAverage(weeks, 4);
   const max = Math.max(1, ...weeks.flatMap(w => patterns.map(([p]) => w.sets[p] || 0)));
   const step = Math.ceil(max / PATTERN_RAMP.length);
-  const shade = v => Math.min(PATTERN_RAMP.length - 1, Math.floor(v / step));
+  /* bucket i holds step*i+1 .. step*(i+1) sets (0 sets is drawn as an empty cell) */
+  const shade = v => Math.min(PATTERN_RAMP.length - 1, Math.floor((v - 1) / step));
   /* the pattern labels sit in their own svg outside the scroller, so they stay put on a phone */
   const rowH = 30, top = 24, labelW = 118, cw = 46, avgW = 70;
   const W = weeks.length * cw + avgW, H = top + (patterns.length + 1) * rowH + 6;
@@ -1335,7 +1336,7 @@ function renderPatternGrid(){
       const title = `${label}, week of ${weekLabel(w.week)}${i === last ? ' (so far)' : ''}: ${fmt(v)} working sets`;
       h += `<g><title>${title}</title><rect x="${x + 1}" y="${y + 1}" width="${cw - 2}" height="${rowH - 2}" rx="4" ` +
         (v ? `fill="${PATTERN_RAMP[k]}"/>` : `fill="#151926" stroke="#2d3348"/>`);
-      if(v) h += `<text x="${x + cw / 2}" y="${y + rowH / 2 + 4}" text-anchor="middle" font-size="11" font-weight="600" fill="${k >= 7 ? '#0b0d14' : '#e2e8f0'}">${fmt(v)}</text>`;
+      if(v) h += `<text x="${x + cw / 2}" y="${y + rowH / 2 + 4}" text-anchor="middle" font-size="11" font-weight="600" fill="${k >= 5 ? '#0b0d14' : '#e2e8f0'}">${fmt(v)}</text>`;
       h += '</g>';
     });
     h += `<text x="${weeks.length * cw + avgW / 2}" y="${y + rowH / 2 + 4}" text-anchor="middle" font-size="12" fill="#e2e8f0">${avg[p] == null ? '—' : avg[p].toFixed(1)}</text>`;
@@ -1352,9 +1353,10 @@ function renderPatternGrid(){
   const scroller = holder.querySelector('.pgrid-scroll');
   scroller.scrollLeft = scroller.scrollWidth;
   scale.innerHTML = '<span>Sets:</span>' + PATTERN_RAMP.map((c, i) =>
-    `<span><span class="sdot-sq" style="background:${c}"></span>${Math.max(1, step * i)}+</span>`).join('') +
+    `<span><span class="sdot-sq" style="background:${c}"></span>${step * i + 1}+</span>`).join('') +
     '<span><span class="sdot-sq" style="background:#151926;border:1px solid #2d3348"></span>none</span>' +
-    '<span>* this week so far · 4-wk avg = the four weeks before it</span>';
+    '<span>* this week so far · 4-wk avg = the four weeks before it</span>' +
+    (skipped ? `<span>${skipped} log${skipped === 1 ? '' : 's'} not counted (no set count or unknown exercise)</span>` : '');
 }
 
 function renderChart(){
