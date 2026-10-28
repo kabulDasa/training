@@ -199,6 +199,11 @@ main{max-width:1100px;margin:0 auto;padding:24px}
 .ghform input{background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 10px;font-size:16px}
 .ghbtns{display:flex;gap:8px;align-items:center}
 .savestatus-err{background:var(--red-dim);color:var(--red);border-color:rgba(239,68,68,.4)}
+.bwnudge{margin-bottom:16px;padding:10px 12px;border-radius:8px;font-size:13px;background:var(--gold-dim);color:var(--gold);border:1px solid rgba(245,158,11,.35);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.bwnudge .bwmsg{flex:1;min-width:180px}
+.bwform{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.bwform input{background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:6px 8px;font-size:16px;width:96px}
+.bwform-card{margin-bottom:16px}
 </style>
 </head>
 <body>
@@ -222,6 +227,7 @@ main{max-width:1100px;margin:0 auto;padding:24px}
 
 <main>
 <div id="savestatus" class="savestatus" style="display:none"></div>
+<div id="bwnudge" class="bwnudge" style="display:none"></div>
 
 <!-- PROGRAM -->
 <div id="tab-program" class="tp active">
@@ -283,6 +289,16 @@ main{max-width:1100px;margin:0 auto;padding:24px}
     </table>
     <div id="logempty" class="emptychart" style="display:none">No sessions logged yet.</div>
   </div>
+  <div class="cc">
+    <div class="ctitle">Bodyweight</div>
+    <div class="csub">Morning bodyweight, one entry per day (logging again the same day replaces it) · u74 class limit shown as the red line</div>
+    <div class="bwform bwform-card"><input id="bwInputCard" type="number" inputmode="decimal" step="0.05" min="20" max="300" placeholder="kg"><button class="logbtn bwbtn" onclick="logBodyweight('bwInputCard')">Log today's bodyweight</button></div>
+    <div id="chartHolderBw"></div>
+    <table class="dt" style="margin-top:14px">
+      <thead><tr><th>Date</th><th>Bodyweight</th><th>Change</th><th></th></tr></thead>
+      <tbody id="bwtbody"></tbody>
+    </table>
+  </div>
   <button class="pbtn resetbtn" onclick="resetAll()">Reset all progress</button>
 </div>
 
@@ -293,6 +309,11 @@ main{max-width:1100px;margin:0 auto;padding:24px}
     <div class="csub">Current working prescriptions and progression rules. Loads update as you log sessions in Program.</div>
     <div id="settingsTable"></div>
     <div class="settings-note">Weighted pull-up and dip loads are added belt weight. Squat load is bar weight.</div>
+  </div>
+  <div class="cc">
+    <div class="ctitle">Bodyweight reminder</div>
+    <div class="csub">Show a reminder at the top of the page when bodyweight hasn't been logged for this many days. 0 turns it off. Kept on this device.</div>
+    <div class="bwform"><input id="bwRemindDays" type="number" inputmode="numeric" min="0" max="90" step="1"><button class="pbtn" onclick="saveBwRemindDays()">Save</button></div>
   </div>
   <div class="cc">
     <div class="ctitle">GitHub sync</div>
@@ -378,6 +399,7 @@ function mergeState(s){
 }
 let STATE = mergeState({});
 let HISTORY = [];
+let BODYWEIGHT = [];  /* [{date:'YYYY-MM-DD', kg}], oldest first */
 
 function showStatus(msg, isError){
   const el = document.getElementById('savestatus');
@@ -393,6 +415,7 @@ async function loadProgress(){
     const {data, sha} = await store().load();
     STATE = mergeState(data.state);
     HISTORY = data.history;
+    BODYWEIGHT = data.bodyweight || [];
     PROGRESS_SHA = sha;
     showStatus(readonlyNote(), READONLY);
   }catch(e){
@@ -409,7 +432,7 @@ function saveState(message){
     message = h ? `Log ${h.exercise}: ${h.result}` : 'Update progress';
   }
   /* snapshot now: later logs may change STATE before this save runs */
-  const snap = JSON.parse(JSON.stringify({state:STATE, history:HISTORY}));
+  const snap = JSON.parse(JSON.stringify({state:STATE, history:HISTORY, bodyweight:BODYWEIGHT}));
   SAVE_CHAIN = SAVE_CHAIN.then(async ()=>{
     if(READONLY) throw new Error('no GitHub token (Settings)');
     if(PROGRESS_SHA===null) throw new Error('progress not loaded');
@@ -435,7 +458,7 @@ function saveState(message){
 }
 /* log/undo/reset buttons only work with a token */
 function applyReadonly(){
-  document.querySelectorAll('#sgrid .logbtn, #todayFinish, #logtbody .delbtn, .resetbtn').forEach(b=>{ b.disabled = READONLY; });
+  document.querySelectorAll('#sgrid .logbtn, #todayFinish, #logtbody .delbtn, .resetbtn, .bwbtn, #bwtbody .delbtn').forEach(b=>{ b.disabled = READONLY; });
 }
 
 /* ---------- GitHub settings panel ---------- */
@@ -1183,7 +1206,7 @@ function renderDay(day, n){
 function renderHeaderStats(){
   const p=STATE.pullup, d=STATE.dip, sq=STATE.squat;
   document.getElementById('hstats').innerHTML = `
-    <div class="stat"><div class="slabel">Athlete</div><div class="sval">75 kg · u74</div></div>
+    <div class="stat"><div class="slabel">Bodyweight · u74</div><div class="sval">${bwHeaderText()}</div></div>
     <div class="stat"><div class="slabel">Pull-up top set</div><div class="sval">+${p.weight} kg × ${p.reps}</div></div>
     <div class="stat"><div class="slabel">Dip top set</div><div class="sval">+${d.weight} kg × ${d.reps}</div></div>
     <div class="stat"><div class="slabel">Squat top set</div><div class="sval">${sq.weight} kg × 3</div></div>
@@ -1217,7 +1240,7 @@ function showTab(id,btn){
   document.getElementById('tab-'+id).classList.add('active');
   btn.classList.add('active');
   if(id==='chart') renderChart();
-  if(id==='settings'){ renderSettings(); renderGhSettings(); }
+  if(id==='settings'){ renderSettings(); renderGhSettings(); document.getElementById('bwRemindDays').value = getBwRemindDays(); }
 }
 
 function resetAll(){
@@ -1247,7 +1270,8 @@ function niceStep(range){
   const step = norm < 1.5 ? 1 : norm < 3 ? 2 : norm < 7 ? 5 : 10;
   return step * mag;
 }
-function renderLineChart(container, seriesList, yLabel){
+/* fromZero=false fits the y-axis to the data (bodyweight moves within a few kg) */
+function renderLineChart(container, seriesList, yLabel, fromZero=true){
   if(seriesList.every(s=>s.pts.length===0)){
     container.innerHTML = '<div class="emptychart">No sessions logged yet — log a few sessions from the Program tab to see this chart.</div>';
     return;
@@ -1260,7 +1284,7 @@ function renderLineChart(container, seriesList, yLabel){
   const allPts = seriesList.flatMap(s=>s.pts);
   const allV = allPts.map(p=>p.v);
   const allT = allPts.map(p=>p.t);
-  const rawMin = Math.min(0, ...allV), rawMax = Math.max(...allV);
+  const rawMin = fromZero ? Math.min(0, ...allV) : Math.min(...allV), rawMax = Math.max(...allV);
   const step = niceStep(rawMax-rawMin);
   const minV = Math.floor(rawMin/step)*step;
   const maxV = Math.ceil(rawMax/step)*step + step;
@@ -1278,7 +1302,7 @@ function renderLineChart(container, seriesList, yLabel){
     const pts = s.pts.slice().sort((a,b)=>a.t-b.t);
     const path = pts.map(p=>`${xS(p.t)},${yS(p.v)}`).join(' L ');
     h+=`<path d="M ${path}" stroke="${s.color}" stroke-width="2.5" fill="none" stroke-linejoin="round" opacity="0.9"/>`;
-    pts.forEach(p=>{
+    if(s.dots!==false) pts.forEach(p=>{
       h+=`<circle cx="${xS(p.t)}" cy="${yS(p.v)}" r="4" fill="${s.color}" stroke="#0f1117" stroke-width="2"/>`;
     });
   });
@@ -1406,14 +1430,111 @@ function renderChart(){
       return `<tr><td class="tm">${d.toLocaleDateString()} ${d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</td><td>${esc(h.exercise)}</td><td>${esc(h.result)}</td><td class="${cls}">${label}</td><td>${action}</td></tr>`;
     }).join('');
   }
+  renderBodyweightCard();
   applyReadonly();
 }
 
 function render(){
   renderHeaderStats();
+  renderBwNudge();
   document.getElementById('sgrid').innerHTML = renderDay('pull',1) + renderDay('push',2) + renderDay('legs',3);
   renderToday();
   applyReadonly();
+}
+
+/* ---------- bodyweight ----------
+   Rows live in progress.md's Bodyweight table, one per local calendar day. Logging the same day
+   again replaces that day's entry; each log or delete is its own commit. */
+const BW_REMIND_DEFAULT = 7;
+const BW_CLASS_LIMIT = 74;
+function localDate(d=new Date()){
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+/* whole days between a YYYY-MM-DD and today, both as local dates */
+function daysSince(date){
+  const [y,m,d] = date.split('-').map(Number);
+  const then = new Date(y, m-1, d), now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.round((today - then) / 86400000);
+}
+function latestBw(){ return BODYWEIGHT.length ? BODYWEIGHT[BODYWEIGHT.length-1] : null; }
+function agoText(days){ return days<=0 ? 'today' : days===1 ? 'yesterday' : `${days} d ago`; }
+function bwHeaderText(){
+  const b = latestBw();
+  return b ? `${fmt(b.kg)} kg · ${agoText(daysSince(b.date))}` : 'not logged';
+}
+function getBwRemindDays(){
+  let v = null;
+  try{ v = localStorage.getItem('q2_bw_remind_days'); }catch(_){}
+  const n = Number(v);
+  return v !== null && v !== '' && Number.isInteger(n) && n >= 0 && n <= 90 ? n : BW_REMIND_DEFAULT;
+}
+function saveBwRemindDays(){
+  const n = Number(document.getElementById('bwRemindDays').value);
+  if(!Number.isInteger(n) || n < 0 || n > 90){ alert('Days must be a whole number from 0 to 90 (0 turns the reminder off).'); return; }
+  try{ localStorage.setItem('q2_bw_remind_days', String(n)); }
+  catch(_){ alert('This browser blocks storage, so the setting can\'t be kept (private browsing?).'); return; }
+  renderBwNudge();
+  showStatus('Bodyweight reminder: ' + (n ? `after ${n} day${n===1?'':'s'}` : 'off'));
+  setTimeout(()=>{ if(document.getElementById('savestatus').textContent.startsWith('Bodyweight reminder')) showStatus(readonlyNote(), READONLY); }, 3000);
+}
+/* non-blocking banner when bodyweight is overdue (or never logged); hidden when read-only */
+function renderBwNudge(){
+  const el = document.getElementById('bwnudge');
+  const days = getBwRemindDays();
+  const b = latestBw();
+  const since = b ? daysSince(b.date) : null;
+  if(READONLY || PROGRESS_SHA === null || !days || (b && since < days)){ el.style.display = 'none'; el.innerHTML = ''; return; }
+  const msg = b ? `Bodyweight last logged ${agoText(since)} (${fmt(b.kg)} kg on ${esc(b.date)}).` : 'No bodyweight logged yet.';
+  el.innerHTML = `<span class="bwmsg">⚖ ${msg} Log today's?</span>
+    <span class="bwform"><input id="bwInputNudge" type="number" inputmode="decimal" step="0.05" min="20" max="300" placeholder="kg"
+      onkeydown="if(event.key==='Enter') logBodyweight('bwInputNudge')"><button class="logbtn bwbtn" onclick="logBodyweight('bwInputNudge')">Log</button></span>`;
+  el.style.display = 'flex';
+}
+function logBodyweight(inputId){
+  const input = document.getElementById(inputId);
+  const kg = round2(Number(input.value));
+  if(!input.value.trim() || !Number.isFinite(kg) || kg < 20 || kg > 300){ alert('Enter your bodyweight in kg (20–300).'); input.focus(); return; }
+  const date = localDate();
+  const prev = BODYWEIGHT.find(b=>b.date===date);
+  if(prev && prev.kg !== kg && !confirm(`Replace today's ${fmt(prev.kg)} kg with ${fmt(kg)} kg?`)) return;
+  BODYWEIGHT = BODYWEIGHT.filter(b=>b.date!==date).concat({date, kg}).sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
+  input.value = '';
+  saveState(`Log bodyweight: ${fmt(kg)} kg`);
+  render();
+  renderBodyweightCard();
+  applyReadonly();
+}
+function deleteBodyweight(date){
+  const b = BODYWEIGHT.find(x=>x.date===date);
+  if(!b || !confirm(`Delete the ${fmt(b.kg)} kg bodyweight entry for ${date}?`)) return;
+  BODYWEIGHT = BODYWEIGHT.filter(x=>x.date!==date);
+  saveState(`Remove bodyweight ${date}: ${fmt(b.kg)} kg`);
+  render();
+  renderBodyweightCard();
+  applyReadonly();
+}
+function renderBodyweightCard(){
+  const holder = document.getElementById('chartHolderBw');
+  const tbody = document.getElementById('bwtbody');
+  if(!BODYWEIGHT.length){
+    holder.innerHTML = '<div class="emptychart">No bodyweight logged yet — log it above to start the trend.</div>';
+    tbody.innerHTML = '';
+    return;
+  }
+  /* local noon, so the point sits on its own calendar day in every time zone */
+  const pts = BODYWEIGHT.map(b=>{ const [y,m,d]=b.date.split('-').map(Number); return {t:new Date(y,m-1,d,12).getTime(), v:b.kg}; });
+  const limit = {color:'#ef4444', dots:false, pts:[{t:pts[0].t, v:BW_CLASS_LIMIT}, {t:pts[pts.length-1].t, v:BW_CLASS_LIMIT}]};
+  /* one entry: widen the limit line a day each side so it shows */
+  if(pts.length===1){ limit.pts[0].t -= 86400000; limit.pts[1].t += 86400000; }
+  renderLineChart(holder, [limit, {color:'#f59e0b', pts}], 'kg', false);
+  tbody.innerHTML = BODYWEIGHT.map((b,i)=>({b,i})).reverse().map(({b,i})=>{
+    const prev = BODYWEIGHT[i-1];
+    const diff = prev ? round2(b.kg - prev.kg) : null;
+    const change = diff==null ? '' : diff===0 ? '±0' : (diff>0?'+':'−') + fmt(Math.abs(diff)) + ' kg';
+    return `<tr><td class="tm">${esc(b.date)}</td><td>${fmt(b.kg)} kg</td><td class="tm">${change}</td>`
+      + `<td><button class="delbtn" onclick="deleteBodyweight('${esc(b.date)}')" title="Delete this entry">✕</button></td></tr>`;
+  }).join('');
 }
 
 /* render only once progress.md is loaded, so nothing is logged against default loads */
