@@ -10,13 +10,13 @@ pull the `data` branch first; the page will ask to reload if it was open.
 |---|---|---|---|
 | pullup | 25 | 3 |  |
 | latpulldown | 12.5 | 18 | 2 |
-| invertedrow | 22.5 | 5 | 2 |
+| invertedrow | 22.5 | 6 | 2 |
 | bicepcurl | 12.5 | 15 | 2 |
 | dip | 27.5 | 3 |  |
-| ohp | 55 | 3 | 3 |
+| ohp | 55 | 4 | 3 |
 | shoulderfly | 10 | 24 | 2 |
 | tricepext | 12.5 | 17 | 2 |
-| squat | 107.5 |  |  |
+| squat | 110 |  |  |
 | frontsquat | 30 | 20 | 2 |
 
 ## Session log
@@ -177,6 +177,9 @@ pull the `data` branch first; the page will ask to reload if it was open.
 | 2026-10-24T15:03:15.315Z | Shoulder Fly | 2 × 23 @ 10 kg | normal |  | 460 |  |
 | 2026-10-24T15:03:50.894Z | Tricep Extension | 2 × 16 @ 12.5 kg | normal |  | 400 |  |
 | 2026-10-25T00:18:01.657Z | Squat | 3 reps top @ 107.5 kg, 1×5 backoff @ 85 kg | hold | 107.5 | 425 |  |
+| 2026-10-28T10:07:47.722Z | Squat | 3 reps top @ 107.5 kg, 2×5 backoff @ 85 kg | normal | 107.5 | 850 | 107.5 kg |
+| 2026-10-28T10:07:47.722Z | Dumbbell Row | 2 × 5 @ 22.5 kg | normal |  | 225 | 22.5 kg, 5 reps, 2 sets |
+| 2026-10-28T10:07:47.722Z | OHP | 3 × 3 @ 55 kg | normal |  |  | 55 kg, 3 reps, 3 sets |
 
 ## Bodyweight
 
