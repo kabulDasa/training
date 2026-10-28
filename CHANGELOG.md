@@ -5,6 +5,12 @@
 - H2 tracker: each day on the Program tab is grouped into Big compound, Isolation, Skill work and Cardio
   (the last two empty for now). The grouping and each movement's muscles live in `movements.js`.
 - New `H2-2026.html` page (copy of the Q2 tracker, same progress data) for the H2 features in `QUEUE.md`.
+- H2 tracker: new **Today Plan** tab. Build the day's session from Push / Pull / Legs presets (the day
+  trained longest ago is marked suggested) or by tapping movements, each coloured by how long since it
+  was logged (green within a week, amber 1–2 weeks, red longer or never). Each movement shows one row
+  of sets, warm-ups first then working sets, to tick off, with Add Sets for bonus backoff sets, a
+  progress line, and its recent history and records. **Finish today's workout** logs and advances
+  every planned movement in one commit.
 - The tracker keeps `progress.md` on a separate `data` branch and commits logs there, never to `main`,
   so a device token can't change the site's code and logging no longer triggers a Pages build.
   Devices switch over on their own (the Branch setting is gone); `main` is protected by a ruleset.

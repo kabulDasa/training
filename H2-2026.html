@@ -120,6 +120,48 @@ main{max-width:1100px;margin:0 auto;padding:24px}
 .eout-bonus{background:var(--gold-dim);color:var(--gold)}
 .eout-miss{background:var(--red-dim);color:var(--red)}
 
+/* TODAY PLAN */
+.tpresets{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.tpreset{position:relative}
+.tpreset.suggested{border-color:var(--gold);color:var(--gold)}
+.tpreset .tsug{font-size:9px;text-transform:uppercase;letter-spacing:.4px;font-weight:700;margin-left:6px}
+.tpicker{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.tpgroup-title{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin-bottom:6px}
+.tchips{display:flex;flex-direction:column;gap:5px}
+.tchip{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;text-align:left;background:var(--surface2);border:1px solid var(--border);border-left:4px solid var(--fresh-c);border-radius:6px;padding:6px 10px;color:var(--text);font-size:13px;cursor:pointer}
+.tchip:hover{border-color:var(--gold);border-left-color:var(--fresh-c)}
+.tchip.on{background:var(--gold-dim);border-color:rgba(245,158,11,.5);border-left-color:var(--fresh-c)}
+.tchip.on::before{content:'✓ ';color:var(--gold);font-weight:700}
+.tchip .tname{flex:1}
+.tage{font-size:11px;font-weight:600;color:var(--fresh-c);white-space:nowrap}
+.f-fresh{--fresh-c:var(--legs)}
+.f-due{--fresh-c:var(--gold)}
+.f-stale,.f-never{--fresh-c:var(--red)}
+.tplan{display:flex;flex-direction:column;margin-bottom:16px}
+.tblock{padding:14px 2px 0}
+.tblock-h{display:flex;align-items:center;gap:6px 14px;flex-wrap:wrap;margin-bottom:10px}
+.tdot{width:10px;height:10px;border-radius:50%;background:var(--fresh-c);flex-shrink:0;margin-right:-6px}
+.tblock-h .tname{font-size:16px;font-weight:600;margin-right:12px}
+.tlink{background:none;border:none;color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;padding:2px 0}
+.tlink:hover,.tlink.open{color:var(--text)}
+.tdel{background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;padding:2px 6px;margin-left:auto}
+.tdel:hover{color:var(--red)}
+.tsets{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.tset{display:inline-flex;align-items:center;gap:7px;background:none;border:1.5px solid var(--border);border-radius:999px;color:var(--text);font-size:14px;padding:4px 16px 4px 10px;cursor:pointer;white-space:nowrap}
+.tset:hover{border-color:var(--muted)}
+.tset.current{border-color:var(--gold)}
+.tchk{width:15px;height:15px;flex-shrink:0}
+.tchk circle{fill:var(--muted)}
+.tchk path{fill:none;stroke:var(--bg);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.tset.done .tchk circle{fill:var(--red)}
+.taddset{background:none;border:none;color:var(--red);font-size:14px;font-weight:600;cursor:pointer;padding:4px 6px}
+.taddset:hover{text-decoration:underline}
+.tdrawer{margin-top:10px;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;font-size:13px;display:flex;flex-direction:column;gap:4px}
+.tprog{height:2px;background:var(--border);margin-top:14px}
+.tprog div{height:100%;background:var(--red)}
+.tfinish{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px}
+.tfinish .logbtn{font-size:14px;padding:9px 18px}
+
 /* CHART */
 .cc{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:22px;overflow-x:auto;margin-bottom:16px}
 .ctitle{font-size:15px;font-weight:700;margin-bottom:4px}
@@ -169,7 +211,8 @@ main{max-width:1100px;margin:0 auto;padding:24px}
 
 <div class="tabs">
   <button class="tb active" onclick="showTab('program',this)">Program</button>
-  <button class="tb" onclick="showTab('chart',this)">Chart</button>
+  <button class="tb" onclick="showTab('today',this)">Today Plan</button>
+  <button class="tb" data-tab="chart" onclick="showTab('chart',this)">Chart</button>
   <button class="tb" onclick="showTab('settings',this)">Settings</button>
 </div>
 
@@ -180,6 +223,17 @@ main{max-width:1100px;margin:0 auto;padding:24px}
 <div id="tab-program" class="tp active">
   <div class="daynote">Tap the backoff/set circles to log what you actually hit, then press Log to advance. Progress is saved to progress.md on GitHub and committed on every log — there are no fixed weeks.</div>
   <div id="sgrid" class="sgrid"></div>
+</div>
+
+<!-- TODAY PLAN -->
+<div id="tab-today" class="tp">
+  <div class="cc">
+    <div class="ctitle">Build today's plan</div>
+    <div class="csub">Start from a day preset or tap movements to add them. Colour shows how long since each was last logged: green within a week, amber 1–2 weeks, red longer or never.</div>
+    <div id="todayPresets" class="tpresets"></div>
+    <div id="todayPicker" class="tpicker"></div>
+  </div>
+  <div id="todayPlan"></div>
 </div>
 
 <!-- CHART -->
@@ -251,6 +305,7 @@ main{max-width:1100px;margin:0 auto;padding:24px}
 
 <script src="progress.js"></script>
 <script src="movements.js"></script>
+<script src="plan.js"></script>
 <script>
 /* name of the one-time Apple Shortcut (created manually in Shortcuts.app) that
    replaces the "Q2 2026 Training" note's body with whatever text we pass it */
@@ -367,7 +422,7 @@ function saveState(message){
 }
 /* log/undo/reset buttons only work with a token */
 function applyReadonly(){
-  document.querySelectorAll('#sgrid .logbtn, #logtbody .delbtn, .resetbtn').forEach(b=>{ b.disabled = READONLY; });
+  document.querySelectorAll('#sgrid .logbtn, #todayFinish, #logtbody .delbtn, .resetbtn').forEach(b=>{ b.disabled = READONLY; });
 }
 
 /* ---------- GitHub settings panel ---------- */
@@ -427,7 +482,7 @@ function syncToNotes(){
 function round2(x){ return Math.round(x*100)/100; }
 function fmt(v){ return round2(v).toFixed(2).replace(/\.?0+$/,''); }
 /* backoff load = 80% of top-set weight, rounded to the nearest loadable increment */
-function backoffOf(weight, inc){ return round2(Math.round((weight*0.8)/inc)*inc); }
+function backoffOf(weight, inc){ return Plan.backoffOf(weight, inc); }
 function repWord(n){ return n===1 ? 'rep' : 'reps'; }
 
 /* ---------- pending taps (persisted per exercise, cleared on log) ---------- */
@@ -447,22 +502,9 @@ function togglePending(e, uid, idx, len){
 function countDone(uid, len){ return getPending(uid, len).filter(Boolean).length; }
 function allSetsDone(uid, len){ return len>0 && countDone(uid,len)===len; }
 
-/* ---------- warm-up ladders (reused calisthenics/squat maths) ---------- */
-function calcCalWarmups(belt){
-  if(!belt) return [];
-  const n = Math.min(3, Math.max(2, Math.floor(belt/3)));
-  const pts = [];
-  for(let i=1;i<=n;i++) pts.push(Math.round(belt*i/(n+1)/1.25)*1.25);
-  return [0,...pts];
-}
-function calcSquatWarmups(working){
-  const bar=20;
-  if(working<=bar+10) return [bar];
-  const step=Math.max(5, Math.round((working-bar)/3/5)*5);
-  const pts=[];
-  for(let s=bar;s<working;s+=step) pts.push(s);
-  return pts;
-}
+/* ---------- warm-up ladders (plan.js, shared with the Today Plan tab) ---------- */
+function calcCalWarmups(belt){ return Plan.calWarmups(belt); }
+function calcSquatWarmups(working){ return Plan.squatWarmups(working); }
 function warmupLine(sets, type){
   return sets.map(s=>
     type==='cal'
@@ -598,7 +640,7 @@ function renderPullup(){
     <div class="ewu"><span class="ewu-label">Warm-up</span>${wu}</div>
     ${tapRow('pullup',5,2)}
     <div class="logrow">
-      <button class="logbtn" onclick="logPullup()">Log &amp; advance</button>
+      <button class="logbtn" onclick="logOne('pullup')">Log &amp; advance</button>
       <div class="eoutcome">${outcomeBadge(outcome,'Hold — repeat '+s.weight+' kg','+1.25 kg → '+fmt(s.weight+1.25)+' kg next','+2.5 kg → '+fmt(s.weight+2.5)+' kg next')}</div>
     </div>
     <div class="ecues" id="cues-pullup"><ul class="cl">
@@ -608,7 +650,7 @@ function renderPullup(){
     </ul></div>
   </div>`;
 }
-function logPullup(){
+function recordPullup(){
   const n = countDone('pullup', 5);
   const outcome = outcomeFromCount(n, 2);
   const s = STATE.pullup;
@@ -617,8 +659,6 @@ function logPullup(){
   pushHistory('Pull-up', `${s.reps} ${repWord(s.reps)} top @ +${s.weight} kg, ${n}×${boReps} backoff @ +${boWeight} kg`, outcome, s.weight, volume);
   advance('pullup', outcome, s);
   clearPending('pullup');
-  saveState();
-  render();
 }
 
 function renderDip(){
@@ -638,7 +678,7 @@ function renderDip(){
     <div class="ewu"><span class="ewu-label">Warm-up</span>${wu}</div>
     ${tapRow('dip',5,2)}
     <div class="logrow">
-      <button class="logbtn" onclick="logDip()">Log &amp; advance</button>
+      <button class="logbtn" onclick="logOne('dip')">Log &amp; advance</button>
       <div class="eoutcome">${outcomeBadge(outcome,'Hold — repeat '+s.weight+' kg','+1.25 kg → '+fmt(s.weight+1.25)+' kg next','+2.5 kg → '+fmt(s.weight+2.5)+' kg next')}</div>
     </div>
     <div class="ecues" id="cues-dip"><ul class="cl">
@@ -648,7 +688,7 @@ function renderDip(){
     </ul></div>
   </div>`;
 }
-function logDip(){
+function recordDip(){
   const n = countDone('dip', 5);
   const outcome = outcomeFromCount(n, 2);
   const s = STATE.dip;
@@ -657,8 +697,6 @@ function logDip(){
   pushHistory('Dip', `${s.reps} ${repWord(s.reps)} top @ +${s.weight} kg, ${n}×${boReps} backoff @ +${boWeight} kg`, outcome, s.weight, volume);
   advance('dip', outcome, s);
   clearPending('dip');
-  saveState();
-  render();
 }
 
 function renderOhp(){
@@ -671,7 +709,7 @@ function renderOhp(){
     </div>
     ${tapRow('ohp', s.sets, s.sets)}
     <div class="logrow">
-      <button class="logbtn" onclick="logOhp()">Log &amp; advance</button>
+      <button class="logbtn" onclick="logOne('ohp')">Log &amp; advance</button>
       <div class="eoutcome">${done ? '<span class="eout eout-ok">✓ +1 rep next session</span>' : '<span class="eout eout-miss">↺ Repeat current reps/weight</span>'}</div>
     </div>
     <div class="ecues" id="cues-ohp"><ul class="cl">
@@ -681,15 +719,13 @@ function renderOhp(){
     </ul></div>
   </div>`;
 }
-function logOhp(){
+function recordOhp(){
   const s = STATE.ohp;
   const success = allSetsDone('ohp', s.sets);
   const outcome = success ? 'normal' : 'hold';
   pushHistory('OHP', `${s.sets} × ${s.reps} @ ${s.weight} kg`, outcome);
   advance('ohp', outcome, s);
   clearPending('ohp');
-  saveState();
-  render();
 }
 
 /* ================= DAY 1 ACCESSORIES (Pull) ================= */
@@ -703,7 +739,7 @@ function renderLatPulldown(){
     </div>
     ${tapRow('latpulldown', s.sets, s.sets)}
     <div class="logrow">
-      <button class="logbtn" onclick="logLatPulldown()">Log &amp; advance</button>
+      <button class="logbtn" onclick="logOne('latpulldown')">Log &amp; advance</button>
       <div class="eoutcome">${done ? '<span class="eout eout-ok">✓ Progressing</span>' : '<span class="eout eout-miss">↺ Repeat current reps/weight</span>'}</div>
     </div>
     <div class="ecues" id="cues-latpulldown"><ul class="cl">
@@ -713,7 +749,7 @@ function renderLatPulldown(){
     </ul></div>
   </div>`;
 }
-function logLatPulldown(){
+function recordLatPulldown(){
   const s = STATE.latpulldown;
   const success = allSetsDone('latpulldown', s.sets);
   const outcome = success ? 'normal' : 'hold';
@@ -721,8 +757,6 @@ function logLatPulldown(){
   pushHistory('Lat Pulldown', `${s.sets} × ${s.reps} @ ${s.weight} kg`, outcome, null, volume);
   advance('latpulldown', outcome, s);
   clearPending('latpulldown');
-  saveState();
-  render();
 }
 
 function renderInvertedRow(){
@@ -735,7 +769,7 @@ function renderInvertedRow(){
     </div>
     ${tapRow('invertedrow', s.sets, s.sets)}
     <div class="logrow">
-      <button class="logbtn" onclick="logInvertedRow()">Log &amp; advance</button>
+      <button class="logbtn" onclick="logOne('invertedrow')">Log &amp; advance</button>
       <div class="eoutcome">${done ? '<span class="eout eout-ok">✓ +1 rep next session</span>' : '<span class="eout eout-miss">↺ Repeat current reps</span>'}</div>
     </div>
     <div class="ecues" id="cues-invertedrow"><ul class="cl">
@@ -745,7 +779,7 @@ function renderInvertedRow(){
     </ul></div>
   </div>`;
 }
-function logInvertedRow(){
+function recordInvertedRow(){
   const s = STATE.invertedrow;
   const success = allSetsDone('invertedrow', s.sets);
   const outcome = success ? 'normal' : 'hold';
@@ -753,8 +787,6 @@ function logInvertedRow(){
   pushHistory('Dumbbell Row', `${s.sets} × ${s.reps} @ ${s.weight} kg`, outcome, null, volume);
   advance('invertedrow', outcome, s);
   clearPending('invertedrow');
-  saveState();
-  render();
 }
 
 function renderBicepCurl(){
@@ -767,7 +799,7 @@ function renderBicepCurl(){
     </div>
     ${tapRow('bicepcurl', s.sets, s.sets)}
     <div class="logrow">
-      <button class="logbtn" onclick="logBicepCurl()">Log &amp; advance</button>
+      <button class="logbtn" onclick="logOne('bicepcurl')">Log &amp; advance</button>
       <div class="eoutcome">${done ? '<span class="eout eout-ok">✓ Progressing</span>' : '<span class="eout eout-miss">↺ Repeat current reps/weight</span>'}</div>
     </div>
     <div class="ecues" id="cues-bicepcurl"><ul class="cl">
@@ -777,7 +809,7 @@ function renderBicepCurl(){
     </ul></div>
   </div>`;
 }
-function logBicepCurl(){
+function recordBicepCurl(){
   const s = STATE.bicepcurl;
   const success = allSetsDone('bicepcurl', s.sets);
   const outcome = success ? 'normal' : 'hold';
@@ -785,8 +817,6 @@ function logBicepCurl(){
   pushHistory('Bicep Curl', `${s.sets} × ${s.reps} @ ${s.weight} kg`, outcome, null, volume);
   advance('bicepcurl', outcome, s);
   clearPending('bicepcurl');
-  saveState();
-  render();
 }
 
 /* ================= DAY 2 ACCESSORIES (Push) ================= */
@@ -800,7 +830,7 @@ function renderShoulderFly(){
     </div>
     ${tapRow('shoulderfly', s.sets, s.sets)}
     <div class="logrow">
-      <button class="logbtn" onclick="logShoulderFly()">Log &amp; advance</button>
+      <button class="logbtn" onclick="logOne('shoulderfly')">Log &amp; advance</button>
       <div class="eoutcome">${done ? '<span class="eout eout-ok">✓ +1 rep next session</span>' : '<span class="eout eout-miss">↺ Repeat current reps</span>'}</div>
     </div>
     <div class="ecues" id="cues-shoulderfly"><ul class="cl">
@@ -810,7 +840,7 @@ function renderShoulderFly(){
     </ul></div>
   </div>`;
 }
-function logShoulderFly(){
+function recordShoulderFly(){
   const s = STATE.shoulderfly;
   const success = allSetsDone('shoulderfly', s.sets);
   const outcome = success ? 'normal' : 'hold';
@@ -818,8 +848,6 @@ function logShoulderFly(){
   pushHistory('Shoulder Fly', `${s.sets} × ${s.reps} @ ${s.weight} kg`, outcome, null, volume);
   advance('shoulderfly', outcome, s);
   clearPending('shoulderfly');
-  saveState();
-  render();
 }
 
 function renderTricepExt(){
@@ -832,7 +860,7 @@ function renderTricepExt(){
     </div>
     ${tapRow('tricepext', s.sets, s.sets)}
     <div class="logrow">
-      <button class="logbtn" onclick="logTricepExt()">Log &amp; advance</button>
+      <button class="logbtn" onclick="logOne('tricepext')">Log &amp; advance</button>
       <div class="eoutcome">${done ? '<span class="eout eout-ok">✓ Progressing</span>' : '<span class="eout eout-miss">↺ Repeat current reps/weight</span>'}</div>
     </div>
     <div class="ecues" id="cues-tricepext"><ul class="cl">
@@ -842,7 +870,7 @@ function renderTricepExt(){
     </ul></div>
   </div>`;
 }
-function logTricepExt(){
+function recordTricepExt(){
   const s = STATE.tricepext;
   const success = allSetsDone('tricepext', s.sets);
   const outcome = success ? 'normal' : 'hold';
@@ -850,8 +878,6 @@ function logTricepExt(){
   pushHistory('Tricep Extension', `${s.sets} × ${s.reps} @ ${s.weight} kg`, outcome, null, volume);
   advance('tricepext', outcome, s);
   clearPending('tricepext');
-  saveState();
-  render();
 }
 
 /* ================= DAY 3 ================= */
@@ -872,7 +898,7 @@ function renderSquat(){
     <div class="ewu"><span class="ewu-label">Warm-up</span>${wu}</div>
     ${tapRow('squat',5,2)}
     <div class="logrow">
-      <button class="logbtn" onclick="logSquat()">Log &amp; advance</button>
+      <button class="logbtn" onclick="logOne('squat')">Log &amp; advance</button>
       <div class="eoutcome">${outcomeBadge(outcome,'Hold — repeat '+s.weight+' kg','+2.5 kg → '+fmt(s.weight+2.5)+' kg next','+5 kg → '+fmt(s.weight+5)+' kg next')}</div>
     </div>
     <div class="ecues" id="cues-squat"><ul class="cl">
@@ -883,7 +909,7 @@ function renderSquat(){
     </ul></div>
   </div>`;
 }
-function logSquat(){
+function recordSquat(){
   const n = countDone('squat', 5);
   const outcome = outcomeFromCount(n, 2);
   const s = STATE.squat;
@@ -892,8 +918,6 @@ function logSquat(){
   pushHistory('Squat', `3 reps top @ ${s.weight} kg, ${n}×${boReps} backoff @ ${boWeight} kg`, outcome, s.weight, volume);
   advance('squat', outcome, s);
   clearPending('squat');
-  saveState();
-  render();
 }
 
 function renderFrontSquat(){
@@ -906,7 +930,7 @@ function renderFrontSquat(){
     </div>
     ${tapRow('frontsquat',s.sets,s.sets)}
     <div class="logrow">
-      <button class="logbtn" onclick="logFrontSquat()">Log &amp; advance</button>
+      <button class="logbtn" onclick="logOne('frontsquat')">Log &amp; advance</button>
       <div class="eoutcome">${outcomeBadge(outcome,'Hold — repeat '+s.weight+' kg','+2.5 kg → '+fmt(s.weight+2.5)+' kg next','+2.5 kg → '+fmt(s.weight+2.5)+' kg next')}</div>
     </div>
     <div class="ecues" id="cues-frontsquat"><ul class="cl">
@@ -915,14 +939,192 @@ function renderFrontSquat(){
     </ul></div>
   </div>`;
 }
-function logFrontSquat(){
+function recordFrontSquat(){
   const s = STATE.frontsquat;
   const outcome = outcomeFromCount(countDone('frontsquat', s.sets), s.sets);
   const volume = round2(s.weight * s.reps * countDone('frontsquat', s.sets));
   pushHistory('Front Squat', `${countDone('frontsquat', s.sets)} × ${s.reps} @ ${s.weight} kg`, outcome, s.weight, volume);
   advance('frontsquat', outcome, s);
   clearPending('frontsquat');
+}
+
+/* ---------- logging: recordXxx() records one movement (history + advance + clear taps)
+   without saving, so a single Log and Finish today's workout share the same progression ---------- */
+const RECORD = {
+  pullup:recordPullup, latpulldown:recordLatPulldown, invertedrow:recordInvertedRow, bicepcurl:recordBicepCurl,
+  dip:recordDip, ohp:recordOhp, shoulderfly:recordShoulderFly, tricepext:recordTricepExt,
+  squat:recordSquat, frontsquat:recordFrontSquat,
+};
+const HISTORY_NAME = {
+  pullup:'Pull-up', latpulldown:'Lat Pulldown', invertedrow:'Dumbbell Row', bicepcurl:'Bicep Curl',
+  dip:'Dip', ohp:'OHP', shoulderfly:'Shoulder Fly', tricepext:'Tricep Extension',
+  squat:'Squat', frontsquat:'Front Squat',
+};
+function logOne(key){
+  RECORD[key]();
+  clearTodayExtras(key);
   saveState();
+  render();
+}
+
+/* ================= TODAY PLAN =================
+   The plan (movement keys, in order) is kept per device like the pending taps; its tap circles
+   are the Program tab's, so ticking a set in either tab ticks it in both. */
+const PLAN_KEY = 'h2_today_plan';
+function getPlan(){
+  let raw = [];
+  try{ raw = JSON.parse(localStorage.getItem(PLAN_KEY) || '[]'); }catch(_){}
+  return Array.isArray(raw) ? raw.filter((k,i)=>Object.hasOwn(RECORD,k) && raw.indexOf(k)===i) : [];
+}
+function setPlan(keys){
+  try{ localStorage.setItem(PLAN_KEY, JSON.stringify(keys)); }catch(_){}
+  render();
+}
+function togglePlan(key){
+  const plan = getPlan();
+  setPlan(plan.includes(key) ? plan.filter(k=>k!==key) : [...plan, key]);
+}
+function presetPlan(day){ setPlan(Movements.movementsFor(day)); }
+function clearPlan(){ setPlan([]); }
+
+function freshOf(key){
+  return Plan.freshness(Plan.lastTrained(HISTORY, key, keyOf), Date.now());
+}
+function loadText(key, load){
+  if(!Plan.isAdded(key)) return `${fmt(load)} kg`;
+  return load ? `+${fmt(load)} kg` : 'BW';
+}
+
+function renderTodayPresets(plan){
+  const sug = Plan.suggestDay(Movements.movementsFor, HISTORY, keyOf);
+  const btns = Plan.DAYS.map(day=>`<button class="pbtn tpreset${day===sug?' suggested':''}" onclick="presetPlan('${day}')">${Movements.DAYS[day]} day${day===sug?'<span class="tsug">suggested</span>':''}</button>`).join('');
+  return btns + (plan.length ? '<button class="pbtn" onclick="clearPlan()">Clear plan</button>' : '');
+}
+function renderTodayPicker(plan){
+  return Plan.DAYS.map(day=>{
+    const chips = Movements.movementsFor(day).map(key=>{
+      const f = freshOf(key);
+      return `<button class="tchip f-${f.level}${plan.includes(key)?' on':''}" onclick="togglePlan('${key}')">
+        <span class="tname">${esc(Movements.MOVEMENTS[key].name)}</span><span class="tage">${Plan.ageLabel(f.days)}</span></button>`;
+    }).join('');
+    return `<div><div class="tpgroup-title">${Movements.DAYS[day]}</div><div class="tchips">${chips}</div></div>`;
+  }).join('');
+}
+/* warm-up and top-set ticks are only a checklist (progression comes from the working-set taps),
+   kept per device next to the plan; extra = how many backoff sets a top-set lift shows */
+function getTicks(key, len){
+  let raw = [];
+  try{ raw = JSON.parse(localStorage.getItem('h2_tick_'+key) || '[]'); }catch(_){}
+  return Array.from({length:len}, (_,i)=>!!(Array.isArray(raw) && raw[i]));
+}
+function toggleTick(key, idx, len){
+  const arr = getTicks(key, len);
+  arr[idx] = !arr[idx];
+  try{ localStorage.setItem('h2_tick_'+key, JSON.stringify(arr)); }catch(_){}
+  render();
+}
+function getExtra(key){
+  let n = 0;
+  try{ n = parseInt(localStorage.getItem('h2_extra_'+key) || '0', 10) || 0; }catch(_){}
+  return Math.max(0, n);
+}
+function addSet(key){
+  try{ localStorage.setItem('h2_extra_'+key, String(getExtra(key)+1)); }catch(_){}
+  render();
+}
+function clearTodayExtras(key){
+  try{ localStorage.removeItem('h2_tick_'+key); localStorage.removeItem('h2_extra_'+key); }catch(_){}
+}
+/* the backoff sets shown for a top-set lift: the target, plus any added, plus any already ticked
+   (the Program tab can tick bonus sets), up to the 5 the progression counts */
+function shownSets(key, ws){
+  if(!ws.top) return ws.sets.length;
+  const done = getPending(key, ws.sets.length);
+  const lastTicked = done.lastIndexOf(true) + 1;
+  return Math.min(ws.sets.length, Math.max(ws.target + getExtra(key), lastTicked));
+}
+
+/* per-movement drawer (History / Records), one open at a time */
+let TODAY_OPEN = null;
+function toggleDrawer(key, kind){
+  TODAY_OPEN = TODAY_OPEN && TODAY_OPEN.key===key && TODAY_OPEN.kind===kind ? null : {key, kind};
+  render();
+}
+function historyOf(key){ return HISTORY.filter(h=>keyOf(h.exercise)===key); }
+function drawerHtml(key, kind){
+  const rows = historyOf(key);
+  if(kind==='history'){
+    return rows.slice(-5).reverse().map(h=>`<div class="tdrow"><span class="tm">${new Date(h.date).toLocaleDateString()}</span> ${esc(h.result)} <span class="tm">· ${esc(h.outcome)}</span></div>`).join('');
+  }
+  const best = (field)=>rows.reduce((b,h)=>h[field]!=null && (!b || h[field]>b[field]) ? h : b, null);
+  const top = best('weight'), vol = best('volume');
+  const date = h=>new Date(h.date).toLocaleDateString();
+  return (top ? `<div class="tdrow">Heaviest top set: <b>${loadText(key, top.weight)}</b> <span class="tm">· ${date(top)}</span></div>` : '')
+    + (vol ? `<div class="tdrow">Most volume in a session: <b>${fmt(vol.volume)} kg</b> <span class="tm">· ${date(vol)}</span></div>` : '');
+}
+const CHECK_SVG = '<svg class="tchk" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7"/><path d="M4.8 8.3l2.1 2.1 4.3-4.6"/></svg>';
+function chipHtml(text, done, current, onclick){
+  return `<button class="tset${done?' done':''}${current?' current':''}" onclick="${onclick}">${CHECK_SVG}<span>${text}</span></button>`;
+}
+function renderTodayCard(key){
+  const s = STATE[key], m = Movements.MOVEMENTS[key], f = freshOf(key);
+  const ws = Plan.workingSets(key, s);
+  const wus = Plan.warmups(key, s);
+  /* checklist chips: warm-ups, then the top set */
+  const pre = wus.map(w=>({text:`${w.reps} x ${loadText(key,w.load)}`}));
+  if(ws.top) pre.push({text:`${ws.top.reps} x ${loadText(key,ws.top.load)}`});
+  const ticks = getTicks(key, pre.length);
+  const done = getPending(key, ws.sets.length);
+  const n = shownSets(key, ws);
+  const states = [...ticks, ...done.slice(0, n)];
+  const current = states.indexOf(false);
+  const chips = pre.map((c,i)=>chipHtml(c.text, ticks[i], current===i, `toggleTick('${key}',${i},${pre.length})`))
+    .concat(ws.sets.slice(0, n).map((set,i)=>chipHtml(`${set.reps} x ${loadText(key,set.load)}`, done[i], current===pre.length+i,
+      `togglePending(event,'${key}',${i},${ws.sets.length})`)));
+  const canAdd = ws.top && n < ws.sets.length;
+  const pct = states.length ? Math.round(100*states.filter(Boolean).length/states.length) : 0;
+  const rows = historyOf(key);
+  const links = [];
+  if(rows.length) links.push(['history','↺','History']);
+  if(rows.some(h=>h.weight!=null || h.volume!=null)) links.push(['records','🏆','Records']);
+  const linkHtml = links.map(([kind,icon,label])=>`<button class="tlink${TODAY_OPEN&&TODAY_OPEN.key===key&&TODAY_OPEN.kind===kind?' open':''}" onclick="toggleDrawer('${key}','${kind}')"><span aria-hidden="true">${icon}</span> ${label}</button>`).join('')
+    + (rows.some(h=>h.weight!=null || h.volume!=null) ? `<button class="tlink" onclick="showTab('chart',document.querySelector('.tb[data-tab=chart]'))"><span aria-hidden="true">↗</span> Stats</button>` : '');
+  const drawer = TODAY_OPEN && TODAY_OPEN.key===key ? `<div class="tdrawer">${drawerHtml(key, TODAY_OPEN.kind)}</div>` : '';
+  return `<div class="tblock">
+    <div class="tblock-h"><span class="tdot f-${f.level}" title="Last trained: ${Plan.ageLabel(f.days)}"></span><div class="tname">${esc(m.name)}</div>
+      <span class="tage f-${f.level}">${Plan.ageLabel(f.days)}</span>${linkHtml}
+      <button class="tdel" title="Remove from plan" onclick="togglePlan('${key}')">✕</button></div>
+    <div class="tsets">${chips.join('')}${canAdd ? `<button class="taddset" onclick="addSet('${key}')">⊕ Add Sets</button>` : ''}</div>
+    ${drawer}
+    <div class="tprog"><div style="width:${pct}%"></div></div>
+  </div>`;
+}
+function renderToday(){
+  const plan = getPlan();
+  document.getElementById('todayPresets').innerHTML = renderTodayPresets(plan);
+  document.getElementById('todayPicker').innerHTML = renderTodayPicker(plan);
+  document.getElementById('todayPlan').innerHTML = plan.length
+    ? `<div class="tplan">${plan.map(renderTodayCard).join('')}</div>
+       <div class="tfinish"><div class="tm">Logs all ${plan.length} movement${plan.length===1?'':'s'} from the working sets ticked above, in one commit.</div>
+       <button class="logbtn" id="todayFinish" onclick="finishWorkout()">Finish today's workout</button></div>`
+    : '<div class="emptychart">No movements in today\'s plan yet — pick a day preset or tap movements above.</div>';
+}
+/* bulk "log & advance": every planned movement is recorded exactly like its own Log button,
+   then STATE + HISTORY are saved once, so the whole workout is one commit */
+function finishWorkout(){
+  const plan = getPlan();
+  if(!plan.length || READONLY) return;
+  const lines = plan.map(key=>{
+    const ws = Plan.workingSets(key, STATE[key]);
+    const n = countDone(key, ws.sets.length);
+    const outcome = outcomeFromCount(n, ws.target);
+    return `${Movements.MOVEMENTS[key].name}: ${n}/${ws.target} sets (${outcome==='hold'?'hold':outcome==='double'?'bonus':'progress'})`;
+  });
+  if(!confirm(`Log today's workout?\n\n${lines.join('\n')}`)) return;
+  plan.forEach(key=>{ RECORD[key](); clearTodayExtras(key); });
+  saveState(`Log workout: ${plan.map(k=>HISTORY_NAME[k]).join(', ')}`);
+  try{ localStorage.removeItem(PLAN_KEY); }catch(_){}
+  TODAY_OPEN = null;
   render();
 }
 
@@ -1116,6 +1318,7 @@ function renderChart(){
 function render(){
   renderHeaderStats();
   document.getElementById('sgrid').innerHTML = renderDay('pull',1) + renderDay('push',2) + renderDay('legs',3);
+  renderToday();
   applyReadonly();
 }
 
