@@ -1148,7 +1148,7 @@ function renderToday(){
        <button class="logbtn" id="todayFinish" onclick="finishWorkout()">Finish today's workout</button></div>`
     : '<div class="emptychart">No movements in today\'s plan yet — pick a day preset or tap movements above.</div>';
 }
-/* bulk "log & advance": every planned movement is recorded exactly like its own Log button,
+/* bulk "log & advance": every planned movement with something ticked is recorded exactly like its own Log button,
    then STATE + HISTORY are saved once, so the whole workout is one commit. The plan and its
    ticks stay in localStorage until that commit lands, so a failed or conflicting save
    (which asks for a reload) doesn't lose the workout. */
