@@ -60,6 +60,7 @@ and set the load under Current working sets by hand.
 - `AGENTS.md`: training-coach instructions for AI agents
 - `powerlifting_summary.md`, `streetlifting.md`: athlete profile and reference notes
 - `streetlifting_tests.feature`: acceptance scenarios for the program pages
+- `H2-2026.html`: H2 2026 tracker, in progress (same `progress.md`); planned features in `QUEUE.md`
 - `Q2-2026.md`: original program notes
 - `Q2-2026-alt.html`, `streetlifting_program.html`: older pages (static)
 

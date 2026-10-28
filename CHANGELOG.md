@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- New `H2-2026.html` page (copy of the Q2 tracker, same progress data) for the H2 features in `QUEUE.md`.
 - The tracker keeps `progress.md` on a separate `data` branch and commits logs there, never to `main`,
   so a device token can't change the site's code and logging no longer triggers a Pages build.
   Devices switch over on their own (the Branch setting is gone); `main` is protected by a ruleset.
