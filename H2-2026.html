@@ -65,6 +65,9 @@ main{max-width:1100px;margin:0 auto;padding:24px}
 .stitle{font-weight:700;font-size:14px}
 .ssub{font-size:12px;color:var(--muted)}
 .sbody{padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.cgroup{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:4px}
+.cgroup:first-child{margin-top:0}
+.cgroup-empty{font-size:12px;color:var(--muted);opacity:.6;font-style:italic;padding:0 2px}
 
 /* EXERCISE ROW */
 .er{background:var(--surface2);border-radius:8px;padding:10px 12px}
@@ -247,6 +250,7 @@ main{max-width:1100px;margin:0 auto;padding:24px}
 </main>
 
 <script src="progress.js"></script>
+<script src="movements.js"></script>
 <script>
 /* name of the one-time Apple Shortcut (created manually in Shortcuts.app) that
    replaces the "Q2 2026 Training" note's body with whatever text we pass it */
@@ -923,22 +927,24 @@ function logFrontSquat(){
 }
 
 /* ================= PAGE ASSEMBLY ================= */
-function renderDay1(){
+/* each day lists its movements grouped by category (movements.js); skill work and cardio have no
+   movements yet, so they show as empty groups */
+const RENDERERS = {
+  pullup: renderPullup, latpulldown: renderLatPulldown, invertedrow: renderInvertedRow, bicepcurl: renderBicepCurl,
+  dip: renderDip, ohp: renderOhp, shoulderfly: renderShoulderFly, tricepext: renderTricepExt,
+  squat: renderSquat, frontsquat: renderFrontSquat,
+};
+function renderDay(day, n){
+  const {DAYS, CATEGORIES, MOVEMENTS, movementsFor} = Movements;
+  const names = movementsFor(day).map(k => MOVEMENTS[k].name).join(' / ');
+  const groups = Object.keys(CATEGORIES).map(cat => {
+    const keys = movementsFor(day, cat);
+    const body = keys.length ? keys.map(k => RENDERERS[k]()).join('') : '<div class="cgroup-empty">None yet</div>';
+    return `<div class="cgroup">${CATEGORIES[cat]}</div>${body}`;
+  }).join('');
   return `<div class="sc">
-    <div class="sch"><div class="sdot dot-pull">1</div><div><div class="stitle">Day 1 — Pull</div><div class="ssub">Pull-up / Lat Pulldown / Dumbbell Row / Bicep Curl</div></div></div>
-    <div class="sbody">${renderPullup()}${renderLatPulldown()}${renderInvertedRow()}${renderBicepCurl()}</div>
-  </div>`;
-}
-function renderDay2(){
-  return `<div class="sc">
-    <div class="sch"><div class="sdot dot-push">2</div><div><div class="stitle">Day 2 — Push</div><div class="ssub">Dip / OHP / Shoulder Fly / Tricep Extension</div></div></div>
-    <div class="sbody">${renderDip()}${renderOhp()}${renderShoulderFly()}${renderTricepExt()}</div>
-  </div>`;
-}
-function renderDay3(){
-  return `<div class="sc">
-    <div class="sch"><div class="sdot dot-legs">3</div><div><div class="stitle">Day 3 — Legs</div><div class="ssub">Squat / Front Squat</div></div></div>
-    <div class="sbody">${renderSquat()}${renderFrontSquat()}</div>
+    <div class="sch"><div class="sdot dot-${day}">${n}</div><div><div class="stitle">Day ${n} — ${DAYS[day]}</div><div class="ssub">${names}</div></div></div>
+    <div class="sbody">${groups}</div>
   </div>`;
 }
 
@@ -1109,7 +1115,7 @@ function renderChart(){
 
 function render(){
   renderHeaderStats();
-  document.getElementById('sgrid').innerHTML = renderDay1() + renderDay2() + renderDay3();
+  document.getElementById('sgrid').innerHTML = renderDay('pull',1) + renderDay('push',2) + renderDay('legs',3);
   applyReadonly();
 }
 

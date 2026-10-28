@@ -11,15 +11,19 @@ that also works under `node --test`, like `progress.js`). Item 1 owns it; items 
 this shape and rebase once item 1 is merged.
 
 ```js
+// window.Movements (require() in node): {DAYS, CATEGORIES, PATTERNS, MUSCLES, MOVEMENTS, movementsFor(day, category?)}
 // key = the STATE / exercise key used by progress.md (pullup, dip, ohp, squat, …)
 MOVEMENTS = {
-  pullup: { name: 'Weighted Pull-Up', day: 'pull', category: 'compound',
+  pullup: { name: 'Weighted Pull-Up', day: 'pull', category: 'compound', pattern: 'vertical_pull',
             muscles: { lats: 1, biceps: 0.5, rear_delts: 0.5 } },
   // …
 }
 // day:      'push' | 'pull' | 'legs'
 // category: 'compound' | 'isolation' | 'skill' | 'cardio'
-// muscles:  sets credited per working set (1 = primary, 0.5 = secondary)
+// pattern:  'vertical_pull' | 'horizontal_pull' | 'vertical_push' | 'horizontal_push' | 'squat' | 'hinge' | 'isolation'
+// muscles:  sets credited per working set (1 = primary, 0.5 = secondary); individual muscles (MUSCLES keys:
+//           lats, traps, rhomboids, rear_delts, biceps, chest, front_delts, side_delts, triceps,
+//           quads, glutes, adductors, hamstrings, erectors)
 ```
 
 ## 1. Movement / muscle grouping — `feat/movement-groups`

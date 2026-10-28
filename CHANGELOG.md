@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- H2 tracker: each day on the Program tab is grouped into Big compound, Isolation, Skill work and Cardio
+  (the last two empty for now). The grouping and each movement's muscles live in `movements.js`.
 - New `H2-2026.html` page (copy of the Q2 tracker, same progress data) for the H2 features in `QUEUE.md`.
 - The tracker keeps `progress.md` on a separate `data` branch and commits logs there, never to `main`,
   so a device token can't change the site's code and logging no longer triggers a Pages build.
