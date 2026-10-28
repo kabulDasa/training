@@ -207,3 +207,55 @@ test('store without a token sends no Authorization header', async () => {
   await P.makeStore({owner: 'o', repo: 'r', branch: 'data', path: 'progress.md', token: ''}, gh.fetch).load();
   assert.equal(gh.calls[0].opts.headers.Authorization, undefined);
 });
+
+/* ---------- bodyweight ---------- */
+const BW = {...SAMPLE, bodyweight: [{date: '2026-10-20', kg: 75.4}, {date: '2026-10-27', kg: 74.85}]};
+
+test('bodyweight round-trips and is written as its own table', () => {
+  const text = P.serialize(BW);
+  assert.match(text, /## Bodyweight\n\n\| Date \| Bodyweight \(kg\) \|\n\|---\|---\|\n\| 2026-10-20 \| 75\.4 \|\n\| 2026-10-27 \| 74\.85 \|\n$/);
+  assert.deepEqual(P.parse(text), BW);
+  P.validate(P.parse(text));
+});
+
+test('files without a Bodyweight section load without one and are written unchanged', () => {
+  const text = P.serialize(SAMPLE);
+  assert.doesNotMatch(text, /Bodyweight/);
+  assert.equal(P.parse(text).bodyweight, undefined);
+  // an empty list writes no section either
+  assert.equal(P.serialize({...SAMPLE, bodyweight: []}), text);
+});
+
+test('bodyweight rows are written oldest first', () => {
+  const shuffled = {...BW, bodyweight: [...BW.bodyweight].reverse()};
+  assert.deepEqual(P.parse(P.serialize(shuffled)).bodyweight, BW.bodyweight);
+});
+
+test('bad bodyweight rejected', () => {
+  const text = P.serialize(BW);
+  assert.throws(() => P.parse(text.replace('| 2026-10-20 |', '| 20/10/2026 |')), /bodyweight date/);
+  assert.throws(() => P.parse(text.replace('| 75.4 |', '| heavy |')), /finite/);
+  for (const bad of [
+    {...SAMPLE, bodyweight: {}},
+    {...SAMPLE, bodyweight: [{date: '2026-10-20'}]},
+    {...SAMPLE, bodyweight: [{date: '2026-10-20', kg: null}]},
+    {...SAMPLE, bodyweight: [{date: '2026-10-20', kg: '75'}]},
+    {...SAMPLE, bodyweight: [{date: '2026-10-20', kg: 0}]},
+    {...SAMPLE, bodyweight: [{date: '2026-10-20', kg: 900}]},
+    {...SAMPLE, bodyweight: [{date: 'yesterday', kg: 75}]},
+    {...SAMPLE, bodyweight: [{date: '2026-10-20T08:00:00Z', kg: 75}]},
+    {...SAMPLE, bodyweight: [{date: '2026-10-20', kg: 75}, {date: '2026-10-20', kg: 76}]},
+  ]) assert.throws(() => P.validate(bad), undefined, JSON.stringify(bad));
+});
+
+test('a save without a bodyweight key keeps the rows it loaded (older pages)', async () => {
+  const gh = fakeGitHub(P.serialize(BW));
+  const cfg = {owner: 'bw', repo: 'keep', branch: 'data', path: 'progress.md', token: 't'};
+  const {sha} = await P.makeStore(cfg, gh.fetch).load();
+  // a separate store instance, as the page makes one per call
+  const sha2 = await P.makeStore(cfg, gh.fetch).save({state: SAMPLE.state, history: SAMPLE.history}, sha, 'Log Squat');
+  assert.deepEqual(P.parse(gh.text).bodyweight, BW.bodyweight);
+  // an explicit list (even empty) wins
+  await P.makeStore(cfg, gh.fetch).save({...SAMPLE, bodyweight: []}, sha2, 'Remove bodyweight');
+  assert.equal(P.parse(gh.text).bodyweight, undefined);
+});

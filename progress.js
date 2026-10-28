@@ -1,7 +1,8 @@
 /* progress.md format + GitHub storage for Q2-2026.html.
    progress.md holds two Markdown tables: "Current working sets" (Key | Weight | Reps | Sets) and
    "Session log" (oldest first, one row per logged session; Before is the working set the log
-   replaced, which undo restores, and is blank on rows logged before the column existed). The page
+   replaced, which undo restores, and is blank on rows logged before the column existed), plus an
+   optional "Bodyweight" table (Date | Bodyweight (kg), one row per day, oldest first). The page
    reads and writes it through the GitHub contents API on the repo's `data` branch, so every save is
    a commit there and never touches `main`, which GitHub Pages serves the site from. Loaded as a plain
    <script> in the page and with require() in the node tests. */
@@ -14,6 +15,7 @@ const HISTORY_FIELDS = ['date', 'exercise', 'result', 'outcome', 'weight', 'volu
 const UNITS = {weight: ['kg', 'kg'], reps: ['rep', 'reps'], sets: ['set', 'sets']};
 const OUTCOMES = ['hold', 'normal', 'double'];
 const KEY_RE = /^[a-z][a-z0-9]*$/;
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 const HEADER = `# Q2 2026 progress
 
@@ -101,7 +103,15 @@ function parse(text){
     const [date, exercise, result, outcome, weight, volume, before] = HISTORY_FIELDS.map((_, i) => row[i] || '');
     return {date, exercise, result, outcome, weight: num(weight), volume: num(volume), before: parseSet(before)};
   });
-  return {state, history};
+  const data = {state, history};
+  /* optional: files written before bodyweight logging existed have no such section */
+  if('Bodyweight' in t)
+    data.bodyweight = t['Bodyweight'].map(row => {
+      const date = (row[0] || '').trim();
+      if(!DATE_RE.test(date)) throw new Error(`bad bodyweight date: ${JSON.stringify(date)}`);
+      return {date, kg: num(row[1] || '')};
+    });
+  return data;
 }
 
 function serialize(data){
@@ -114,6 +124,12 @@ function serialize(data){
     '|---|---|---|---|---|---|---|');
   for(const h of data.history)
     lines.push('| ' + [cell(h.date), cell(h.exercise), cell(h.result), h.outcome, fmt(h.weight), fmt(h.volume), fmtSet(h.before)].join(' | ') + ' |');
+  /* only once there is an entry, so files without bodyweight round-trip unchanged */
+  if(data.bodyweight && data.bodyweight.length){
+    lines.push('', '## Bodyweight', '', '| Date | Bodyweight (kg) |', '|---|---|');
+    for(const b of [...data.bodyweight].sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
+      lines.push(`| ${b.date} | ${fmt(b.kg)} |`);
+  }
   return lines.join('\n') + '\n';
 }
 
@@ -142,6 +158,17 @@ function validate(data){
       if(h[f] != null && !isNum(h[f])) throw new Error(`bad history ${f}`);
     if(h.before != null && !isSet(h.before)) throw new Error('bad history before');
   }
+  if(data.bodyweight !== undefined){
+    if(!Array.isArray(data.bodyweight)) throw new Error('bodyweight must be a list');
+    const seen = new Set();
+    for(const b of data.bodyweight){
+      if(!b || typeof b.date !== 'string' || !DATE_RE.test(b.date) || isNaN(Date.parse(b.date)))
+        throw new Error('bad bodyweight date');
+      if(!isNum(b.kg) || b.kg <= 0 || b.kg >= 500) throw new Error(`bad bodyweight on ${b.date}`);
+      if(seen.has(b.date)) throw new Error(`two bodyweight entries on ${b.date}`);
+      seen.add(b.date);
+    }
+  }
 }
 
 /* ---------- GitHub contents API ---------- */
@@ -162,6 +189,12 @@ class ConflictError extends Error {}
 const TIMEOUT_MS = 20000;
 /* GitHub's wording when the sha sent with a PUT is no longer the file's current sha */
 const STALE_SHA_RE = /does not match|is at [0-9a-f]+ but expected|sha/i;
+
+/* bodyweight last loaded per file URL. A save without a bodyweight key (a page that predates
+   bodyweight logging, e.g. Q2-2026.html) keeps these rows instead of dropping the section. That
+   is safe because the save is made against the loaded sha: if the file changed since, GitHub
+   refuses it as a conflict. */
+const LOADED_BODYWEIGHT = new Map();
 
 /* cfg: {owner, repo, branch, path, token}. token may be empty for reads of a public repo. */
 function makeStore(cfg, fetchImpl){
@@ -198,10 +231,13 @@ function makeStore(cfg, fetchImpl){
         throw new Error(`${cfg.path} is not a readable file (over 1 MB, or a folder?)`);
       const data = parse(b64decode(body.content));
       validate(data);
+      LOADED_BODYWEIGHT.set(url, data.bodyweight);
       return {data, sha: body.sha};
     },
     /* commit data as progress.md on top of sha -> new sha. Throws ConflictError if sha is stale. */
     async save(data, sha, message){
+      if(data && data.bodyweight === undefined && LOADED_BODYWEIGHT.get(url))
+        data = {...data, bodyweight: LOADED_BODYWEIGHT.get(url)};
       validate(data);
       const r = await f(url, {
         method: 'PUT', headers: {...headers(), 'Content-Type': 'application/json'},
@@ -214,6 +250,7 @@ function makeStore(cfg, fetchImpl){
         throw new Error(msg || String(r.status));
       }
       if(!r.ok) await fail(r);
+      LOADED_BODYWEIGHT.set(url, data.bodyweight);
       return (await r.json()).content.sha;
     },
   };
