@@ -11,7 +11,7 @@ that also works under `node --test`, like `progress.js`). Item 1 owns it; items 
 this shape and rebase once item 1 is merged.
 
 ```js
-// window.Movements (require() in node): {DAYS, CATEGORIES, PATTERNS, MUSCLES, MOVEMENTS, movementsFor(day, category?)}
+// window.Movements (require() in node): {DAYS, CATEGORIES, PATTERNS, MUSCLES, MOVEMENTS, EXERCISE_KEY, movementsFor(day, category?)}
 // key = the STATE / exercise key used by progress.md (pullup, dip, ohp, squat, …)
 MOVEMENTS = {
   pullup: { name: 'Weighted Pull-Up', day: 'pull', category: 'compound', pattern: 'vertical_pull',
@@ -22,8 +22,10 @@ MOVEMENTS = {
 // category: 'compound' | 'isolation' | 'skill' | 'cardio'
 // pattern:  'vertical_pull' | 'horizontal_pull' | 'vertical_push' | 'horizontal_push' | 'squat' | 'hinge' | 'isolation'
 // muscles:  sets credited per working set (1 = primary, 0.5 = secondary); individual muscles (MUSCLES keys:
-//           lats, traps, rhomboids, rear_delts, biceps, chest, front_delts, side_delts, triceps,
+//           lats, traps, rear_delts, biceps, core, chest, front_delts, side_delts, triceps,
 //           quads, glutes, adductors, hamstrings, erectors)
+// retired:  true on movements only in the old log (muscleup, frontlever, kneeraise; category 'skill');
+//           movementsFor() skips them. EXERCISE_KEY maps session-log exercise names to keys.
 ```
 
 ## 1. Movement / muscle grouping — `feat/movement-groups`

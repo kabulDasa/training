@@ -3,8 +3,10 @@
    muscle per working set (1 = primary, 0.5 = secondary), which the weekly volume chart sums.
    Big compounds are the main barbell/bodyweight lifts; the remaining accessories count as
    isolation. pattern is the movement pattern (single-joint work is 'isolation'). Muscle keys are
-   individual muscles so the volume chart can group them any way. Skill work and cardio have no
-   movements yet; the Program tab shows them as empty groups. Loaded as a plain <script> in the page and with require() in the node tests. */
+   individual muscles so the volume chart can group them any way. The skill movements are retired:
+   they are only in the July-August session log, have no working set and don't show on the Program
+   tab, which shows skill work and cardio as empty groups for now. EXERCISE_KEY maps the exercise
+   names used in the session log to keys. Loaded as a plain <script> in the page and with require() in the node tests. */
 (function(root){
 'use strict';
 
@@ -16,7 +18,7 @@ const PATTERNS = {
   squat: 'Squat', hinge: 'Hinge', isolation: 'Isolation',
 };
 const MUSCLES = {
-  lats: 'Lats', traps: 'Traps', rhomboids: 'Rhomboids', rear_delts: 'Rear delts', biceps: 'Biceps',
+  lats: 'Lats', traps: 'Traps', rear_delts: 'Rear delts', biceps: 'Biceps', core: 'Core',
   chest: 'Chest', front_delts: 'Front delts', side_delts: 'Side delts', triceps: 'Triceps',
   quads: 'Quads', glutes: 'Glutes', adductors: 'Adductors', hamstrings: 'Hamstrings', erectors: 'Erectors',
 };
@@ -26,7 +28,7 @@ const MOVEMENTS = {
   pullup:      {name: 'Weighted Pull-Up',        day: 'pull', category: 'compound',  pattern: 'vertical_pull',
                 muscles: {lats: 1, biceps: 0.5, rear_delts: 0.5}},
   invertedrow: {name: 'Dumbbell Row',            day: 'pull', category: 'compound',  pattern: 'horizontal_pull',
-                muscles: {lats: 1, rhomboids: 0.5, traps: 0.5, rear_delts: 0.5, biceps: 0.5}},
+                muscles: {lats: 1, traps: 0.5, rear_delts: 0.5, biceps: 0.5}},
   latpulldown: {name: 'Single-Arm Lat Pulldown', day: 'pull', category: 'isolation', pattern: 'vertical_pull',
                 muscles: {lats: 1, biceps: 0.5}},
   bicepcurl:   {name: 'Bicep Curl',              day: 'pull', category: 'isolation', pattern: 'isolation',
@@ -45,15 +47,29 @@ const MOVEMENTS = {
                 muscles: {quads: 1, glutes: 0.5, adductors: 0.5}},
   frontsquat:  {name: 'Front Squat',             day: 'legs', category: 'isolation', pattern: 'squat',
                 muscles: {quads: 1, glutes: 0.5}},
+  muscleup:    {name: 'Muscle-Up',               day: 'pull', category: 'skill',     pattern: 'vertical_pull',
+                muscles: {lats: 1, triceps: 0.5, chest: 0.5}, retired: true},
+  frontlever:  {name: 'Tuck Front Lever',        day: 'pull', category: 'skill',     pattern: 'horizontal_pull',
+                muscles: {lats: 1, core: 1}, retired: true},
+  kneeraise:   {name: 'Hanging Knee Raise',      day: 'pull', category: 'skill',     pattern: 'isolation',
+                muscles: {core: 1}, retired: true},
 };
 
-/* keys of the movements in one day, optionally one category, in MOVEMENTS order */
+/* session-log exercise name -> key; Dumbbell Row replaced Inverted Row and shares its key */
+const EXERCISE_KEY = {
+  'Pull-up': 'pullup', 'Lat Pulldown': 'latpulldown', 'Inverted Row': 'invertedrow', 'Dumbbell Row': 'invertedrow',
+  'Bicep Curl': 'bicepcurl', 'Dip': 'dip', 'OHP': 'ohp', 'Shoulder Fly': 'shoulderfly', 'Tricep Extension': 'tricepext',
+  'Squat': 'squat', 'Front Squat': 'frontsquat',
+  'Muscle-up': 'muscleup', 'Tuck Front Lever': 'frontlever', 'Hanging Knee Raise': 'kneeraise',
+};
+
+/* keys of the current (not retired) movements in one day, optionally one category, in MOVEMENTS order */
 function movementsFor(day, category){
-  return Object.keys(MOVEMENTS).filter(k =>
+  return Object.keys(MOVEMENTS).filter(k => !MOVEMENTS[k].retired &&
     MOVEMENTS[k].day === day && (category == null || MOVEMENTS[k].category === category));
 }
 
-const api = {DAYS, CATEGORIES, PATTERNS, MUSCLES, MOVEMENTS, movementsFor};
+const api = {DAYS, CATEGORIES, PATTERNS, MUSCLES, MOVEMENTS, EXERCISE_KEY, movementsFor};
 if(typeof module !== 'undefined' && module.exports) module.exports = api;
 else root.Movements = api;
 })(typeof window !== 'undefined' ? window : globalThis);
