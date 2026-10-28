@@ -125,9 +125,19 @@ function suggestDay(dayKeys, history, keyOf){
   return best;
 }
 
+/* chips before the working sets (warm-ups, then the top set), which are a checklist only */
+function checklistLength(key, s){ return warmups(key, s).length + (workingSets(key, s).top ? 1 : 0); }
+/* Finish logs only planned movements with at least one chip ticked; the rest are skipped, so
+   their working set and freshness stay as they were. ticked(key) = number of ticked chips. */
+function splitFinish(plan, ticked){
+  const log = [], skip = [];
+  plan.forEach(key=>(ticked(key) > 0 ? log : skip).push(key));
+  return {log, skip};
+}
+
 const api = {
   DAYS, KIND, FRESH_DAYS, DUE_DAYS, backoffOf, calWarmups, squatWarmups, barbellWarmups, accessoryWarmups,
-  warmups, workingSets, isAdded, lastTrained, freshness, ageLabel, suggestDay,
+  warmups, workingSets, isAdded, lastTrained, freshness, ageLabel, suggestDay, checklistLength, splitFinish,
 };
 if(typeof module !== 'undefined' && module.exports) module.exports = api;
 else root.Plan = api;

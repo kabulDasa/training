@@ -93,3 +93,15 @@ test('suggestDay picks the day trained longest ago', () => {
   assert.equal(P.suggestDay(movementsFor, [], keyOf), 'pull');
   assert.equal(P.suggestDay(movementsFor, [...HIST, {date: ago(1), exercise:'Squat'}], keyOf), 'pull');
 });
+
+test('checklist chips: warm-ups plus the top set when there is one', () => {
+  assert.equal(P.checklistLength('squat', {weight:107.5}), P.warmups('squat', {weight:107.5}).length + 1);
+  assert.equal(P.checklistLength('bicepcurl', {weight:10, reps:17, sets:2}), 1);
+});
+
+test('splitFinish logs movements with anything ticked and skips the rest, in plan order', () => {
+  const ticked = {pullup:3, latpulldown:0, invertedrow:1, bicepcurl:0};
+  assert.deepEqual(P.splitFinish(Object.keys(ticked), k=>ticked[k]),
+    {log:['pullup', 'invertedrow'], skip:['latpulldown', 'bicepcurl']});
+  assert.deepEqual(P.splitFinish(['dip'], ()=>0), {log:[], skip:['dip']});
+});

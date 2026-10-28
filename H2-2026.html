@@ -1144,7 +1144,7 @@ function renderToday(){
     ? `<div class="emptychart">${FINISHING==='failed' ? 'Today\'s workout was NOT saved. Reload the page: your plan and ticked sets come back with it.' : 'Saving today\'s workout…'}</div>`
     : plan.length
     ? `<div class="tplan">${plan.map(renderTodayCard).join('')}</div>
-       <div class="tfinish"><div class="tm">Logs all ${plan.length} movement${plan.length===1?'':'s'} from the working sets ticked above, in one commit.</div>
+       <div class="tfinish"><div class="tm">Logs every movement with a set ticked above, in one commit. Movements with nothing ticked are skipped.</div>
        <button class="logbtn" id="todayFinish" onclick="finishWorkout()">Finish today's workout</button></div>`
     : '<div class="emptychart">No movements in today\'s plan yet — pick a day preset or tap movements above.</div>';
 }
@@ -1156,21 +1156,27 @@ let FINISHING = null;  /* null | 'saving' | 'failed' */
 async function finishWorkout(){
   const plan = getPlan();
   if(!plan.length || READONLY || FINISHING) return;
-  const lines = plan.map(key=>{
+  /* a movement with no chip ticked wasn't done today: it isn't logged, and drops out of the plan */
+  const {log, skip} = Plan.splitFinish(plan, key=>{
+    const ws = Plan.workingSets(key, STATE[key]);
+    return getTicks(key, Plan.checklistLength(key, STATE[key])).filter(Boolean).length + countDone(key, ws.sets.length);
+  });
+  if(!log.length){ alert('Nothing is ticked yet, so there is nothing to log. Tick the sets you did, then press Finish.'); return; }
+  const lines = log.map(key=>{
     const ws = Plan.workingSets(key, STATE[key]);
     const n = countDone(key, ws.sets.length);
     const outcome = outcomeFromCount(n, ws.target);
-    return `${Movements.MOVEMENTS[key].name}: ${n}/${ws.target} sets (${outcome==='hold'?'hold':outcome==='double'?'bonus':'progress'})${n?'':' — nothing ticked'}`;
-  });
+    return `${Movements.MOVEMENTS[key].name}: ${n}/${ws.target} sets (${outcome==='hold'?'hold':outcome==='double'?'bonus':'progress'})`;
+  }).concat(skip.map(key=>`${Movements.MOVEMENTS[key].name}: skipped (nothing ticked, not logged)`));
   if(!confirm(`Log today's workout?\n\n${lines.join('\n')}`)) return;
   /* recordXxx() clears each movement's taps; put them back until the save succeeds */
-  const pend = plan.map(key=>{ try{ return localStorage.getItem('q2_pend_'+key); }catch(_){ return null; } });
-  plan.forEach(key=>RECORD[key]());
-  plan.forEach((key,i)=>{ if(pend[i]!=null) try{ localStorage.setItem('q2_pend_'+key, pend[i]); }catch(_){} });
+  const pend = log.map(key=>{ try{ return localStorage.getItem('q2_pend_'+key); }catch(_){ return null; } });
+  log.forEach(key=>RECORD[key]());
+  log.forEach((key,i)=>{ if(pend[i]!=null) try{ localStorage.setItem('q2_pend_'+key, pend[i]); }catch(_){} });
   FINISHING = 'saving';
   TODAY_OPEN = null;
   render();
-  const saved = await saveState(`Log workout: ${plan.map(k=>HISTORY_NAME[k]).join(', ')}`);
+  const saved = await saveState(`Log workout: ${log.map(k=>HISTORY_NAME[k]).join(', ')}`);
   if(saved){
     plan.forEach(key=>{ clearPending(key); clearTodayExtras(key); });
     try{ localStorage.removeItem(PLAN_KEY); }catch(_){}
