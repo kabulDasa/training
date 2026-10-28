@@ -16,7 +16,7 @@ pull the `data` branch first; the page will ask to reload if it was open.
 | ohp | 55 | 3 | 3 |
 | shoulderfly | 10 | 24 | 2 |
 | tricepext | 12.5 | 17 | 2 |
-| squat | 107.5 |  |  |
+| squat | 110 |  |  |
 | frontsquat | 30 | 20 | 2 |
 
 ## Session log
@@ -177,3 +177,4 @@ pull the `data` branch first; the page will ask to reload if it was open.
 | 2026-10-24T15:03:15.315Z | Shoulder Fly | 2 × 23 @ 10 kg | normal |  | 460 |  |
 | 2026-10-24T15:03:50.894Z | Tricep Extension | 2 × 16 @ 12.5 kg | normal |  | 400 |  |
 | 2026-10-25T00:18:01.657Z | Squat | 3 reps top @ 107.5 kg, 1×5 backoff @ 85 kg | hold | 107.5 | 425 |  |
+| 2026-10-28T07:58:51.798Z | Squat | 3 reps top @ 107.5 kg, 2×5 backoff @ 85 kg | normal | 107.5 | 850 | 107.5 kg |
