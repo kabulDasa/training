@@ -6,7 +6,7 @@ Streetlifting / powerlifting training notes and the Q2 2026 program tracker.
 
 **https://kabuldasa.github.io/training/** (GitHub Pages, served from `main`)
 
-`Q2-2026.html` is the program page: current working sets, tap-to-log backoff sets, progression,
+`H2-2026.html` is the program page (the site's front page; `Q2-2026.html` is the earlier version on the same data): current working sets, tap-to-log backoff sets, progression,
 charts and a session log. Progress lives in **`progress.md`** (plain Markdown tables) on the
 **`data` branch** of this repo, not on `main`. The page reads it and commits every log, undo or reset
 to `data` through the GitHub API, so it works the same from any device and every change is in the git
