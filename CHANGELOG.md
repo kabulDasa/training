@@ -7,7 +7,8 @@
   limit, and a banner reminds you when it hasn't been logged for 7 days (change it in Settings).
 - H2 tracker: **Finish today's workout** skips planned movements with nothing ticked. They aren't
   logged, so their load and "last trained" colour stay as they were, and they drop out of the plan.
-  If nothing at all is ticked, Finish says so and logs nothing.
+  If nothing at all is ticked, Finish says so and logs nothing. Ticking only warm-ups still logs the
+  movement (as a hold).
 - H2 tracker: the Chart tab opens with a weekly volume grid, working sets per week for each movement
   pattern (vertical/horizontal pull and push, squat, hinge, isolation) with a 4-week average, so
   undertrained patterns stand out. Retired skill work still counts.
