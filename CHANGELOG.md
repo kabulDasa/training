@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- H2 tracker: the Chart tab opens with a weekly volume grid, working sets per week for each movement
+  pattern (vertical/horizontal pull and push, squat, hinge, isolation) with a 4-week average, so
+  undertrained patterns stand out. Retired skill work still counts.
 - H2 tracker: each day on the Program tab is grouped into Big compound, Isolation, Skill work and Cardio
   (the last two empty for now). The grouping and each movement's muscles live in `movements.js`.
 - New `H2-2026.html` page (copy of the Q2 tracker, same progress data) for the H2 features in `QUEUE.md`.

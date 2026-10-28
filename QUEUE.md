@@ -49,8 +49,9 @@ MOVEMENTS = {
 - **Finish today's workout**: bulk "log & advance" for every movement in the plan, using what was
   ticked, as **one** commit to `progress.md`.
 
-## 3. Weekly volume per muscle group — `feat/weekly-muscle-volume`
+## 3. Weekly volume per movement pattern — `feat/weekly-muscle-volume`
 
-- Chart tab: working sets per muscle group per week (from the session log + `movements.js`).
-- First produce 2–3 mock-ups (e.g. stacked bars per week, heatmap muscle × week, this-week bars
-  against MEV/MRV bands from `powerlifting_summary.md`) for the user to pick; then build the chosen one.
+- Chart tab: working sets per week for each movement pattern (from the session log + `movements.js`),
+  as a pattern × week grid with a 4-week average. Logic in `volume.js`.
+- Mock-ups compared grouping granularity (push/pull/legs, movement patterns, individual muscles);
+  the user picked movement patterns (2026-10-28).
