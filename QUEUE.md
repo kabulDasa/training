@@ -55,3 +55,15 @@ MOVEMENTS = {
   as a pattern × week grid with a 4-week average. Logic in `volume.js`.
 - Mock-ups compared grouping granularity (push/pull/legs, movement patterns, individual muscles);
   the user picked movement patterns (2026-10-28).
+
+## 4. Bodyweight log, trend and reminder — `feat/bodyweight`
+
+- Log today's bodyweight (one entry per local day; logging again the same day replaces it). Each log
+  or delete is its own commit (`Log bodyweight: 75.2 kg`).
+- Stored in progress.md as an optional `## Bodyweight` table (Date | Bodyweight (kg)), owned by
+  `progress.js`. Files without it round-trip unchanged, and saves from pages that don't know the
+  table (Q2-2026.html) keep its rows.
+- Header shows the latest bodyweight; Chart tab gets a Bodyweight card (trend against the 74 kg u74
+  limit, entries with change and ✕ delete).
+- Reminder banner with a quick-log input when the last entry is older than X days (default 7, 0 = off;
+  Settings, per device) or when nothing is logged yet.
