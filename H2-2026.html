@@ -1485,7 +1485,7 @@ function renderBwNudge(){
   const b = latestBw();
   const since = b ? daysSince(b.date) : null;
   if(READONLY || PROGRESS_SHA === null || !days || (b && since < days)){ el.style.display = 'none'; el.innerHTML = ''; return; }
-  const msg = b ? `Bodyweight last logged ${since} days ago (${fmt(b.kg)} kg on ${esc(b.date)}).` : 'No bodyweight logged yet.';
+  const msg = b ? `Bodyweight last logged ${agoText(since)} (${fmt(b.kg)} kg on ${esc(b.date)}).` : 'No bodyweight logged yet.';
   el.innerHTML = `<span class="bwmsg">⚖ ${msg} Log today's?</span>
     <span class="bwform"><input id="bwInputNudge" type="number" inputmode="decimal" step="0.05" min="20" max="300" placeholder="kg"
       onkeydown="if(event.key==='Enter') logBodyweight('bwInputNudge')"><button class="logbtn bwbtn" onclick="logBodyweight('bwInputNudge')">Log</button></span>`;
@@ -1524,7 +1524,9 @@ function renderBodyweightCard(){
   }
   /* local noon, so the point sits on its own calendar day in every time zone */
   const pts = BODYWEIGHT.map(b=>{ const [y,m,d]=b.date.split('-').map(Number); return {t:new Date(y,m-1,d,12).getTime(), v:b.kg}; });
-  const limit = {color:'#ef4444', dots:false, pts:pts.length>1 ? [{t:pts[0].t, v:BW_CLASS_LIMIT}, {t:pts[pts.length-1].t, v:BW_CLASS_LIMIT}] : []};
+  const limit = {color:'#ef4444', dots:false, pts:[{t:pts[0].t, v:BW_CLASS_LIMIT}, {t:pts[pts.length-1].t, v:BW_CLASS_LIMIT}]};
+  /* one entry: widen the limit line a day each side so it shows */
+  if(pts.length===1){ limit.pts[0].t -= 86400000; limit.pts[1].t += 86400000; }
   renderLineChart(holder, [limit, {color:'#f59e0b', pts}], 'kg', false);
   tbody.innerHTML = BODYWEIGHT.map((b,i)=>({b,i})).reverse().map(({b,i})=>{
     const prev = BODYWEIGHT[i-1];

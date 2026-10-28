@@ -133,6 +133,12 @@ function serialize(data){
   return lines.join('\n') + '\n';
 }
 
+/* YYYY-MM-DD that names a real calendar day (Date would roll 2026-02-30 over to March) */
+function isRealDate(d){
+  if(!DATE_RE.test(d)) return false;
+  const t = new Date(d + 'T00:00:00Z');
+  return !isNaN(t) && t.toISOString().slice(0, 10) === d;
+}
 function isNum(v){ return typeof v === 'number' && Number.isFinite(v); }
 
 /* a non-empty working set ({} would be written as an empty cell and read back as null) */
@@ -162,7 +168,7 @@ function validate(data){
     if(!Array.isArray(data.bodyweight)) throw new Error('bodyweight must be a list');
     const seen = new Set();
     for(const b of data.bodyweight){
-      if(!b || typeof b.date !== 'string' || !DATE_RE.test(b.date) || isNaN(Date.parse(b.date)))
+      if(!b || typeof b.date !== 'string' || !isRealDate(b.date))
         throw new Error('bad bodyweight date');
       if(!isNum(b.kg) || b.kg <= 0 || b.kg >= 500) throw new Error(`bad bodyweight on ${b.date}`);
       if(seen.has(b.date)) throw new Error(`two bodyweight entries on ${b.date}`);

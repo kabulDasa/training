@@ -243,6 +243,8 @@ test('bad bodyweight rejected', () => {
     {...SAMPLE, bodyweight: [{date: '2026-10-20', kg: 0}]},
     {...SAMPLE, bodyweight: [{date: '2026-10-20', kg: 900}]},
     {...SAMPLE, bodyweight: [{date: 'yesterday', kg: 75}]},
+    {...SAMPLE, bodyweight: [{date: '2026-02-30', kg: 75}]},
+    {...SAMPLE, bodyweight: [{date: '2026-13-01', kg: 75}]},
     {...SAMPLE, bodyweight: [{date: '2026-10-20T08:00:00Z', kg: 75}]},
     {...SAMPLE, bodyweight: [{date: '2026-10-20', kg: 75}, {date: '2026-10-20', kg: 76}]},
   ]) assert.throws(() => P.validate(bad), undefined, JSON.stringify(bad));
