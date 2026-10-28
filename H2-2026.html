@@ -391,7 +391,7 @@ async function loadProgress(){
 }
 /* Commit STATE + HISTORY as progress.md. Saves run one after another so each sends the
    sha returned by the previous one. message becomes the commit message; by default it
-   describes the most recent log entry. */
+   describes the most recent log entry. Resolves to true once this save is committed. */
 function saveState(message){
   if(!message){
     const h = HISTORY[HISTORY.length-1];
@@ -402,7 +402,7 @@ function saveState(message){
   SAVE_CHAIN = SAVE_CHAIN.then(async ()=>{
     if(READONLY) throw new Error('no GitHub token (Settings)');
     if(PROGRESS_SHA===null) throw new Error('progress not loaded');
-    if(PROGRESS_SHA==='conflict') return;  /* reload pending */
+    if(PROGRESS_SHA==='conflict') return false;  /* reload pending */
     showStatus('Saving…');
     try{
       PROGRESS_SHA = await store().save(snap, PROGRESS_SHA, message);
@@ -411,12 +411,14 @@ function saveState(message){
       PROGRESS_SHA = 'conflict';  /* skip any saves still queued behind this one */
       alert('progress.md changed on GitHub since this page loaded (another device, tab or a hand edit). Reloading — log that set again.');
       location.reload();
-      return;
+      return false;
     }
     showStatus('Saved · committed to ' + GH.repo + ' (' + GH.branch + ')');
     setTimeout(()=>{ if(document.getElementById('savestatus').textContent.startsWith('Saved ·')) showStatus(''); }, 3000);
+    return true;
   }).catch(e=>{
     showStatus('NOT saved: ' + e.message + '. Reload before logging more.', true);
+    return false;
   });
   return SAVE_CHAIN;
 }
@@ -487,8 +489,9 @@ function repWord(n){ return n===1 ? 'rep' : 'reps'; }
 
 /* ---------- pending taps (persisted per exercise, cleared on log) ---------- */
 function getPending(uid, len){
-  const raw = JSON.parse(localStorage.getItem('q2_pend_'+uid) || '[]');
-  return Array.from({length:len}, (_,i)=>!!raw[i]);
+  let raw = [];
+  try{ raw = JSON.parse(localStorage.getItem('q2_pend_'+uid) || '[]'); }catch(_){}
+  return Array.from({length:len}, (_,i)=>!!(Array.isArray(raw) && raw[i]));
 }
 function setPending(uid, arr){ localStorage.setItem('q2_pend_'+uid, JSON.stringify(arr)); }
 function clearPending(uid){ localStorage.removeItem('q2_pend_'+uid); }
@@ -537,7 +540,7 @@ function pushHistory(exercise, result, outcome, weight, volume){
 
 /* ---------- exercise key <-> display-name map, and shared progression math ----------
    advance() is the single source of truth for how an outcome mutates an exercise's
-   state. Every logXxx() calls it AFTER recording history (so history reflects what was
+   state. Every recordXxx() calls it AFTER recording history (so history reflects what was
    actually performed, and the entry's before holds the working set it replaced). Each
    exercise key's log entries form a stack — only the most recent entry for a key can be
    popped (see popLatest()), which puts back that entry's before. Older entries are
@@ -1103,28 +1106,44 @@ function renderToday(){
   const plan = getPlan();
   document.getElementById('todayPresets').innerHTML = renderTodayPresets(plan);
   document.getElementById('todayPicker').innerHTML = renderTodayPicker(plan);
-  document.getElementById('todayPlan').innerHTML = plan.length
+  document.getElementById('todayPlan').innerHTML = FINISHING
+    ? `<div class="emptychart">${FINISHING==='failed' ? 'Today\'s workout was NOT saved. Reload the page: your plan and ticked sets come back with it.' : 'Saving today\'s workout…'}</div>`
+    : plan.length
     ? `<div class="tplan">${plan.map(renderTodayCard).join('')}</div>
        <div class="tfinish"><div class="tm">Logs all ${plan.length} movement${plan.length===1?'':'s'} from the working sets ticked above, in one commit.</div>
        <button class="logbtn" id="todayFinish" onclick="finishWorkout()">Finish today's workout</button></div>`
     : '<div class="emptychart">No movements in today\'s plan yet — pick a day preset or tap movements above.</div>';
 }
 /* bulk "log & advance": every planned movement is recorded exactly like its own Log button,
-   then STATE + HISTORY are saved once, so the whole workout is one commit */
-function finishWorkout(){
+   then STATE + HISTORY are saved once, so the whole workout is one commit. The plan and its
+   ticks stay in localStorage until that commit lands, so a failed or conflicting save
+   (which asks for a reload) doesn't lose the workout. */
+let FINISHING = null;  /* null | 'saving' | 'failed' */
+async function finishWorkout(){
   const plan = getPlan();
-  if(!plan.length || READONLY) return;
+  if(!plan.length || READONLY || FINISHING) return;
   const lines = plan.map(key=>{
     const ws = Plan.workingSets(key, STATE[key]);
     const n = countDone(key, ws.sets.length);
     const outcome = outcomeFromCount(n, ws.target);
-    return `${Movements.MOVEMENTS[key].name}: ${n}/${ws.target} sets (${outcome==='hold'?'hold':outcome==='double'?'bonus':'progress'})`;
+    return `${Movements.MOVEMENTS[key].name}: ${n}/${ws.target} sets (${outcome==='hold'?'hold':outcome==='double'?'bonus':'progress'})${n?'':' — nothing ticked'}`;
   });
   if(!confirm(`Log today's workout?\n\n${lines.join('\n')}`)) return;
-  plan.forEach(key=>{ RECORD[key](); clearTodayExtras(key); });
-  saveState(`Log workout: ${plan.map(k=>HISTORY_NAME[k]).join(', ')}`);
-  try{ localStorage.removeItem(PLAN_KEY); }catch(_){}
+  /* recordXxx() clears each movement's taps; put them back until the save succeeds */
+  const pend = plan.map(key=>{ try{ return localStorage.getItem('q2_pend_'+key); }catch(_){ return null; } });
+  plan.forEach(key=>RECORD[key]());
+  plan.forEach((key,i)=>{ if(pend[i]!=null) try{ localStorage.setItem('q2_pend_'+key, pend[i]); }catch(_){} });
+  FINISHING = 'saving';
   TODAY_OPEN = null;
+  render();
+  const saved = await saveState(`Log workout: ${plan.map(k=>HISTORY_NAME[k]).join(', ')}`);
+  if(saved){
+    plan.forEach(key=>{ clearPending(key); clearTodayExtras(key); });
+    try{ localStorage.removeItem(PLAN_KEY); }catch(_){}
+    FINISHING = null;
+  }else{
+    FINISHING = 'failed';
+  }
   render();
 }
 
@@ -1192,7 +1211,8 @@ function showTab(id,btn){
 
 function resetAll(){
   if(!confirm('Reset all logged progress and current working sets back to the Q2 2026 starting point?')) return;
-  ['pullup','latpulldown','invertedrow','bicepcurl','dip','ohp','shoulderfly','tricepext','squat','frontsquat'].forEach(clearPending);
+  ['pullup','latpulldown','invertedrow','bicepcurl','dip','ohp','shoulderfly','tricepext','squat','frontsquat'].forEach(k=>{ clearPending(k); clearTodayExtras(k); });
+  try{ localStorage.removeItem(PLAN_KEY); }catch(_){}
   STATE = mergeState({});
   HISTORY = [];
   saveState('Reset all progress');
