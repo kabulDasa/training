@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- The site's front page now opens the H2 2026 tracker instead of Q2.
 - H2 tracker: log your bodyweight (Chart tab or the reminder banner; the header shows the latest); one entry per day, kept
   in a new Bodyweight table in `progress.md`. The Chart tab plots the trend against the 74 kg class
   limit, and a banner reminds you when it hasn't been logged for 7 days (change it in Settings).
