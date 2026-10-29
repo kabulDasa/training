@@ -9,14 +9,15 @@ pull the `data` branch first; the page will ask to reload if it was open.
 | Key | Weight (kg) | Reps | Sets |
 |---|---|---|---|
 | pullup | 25 | 3 |  |
-| latpulldown | 12.5 | 18 | 2 |
+| latpulldown | 12.5 | 19 | 2 |
 | invertedrow | 22.5 | 6 | 2 |
-| bicepcurl | 12.5 | 15 | 2 |
-| facepull | 15 | 16 | 2 |
+| bicepcurl | 12.5 | 16 | 2 |
+| facepull | 15 | 17 | 2 |
 | dip | 27.5 | 3 |  |
 | ohp | 55 | 4 | 3 |
-| shoulderfly | 10 | 24 | 2 |
-| tricepext | 12.5 | 17 | 2 |
+| shoulderfly | 11.25 | 10 | 2 |
+| chestfly | 5 | 9 | 2 |
+| tricepext | 12.5 | 18 | 2 |
 | squat | 110 |  |  |
 | frontsquat | 30 | 20 | 2 |
 
@@ -188,6 +189,12 @@ pull the `data` branch first; the page will ask to reload if it was open.
 | 2026-10-28T10:07:47.722Z | Squat | 3 reps top @ 107.5 kg, 2×5 backoff @ 85 kg | normal | 107.5 | 850 | 107.5 kg |
 | 2026-10-28T10:07:47.722Z | Dumbbell Row | 2 × 5 @ 22.5 kg | normal |  | 225 | 22.5 kg, 5 reps, 2 sets |
 | 2026-10-28T10:07:47.722Z | OHP | 3 × 3 @ 55 kg | normal |  |  | 55 kg, 3 reps, 3 sets |
+| 2026-10-29T09:54:31.293Z | Tricep Extension | 2 × 17 @ 12.5 kg | normal |  | 425 | 12.5 kg, 17 reps, 2 sets |
+| 2026-10-29T09:54:31.293Z | Lat Pulldown | 2 × 18 @ 12.5 kg | normal |  | 450 | 12.5 kg, 18 reps, 2 sets |
+| 2026-10-29T09:54:31.293Z | Bicep Curl | 2 × 15 @ 12.5 kg | normal |  | 375 | 12.5 kg, 15 reps, 2 sets |
+| 2026-10-29T09:54:31.293Z | Face Pull | 2 × 16 @ 15 kg | normal |  | 480 | 15 kg, 16 reps, 2 sets |
+| 2026-10-29T09:54:31.293Z | Shoulder Fly | 2 × 24 @ 10 kg | normal |  | 480 | 10 kg, 24 reps, 2 sets |
+| 2026-10-29T09:54:31.293Z | Chest Fly | 2 × 8 @ 5 kg | normal |  | 80 | 5 kg, 8 reps, 2 sets |
 
 ## Bodyweight
 
