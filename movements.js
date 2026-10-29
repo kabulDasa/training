@@ -43,6 +43,8 @@ const MOVEMENTS = {
                 muscles: {front_delts: 1, triceps: 0.5, side_delts: 0.5}},
   shoulderfly: {name: 'Shoulder Fly',            day: 'push', category: 'isolation', pattern: 'isolation',
                 muscles: {side_delts: 1}},
+  chestfly:    {name: 'Unilateral Chest Fly',    day: 'push', category: 'isolation', pattern: 'isolation',
+                muscles: {chest: 1, front_delts: 0.5}},
   tricepext:   {name: 'Tricep Extension',        day: 'push', category: 'isolation', pattern: 'isolation',
                 muscles: {triceps: 1}},
   squat:       {name: 'Competition Squat',       day: 'legs', category: 'compound',  pattern: 'squat',
@@ -60,7 +62,7 @@ const MOVEMENTS = {
 /* session-log exercise name -> key; Dumbbell Row replaced Inverted Row and shares its key */
 const EXERCISE_KEY = {
   'Pull-up': 'pullup', 'Lat Pulldown': 'latpulldown', 'Inverted Row': 'invertedrow', 'Dumbbell Row': 'invertedrow',
-  'Bicep Curl': 'bicepcurl', 'Face Pull': 'facepull', 'Dip': 'dip', 'OHP': 'ohp', 'Shoulder Fly': 'shoulderfly', 'Tricep Extension': 'tricepext',
+  'Bicep Curl': 'bicepcurl', 'Face Pull': 'facepull', 'Dip': 'dip', 'OHP': 'ohp', 'Shoulder Fly': 'shoulderfly', 'Chest Fly': 'chestfly', 'Tricep Extension': 'tricepext',
   'Squat': 'squat', 'Front Squat': 'frontsquat',
   'Muscle-up': 'muscleup', 'Tuck Front Lever': 'frontlever', 'Hanging Knee Raise': 'kneeraise',
 };

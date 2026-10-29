@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- H2 tracker: **Unilateral Chest Fly** joins Day 2 (Push) as an isolation movement, starting at
+  5 kg × 8 × 2 sets: +1 rep per session up to 20, then +1.25 kg and back to 8 reps. It has its own
+  volume line on the Chart tab.
+- H2 tracker: Shoulder Fly now caps at 20 reps; past that a successful session adds 1.25 kg and
+  resets to 10 reps.
 - H2 tracker: **Face Pull** joins Day 1 (Pull) as an isolation movement (2 sets, +1 rep per session
   up to 20, then +1.25 kg and back to 10 reps), with its own volume line on the Chart tab. Its
   sessions since August, from the Intensity app, are in the session log.
