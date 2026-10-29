@@ -893,11 +893,13 @@ function armSwitch(base){
   return `<div class="armsw" role="group" aria-label="Arms">${['single','both'].map(a=>
     `<button class="armbtn${a===cur?' on':''}" aria-pressed="${a===cur}" onclick="setArms('${base}','${a}')">${a==='single'?'Single arm':'Both arms'}</button>`).join('')}</div>`;
 }
-/* today's weight for a variant, edited on its Today Plan card (null = the working weight) */
+/* today's weight for a variant, edited on its Today Plan card (null = the working weight). Kept
+   as {w, date} and ignored on any other day, so a weight entered for a session that was never
+   logged can't override a newer working weight later */
 function getTodayWeight(key){
-  let w = null;
-  try{ w = localStorage.getItem('h2_wt_'+key); }catch(_){}
-  const n = w==null ? NaN : Number(w);
+  let v = null;
+  try{ v = JSON.parse(localStorage.getItem('h2_wt_'+key)); }catch(_){}
+  const n = v && v.date===localDate() ? Number(v.w) : NaN;
   return Number.isFinite(n) && n>0 && n<500 ? n : null;
 }
 function setTodayWeight(key, value){
@@ -905,7 +907,7 @@ function setTodayWeight(key, value){
   if(!(n>0 && n<500)){ alert('Enter a weight in kg, e.g. 12.5'); render(); return; }
   try{
     if(n===STATE[key].weight) localStorage.removeItem('h2_wt_'+key);
-    else localStorage.setItem('h2_wt_'+key, String(n));
+    else localStorage.setItem('h2_wt_'+key, JSON.stringify({w:n, date:localDate()}));
   }catch(_){}
   render();
 }
@@ -1060,7 +1062,11 @@ function setPlan(keys){
 /* key may be a movement (picker) or a planned variant (✕ on its card) */
 function togglePlan(key){
   const plan = getPlan(), base = Movements.baseOf(key);
-  setPlan(plan.some(k=>Movements.baseOf(k)===base) ? plan.filter(k=>Movements.baseOf(k)!==base) : [...plan, activeKey(base)]);
+  if(plan.some(k=>Movements.baseOf(k)===base)){
+    /* dropping a movement drops the weight entered for it today */
+    Object.values(Movements.variantsOf(base) || {base}).forEach(k=>{ try{ localStorage.removeItem('h2_wt_'+k); }catch(_){} });
+    setPlan(plan.filter(k=>Movements.baseOf(k)!==base));
+  } else setPlan([...plan, activeKey(base)]);
 }
 function presetPlan(day){ setPlan(Movements.movementsFor(day).map(activeKey)); }
 function clearPlan(){ setPlan([]); }
