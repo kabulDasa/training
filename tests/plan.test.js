@@ -46,7 +46,8 @@ test('accessories get one half-weight feeler set', () => {
 });
 
 test('working sets: top set + 5 backoff taps (2 target) vs plain sets', () => {
-  const sq = P.workingSets('squat', {weight:100});
+  // the top set's reps are the working set's (the page fills squat's 3 from its default)
+  const sq = P.workingSets('squat', {weight:100, reps:3});
   assert.deepEqual(sq.top, {load:100, reps:3});
   assert.equal(sq.sets.length, 5);
   assert.equal(sq.target, 2);
@@ -128,4 +129,43 @@ test('seedVariant copies the working set instead of sharing it', () => {
 test('arm variants are prescribed like their movement', () => {
   for(const [base, v] of Object.entries(require('../movements.js').ARM_VARIANTS))
     assert.equal(P.KIND[v.single], P.KIND[v.both], base);
+});
+
+/* ---------- working sets under an edited rule ---------- */
+const R = require('../rules.js');
+const V = require('../volume.js');
+
+test('working sets follow the rule passed in', () => {
+  const dipStraight = R.normalize({scheme:'straight', progression:'linear', inc:1.25});
+  const ws = P.workingSets('dip', {weight:20, reps:5, sets:3}, dipStraight);
+  assert.equal(ws.top, null);
+  assert.equal(ws.target, 3);
+  assert.deepEqual(ws.sets[0], {load:20, reps:5, bonus:false});
+  const flyTop = R.normalize({scheme:'topset', progression:'linear', inc:1.25, bonusInc:2.5,
+    backoffPct:75, backoffReps:8, backoffSets:3, backoffMax:4, backoffRound:1.25});
+  const t = P.workingSets('shoulderfly', {weight:12.5, reps:10, sets:2}, flyTop);
+  assert.deepEqual(t.top, {load:12.5, reps:10});
+  assert.equal(t.target, 3);
+  assert.deepEqual(t.sets.map(s=>s.bonus), [false, false, false, true]);
+  assert.deepEqual(t.sets[0], {load:10, reps:8, bonus:false});  // 75% of 12.5, to 1.25 kg
+  // the top set adds a checklist chip; straight sets have none
+  assert.equal(P.checklistLength('shoulderfly', {weight:12.5, reps:10, sets:2}, flyTop), 2);
+  assert.equal(P.checklistLength('dip', {weight:20, reps:5, sets:3}, dipStraight), P.warmups('dip', {weight:20}).length);
+});
+
+test('backoff % defaults to 80', () => {
+  assert.equal(P.backoffOf(25, 1.25), P.backoffOf(25, 1.25, 80));
+  assert.equal(P.backoffOf(100, 2.5, 70), 70);
+});
+
+test('result text keeps a shape volume.js counts, for either scheme', () => {
+  const top = P.resultText('pullup', {weight:25, reps:3}, undefined, 4);
+  assert.equal(top, '3 reps top @ +25 kg, 4×5 backoff @ +20 kg');
+  assert.equal(V.setsOf(top), 5);
+  assert.equal(P.resultText('squat', {weight:110, reps:1}, undefined, 2), '1 rep top @ 110 kg, 2×5 backoff @ 87.5 kg');
+  const straight = P.resultText('dip', {weight:20, reps:6, sets:3},
+    R.normalize({scheme:'straight', progression:'double', inc:1.25, repFloor:5, repCap:8}), 1);
+  assert.equal(straight, '3 × 6 @ +20 kg');  // belt weight keeps its +
+  assert.equal(V.setsOf(straight), 3);
+  assert.equal(P.resultText('ohp', {weight:55, reps:4, sets:3}, undefined, 3), '3 × 4 @ 55 kg');
 });

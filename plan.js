@@ -11,23 +11,22 @@ const FRESH_DAYS = 7, DUE_DAYS = 14;
 const BAR = 20;
 const DAYS = ['pull', 'push', 'legs'];
 
-/* how each movement is prescribed: belt = weighted calisthenics (top set + backoff, load is
-   added weight), squat = barbell top set + backoff, barbell = barbell sets × reps,
-   accessory = dumbbell/cable sets × reps */
+const Rules = root.Rules || require('./rules.js');
+
+/* the equipment each movement uses, which sets its warm-up ladder: belt = weighted calisthenics
+   (load is added weight), squat = competition squat, barbell = other barbell lifts, accessory =
+   dumbbell/cable. How its working sets are prescribed and progressed is its rule (rules.js). */
 const KIND = {
   pullup:'belt', dip:'belt', squat:'squat', ohp:'barbell', frontsquat:'barbell',
   latpulldown:'accessory', invertedrow:'accessory', bicepcurl:'accessory', facepull:'accessory', shoulderfly:'accessory', chestfly:'accessory', tricepext:'accessory',
   latpulldownboth:'accessory', invertedrowboth:'accessory', bicepcurlboth:'accessory', shoulderflysingle:'accessory', chestflyboth:'accessory', tricepextsingle:'accessory',
 };
-/* loadable increment of each top-set lift's backoff */
-const BACKOFF_INC = {pullup:1.25, dip:1.25, squat:2.5};
-const TOP_REPS = {squat:3};
-const BACKOFF_REPS = 5, BACKOFF_TAPS = 5, BACKOFF_TARGET = 2;
-
 function round2(x){ return Math.round(x*100)/100; }
 function roundTo(x, inc){ return round2(Math.round(x/inc)*inc); }
-/* backoff load = 80% of top-set weight, rounded to the nearest loadable increment */
-function backoffOf(weight, inc){ return roundTo(weight*0.8, inc); }
+/* backoff load = pct% (default 80) of top-set weight, rounded to the nearest loadable increment */
+function backoffOf(weight, inc, pct){ return roundTo(weight*(pct==null ? 80 : pct)/100, inc); }
+/* the rule a movement follows when the caller doesn't pass one: its default */
+function ruleOf(key, rule){ return rule || Rules.DEFAULT_RULES[key]; }
 
 /* ---------- warm-up ladders ---------- */
 /* weighted pull-up / dip: bodyweight, then 2-3 evenly spaced belt loads below the top set */
@@ -74,16 +73,17 @@ function warmups(key, s){
   }
 }
 
-/* the working part of a movement: an optional top set, then the tappable sets. target is how
-   many tapped sets count as success; sets past it are bonus sets (double progression). */
-function workingSets(key, s){
-  const kind = KIND[key];
-  if(kind==='belt' || kind==='squat'){
-    const load = backoffOf(s.weight, BACKOFF_INC[key]);
+/* the working part of a movement under its rule: an optional top set (working weight × reps), then
+   the tappable sets. target is how many tapped sets count as success; sets past it are bonus sets
+   (a top-set lift's backoffs past its target). */
+function workingSets(key, s, rule){
+  rule = ruleOf(key, rule);
+  if(rule.scheme==='topset'){
+    const load = backoffOf(s.weight, rule.backoffRound, rule.backoffPct);
     return {
-      top: {load: s.weight, reps: TOP_REPS[key] || s.reps},
-      sets: Array.from({length: BACKOFF_TAPS}, (_,i)=>({load, reps: BACKOFF_REPS, bonus: i>=BACKOFF_TARGET})),
-      target: BACKOFF_TARGET,
+      top: {load: s.weight, reps: s.reps},
+      sets: Array.from({length: rule.backoffMax}, (_,i)=>({load, reps: rule.backoffReps, bonus: i>=rule.backoffSets})),
+      target: rule.backoffSets,
     };
   }
   return {
@@ -93,6 +93,19 @@ function workingSets(key, s){
   };
 }
 function isAdded(key){ return KIND[key]==='belt'; }
+
+/* a session log's Result cell with n working sets ticked, in a shape volume.js counts:
+   "3 reps top @ +25 kg, 2×5 backoff @ +20 kg", or "2 × 15 @ 12.5 kg" for straight sets (which log
+   all the prescribed sets: a hold still did them, short of the target reps) */
+function resultText(key, s, rule, n){
+  const ws = workingSets(key, s, rule);
+  const plus = isAdded(key) ? '+' : '';
+  if(ws.top){
+    const r = ws.top.reps;
+    return `${r} ${r===1?'rep':'reps'} top @ ${plus}${s.weight} kg, ${n}×${ws.sets[0].reps} backoff @ ${plus}${ws.sets[0].load} kg`;
+  }
+  return `${s.sets} × ${s.reps} @ ${plus}${s.weight} kg`;
+}
 
 /* ---------- arm variants ---------- */
 /* starting working set for an arm variant that has none yet, from its sibling's (the other arm
@@ -137,7 +150,7 @@ function suggestDay(dayKeys, history, keyOf){
 }
 
 /* chips before the working sets (warm-ups, then the top set), which are a checklist only */
-function checklistLength(key, s){ return warmups(key, s).length + (workingSets(key, s).top ? 1 : 0); }
+function checklistLength(key, s, rule){ return warmups(key, s).length + (workingSets(key, s, rule).top ? 1 : 0); }
 /* Finish logs only planned movements with at least one chip ticked; the rest are skipped, so
    their working set and freshness stay as they were. ticked(key) = number of ticked chips. */
 function splitFinish(plan, ticked){
@@ -148,7 +161,7 @@ function splitFinish(plan, ticked){
 
 const api = {
   DAYS, KIND, FRESH_DAYS, DUE_DAYS, backoffOf, calWarmups, squatWarmups, barbellWarmups, accessoryWarmups,
-  warmups, workingSets, isAdded, lastTrained, freshness, ageLabel, suggestDay, checklistLength, splitFinish,
+  warmups, workingSets, resultText, isAdded, lastTrained, freshness, ageLabel, suggestDay, checklistLength, splitFinish,
   seedVariant,
 };
 if(typeof module !== 'undefined' && module.exports) module.exports = api;

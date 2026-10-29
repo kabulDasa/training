@@ -261,3 +261,71 @@ test('a save without a bodyweight key keeps the rows it loaded (older pages)', a
   await P.makeStore(cfg, gh.fetch).save({...SAMPLE, bodyweight: []}, sha2, 'Remove bodyweight');
   assert.equal(P.parse(gh.text).bodyweight, undefined);
 });
+
+/* ---------- progression rules ---------- */
+const FLY = {scheme: 'straight', progression: 'double', inc: 1.25, bonusInc: null, repFloor: 10, repCap: 15,
+  backoffPct: null, backoffReps: null, backoffSets: null, backoffMax: null, backoffRound: null};
+const DIP = {scheme: 'topset', progression: 'linear', inc: 1.25, bonusInc: 2.5, repFloor: null, repCap: null,
+  backoffPct: 75, backoffReps: 6, backoffSets: 2, backoffMax: 4, backoffRound: 1.25};
+const RULES = {...BW, rules: {shoulderfly: FLY, dip: DIP}};
+
+test('progression rules round-trip as their own table after Bodyweight', () => {
+  const text = P.serialize(RULES);
+  assert.match(text, /## Bodyweight[\s\S]*\n## Progression rules\n\n\| Key \| Scheme \| Progression \| Increment \(kg\) \|/);
+  assert.match(text, /\| shoulderfly \| straight \| double \| 1\.25 \|  \| 10 \| 15 \|  \|  \|  \|  \|  \|\n/);
+  assert.match(text, /\| dip \| topset \| linear \| 1\.25 \| 2\.5 \|  \|  \| 75 \| 6 \| 2 \| 4 \| 1\.25 \|\n$/);
+  assert.deepEqual(P.parse(text), RULES);
+  P.validate(P.parse(text));
+  assert.equal(P.serialize(P.parse(text)), text);
+  // without bodyweight the rules table follows the session log
+  const noBw = {...SAMPLE, rules: {shoulderfly: FLY}};
+  assert.deepEqual(P.parse(P.serialize(noBw)), noBw);
+});
+
+test('files without a Progression rules section load without one and are written unchanged', () => {
+  const text = P.serialize(BW);
+  assert.doesNotMatch(text, /Progression rules/);
+  assert.equal(P.parse(text).rules, undefined);
+  assert.equal(P.serialize({...BW, rules: {}}), text);
+  assert.equal(P.serialize(P.parse(FIXTURE)), FIXTURE);
+});
+
+test('hand-edited rule words are read case-insensitively', () => {
+  const text = P.serialize(RULES).replace('| shoulderfly | straight | double |', '| shoulderfly | Straight | DOUBLE |');
+  assert.deepEqual(P.parse(text).rules.shoulderfly, FLY);
+});
+
+test('bad progression rules rejected', () => {
+  const text = P.serialize(RULES);
+  assert.throws(() => P.parse(text.replace('| shoulderfly | straight |', '| Shoulder Fly | straight |')), /rule key/);
+  assert.throws(() => P.parse(text.replace('| dip | topset |', '| shoulderfly | topset |')), /two progression rules/);
+  assert.throws(() => P.parse(text.replace('| 75 |', '| lots |')), /finite/);
+  assert.throws(() => P.validate(P.parse(text.replace('| straight | double |', '| pyramid | double |'))), /shoulderfly\.scheme/);
+  for (const bad of [
+    {...SAMPLE, rules: []},
+    {...SAMPLE, rules: null},
+    {...SAMPLE, rules: {'Shoulder Fly': FLY}},
+    {...SAMPLE, rules: {shoulderfly: null}},
+    {...SAMPLE, rules: {shoulderfly: {...FLY, progression: 'wave'}}},
+    {...SAMPLE, rules: {shoulderfly: {...FLY, inc: '1.25'}}},
+    {...SAMPLE, rules: {shoulderfly: {...FLY, inc: NaN}}},
+    {...SAMPLE, rules: {shoulderfly: {...FLY, bogus: 1}}},
+  ]) assert.throws(() => P.validate(bad), undefined, JSON.stringify(bad));
+});
+
+test('a save without a rules key keeps the rules it loaded (older pages); an explicit one wins', async () => {
+  const gh = fakeGitHub(P.serialize(RULES));
+  const cfg = {owner: 'rules', repo: 'keep', branch: 'data', path: 'progress.md', token: 't'};
+  const {sha} = await P.makeStore(cfg, gh.fetch).load();
+  // Q2-2026.html or a cached older H2 page: knows neither bodyweight nor rules
+  const sha2 = await P.makeStore(cfg, gh.fetch).save({state: SAMPLE.state, history: SAMPLE.history}, sha, 'Log Squat');
+  assert.deepEqual(P.parse(gh.text).rules, RULES.rules);
+  assert.deepEqual(P.parse(gh.text).bodyweight, BW.bodyweight);
+  // H2 changing one rule, then resetting the last one to default
+  const sha3 = await P.makeStore(cfg, gh.fetch).save({...RULES, rules: {shoulderfly: FLY}}, sha2, 'Reset progression rule: Weighted Dip');
+  assert.deepEqual(P.parse(gh.text).rules, {shoulderfly: FLY});
+  await P.makeStore(cfg, gh.fetch).save({...RULES, rules: {}}, sha3, 'Reset progression rule: Shoulder Fly');
+  assert.equal(P.parse(gh.text).rules, undefined);
+  assert.doesNotMatch(gh.text, /Progression rules/);
+  assert.equal(JSON.parse(gh.calls[gh.calls.length - 1].opts.body).message, 'Reset progression rule: Shoulder Fly');
+});

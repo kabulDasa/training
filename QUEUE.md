@@ -77,12 +77,12 @@ MOVEMENTS = {
   `intensity-app-analysis/` (#11).
 - ✅ Unilateral Chest Fly on Day 2 (Push); Shoulder Fly capped at 20 reps (+1.25 kg, back to 10) (#12).
 
-## 5. Today Plan is the primary tab — `feat/today-first`
+## 5. ✅ Today Plan is the primary tab — `feat/today-first` (done, #14)
 
 - The page opens on **Today Plan**: it is the first tab and the one active on load. Program, Chart and
   Settings follow. Deep links / in-page jumps to other tabs keep working.
 
-## 6. Single-arm or both-arm accessories — `feat/arm-variants`
+## 6. ✅ Single-arm or both-arm accessories — `feat/arm-variants` (done, #15)
 
 - For shoulder fly, lat pulldown, bicep curl, dumbbell row, tricep extension and chest fly, adding the
   movement to Today Plan offers **single arm** or **both arms**, with the weight adjustable there.
@@ -96,7 +96,7 @@ MOVEMENTS = {
 - Program tab, Settings, Notes sync, weekly volume (`movements.js` muscles) and Chart cover both
   variants.
 
-## 7. Editable progression rules — `feat/progression-rules`
+## 7. ✅ Editable progression rules — `feat/progression-rules` (done, #16)
 
 - Settings tab: edit each movement's (and each variant's) **progression rule** instead of the fixed
   text: scheme (**top set + backoff** or **straight sets**), progression (**linear**: +kg on success;
