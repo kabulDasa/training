@@ -12,6 +12,7 @@ const BAR = 20;
 const DAYS = ['pull', 'push', 'legs'];
 
 const Rules = root.Rules || require('./rules.js');
+const Movements = root.Movements || require('./movements.js');
 
 /* the equipment each movement uses, which sets its warm-up ladder: belt = weighted calisthenics
    (load is added weight), squat = competition squat, barbell = other barbell lifts, accessory =
@@ -21,6 +22,12 @@ const KIND = {
   latpulldown:'accessory', invertedrow:'accessory', bicepcurl:'accessory', facepull:'accessory', shoulderfly:'accessory', chestfly:'accessory', tricepext:'accessory',
   latpulldownboth:'accessory', invertedrowboth:'accessory', bicepcurlboth:'accessory', shoulderflysingle:'accessory', chestflyboth:'accessory', tricepextsingle:'accessory',
 };
+/* a movement's kind: the program's, or the load kind a custom movement was added with (movements.js) */
+function kindOf(key){
+  if(Object.hasOwn(KIND, key)) return KIND[key];
+  const m = Movements.MOVEMENTS[key];
+  return m && m.custom ? m.kind : null;
+}
 function round2(x){ return Math.round(x*100)/100; }
 function roundTo(x, inc){ return round2(Math.round(x/inc)*inc); }
 /* backoff load = pct% (default 80) of top-set weight, rounded to the nearest loadable increment */
@@ -64,7 +71,7 @@ function rampReps(i){ return [5, 3, 2][i] || 1; }
 
 /* [{load, reps}] for a movement's warm-up; load is added belt weight for belt lifts (0 = BW) */
 function warmups(key, s){
-  switch(KIND[key]){
+  switch(kindOf(key)){
     case 'belt':    return calWarmups(s.weight).map((load,i)=>({load, reps: rampReps(i)}));
     case 'squat':   return squatWarmups(s.weight).map((load,i)=>({load, reps: rampReps(i)}));
     case 'barbell': return barbellWarmups(s.weight).map((load,i)=>({load, reps: rampReps(i)}));
@@ -92,7 +99,7 @@ function workingSets(key, s, rule){
     target: s.sets,
   };
 }
-function isAdded(key){ return KIND[key]==='belt'; }
+function isAdded(key){ return kindOf(key)==='belt'; }
 
 /* a session log's Result cell with n working sets ticked, in a shape volume.js counts:
    "3 reps top @ +25 kg, 2×5 backoff @ +20 kg", or "2 × 15 @ 12.5 kg" for straight sets (which log
@@ -160,7 +167,7 @@ function splitFinish(plan, ticked){
 }
 
 const api = {
-  DAYS, KIND, FRESH_DAYS, DUE_DAYS, backoffOf, calWarmups, squatWarmups, barbellWarmups, accessoryWarmups,
+  DAYS, KIND, kindOf, FRESH_DAYS, DUE_DAYS, backoffOf, calWarmups, squatWarmups, barbellWarmups, accessoryWarmups,
   warmups, workingSets, resultText, isAdded, lastTrained, freshness, ageLabel, suggestDay, checklistLength, splitFinish,
   seedVariant,
 };

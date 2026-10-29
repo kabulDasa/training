@@ -108,7 +108,7 @@ MOVEMENTS = {
 - `advance()`, the Program/Today cards, warm-ups (`plan.js`), the volume set counter and the Settings
   text all follow the rule instead of per-key code. Builds on item 6.
 
-## 8. Add a new exercise from Settings — `feat/custom-exercises`
+## 8. ✅ Add a new exercise from Settings — `feat/custom-exercises` (done, #18)
 
 - Settings tab: **Add exercise** form. Every field is required before it can be saved:
   - name (also its session-log name; unique, not an existing movement or log name),

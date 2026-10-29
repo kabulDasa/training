@@ -223,6 +223,19 @@ main{max-width:1100px;margin:0 auto;padding:24px}
 .bwform{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .bwform input{background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:6px 8px;font-size:16px;width:96px}
 .bwform-card{margin-bottom:16px}
+/* exercises added from Settings */
+.cxbox{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:14px}
+.cxsec{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin:2px 0 8px}
+.ruleform input.cxname{width:220px;max-width:100%}
+.ruleform input:disabled{opacity:.55;cursor:not-allowed}
+.ruleform.cxmuscles{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:6px 12px}
+.cxmuscles label{flex-direction:row;align-items:center;justify-content:space-between}
+.ruleform.cxmuscles select{font-size:14px;padding:3px 6px}
+.cxproblems{margin:0 0 12px;font-size:13px;color:var(--red)}
+.cxproblems ul{margin:4px 0 0 18px}
+.cxok{color:var(--legs)}
+.cxadd{margin-bottom:14px}
+fieldset.cxfs{border:none;min-width:0}
 </style>
 </head>
 <body>
@@ -299,6 +312,7 @@ main{max-width:1100px;margin:0 auto;padding:24px}
       <span><span class="ldot" style="background:#f43f5e"></span>Tricep extension, both arms (kg)</span>
       <span><span class="ldot" style="background:#a3e635"></span>Face pull (kg)</span>
       <span><span class="ldot" style="background:#fb923c"></span>Chest fly, single arm (kg)</span>
+      <span id="volLegendCustom" style="display:contents"></span>
       <span class="tm">Dashed line, same colour: the other arm variant (e.g. shoulder fly single arm)</span>
     </div>
   </div>
@@ -331,6 +345,11 @@ main{max-width:1100px;margin:0 auto;padding:24px}
     <div class="csub">Current working prescriptions and progression rules, one per movement and arm variant. Loads update as you log sessions. Edit a rule to switch between a top set + backoff and straight sets, linear and double progression, or change its increments, rep cap and backoff; each change is a commit to progress.md, shared by every device.</div>
     <div id="settingsTable"></div>
     <div class="settings-note">Weighted pull-up and dip loads are added belt weight. Squat load is bar weight.</div>
+  </div>
+  <div class="cc">
+    <div class="ctitle">Your exercises</div>
+    <div class="csub">Add an exercise to the program: its name (also its session-log name), day, type, movement pattern and load kind, its progression rule and its starting working set are all required; muscles are optional. It then shows on the Program tab, Today Plan, presets, Chart and Sync to Notes like the program's own movements. Edit changes its details and rule; Retire hides it from the program but keeps its log and stats (Restore brings it back); Delete is only possible while it has no logged sessions. Each change is a commit to progress.md.</div>
+    <div id="customCard"></div>
   </div>
   <div class="cc">
     <div class="ctitle">Bodyweight reminder</div>
@@ -431,7 +450,23 @@ function setRules(stored){
   ({rules: RULES, errors: RULE_ERRORS} = Rules.effective(stored));
 }
 setRules({});
-function ruleOf(key){ return RULES[key] || Rules.DEFAULT_RULES[key]; }
+function ruleOf(key){ return RULES[key] || Rules.DEFAULT_RULES[key] || Rules.CUSTOM_FALLBACK; }
+
+/* ---------- exercises added from Settings (custom movements) ----------
+   CUSTOM is progress.md's Custom movements table as loaded or edited here, kept as it is (an entry
+   the page can't use, e.g. a hand edit whose name clashes, stays in the file; CUSTOM_ERRORS says
+   why it is ignored). setCustom registers the usable ones with movements.js, so movementsFor(),
+   EXERCISE_KEY, the weekly volume and rules.js (their rule is always stored) include them. */
+let CUSTOM = [];
+let CUSTOM_ERRORS = {};
+function setCustom(list){
+  CUSTOM = list;
+  ({errors: CUSTOM_ERRORS} = Movements.setCustom(list));
+  setRules(RULES_STORED);
+}
+/* a custom movement's working set when progress.md has no row for it (a save from Q2-2026.html
+   drops rows it doesn't know): Settings flags it so it can be set with Edit */
+const CUSTOM_STATE_FALLBACK = {weight:0, reps:8, sets:3};
 
 function mergeState(s){
   /* per-field merge, so a blank cell in a hand-edited progress.md falls back to the default. A
@@ -445,10 +480,19 @@ function mergeState(s){
     const m = Movements.MOVEMENTS[k];
     if(m && m.variantOf && !s[k] && s[m.variantOf]) merged[k] = Plan.seedVariant(merged[m.variantOf], m.arms, VARIANT_START_KG[k]);
   });
+  /* exercises added from Settings (retired ones too: undo and Restore need their working set). An
+     entry movements.js ignored keeps its row as it is, so a save doesn't drop it. */
+  MISSING_STATE = new Set();
+  Movements.customKeys().forEach(k=>{
+    if(!s[k]) MISSING_STATE.add(k);
+    merged[k] = {...(s[k] || CUSTOM_STATE_FALLBACK)};
+  });
+  CUSTOM.forEach(c=>{ if(!merged[c.key] && s[c.key]) merged[c.key] = {...s[c.key]}; });
   /* fill what each rule needs that the working set lacks (reps and sets after a switch to straight sets) */
-  Object.keys(merged).forEach(k=>{ merged[k] = Rules.fitState(ruleOf(k), merged[k]); });
+  Object.keys(merged).forEach(k=>{ if(Object.hasOwn(Movements.MOVEMENTS, k)) merged[k] = Rules.fitState(ruleOf(k), merged[k]); });
   return merged;
 }
+let MISSING_STATE = new Set();
 let STATE = mergeState({});
 let HISTORY = [];
 let BODYWEIGHT = [];  /* [{date:'YYYY-MM-DD', kg}], oldest first */
@@ -466,6 +510,7 @@ async function loadProgress(){
   try{
     const {data, sha} = await store().load();
     setRules({...(data.rules || {})});
+    setCustom((data.custom || []).map(c=>({...c, muscles:{...c.muscles}})));
     STATE = mergeState(data.state);
     HISTORY = data.history;
     BODYWEIGHT = data.bodyweight || [];
@@ -485,7 +530,7 @@ function saveState(message){
     message = h ? `Log ${h.exercise}: ${h.result}` : 'Update progress';
   }
   /* snapshot now: later logs may change STATE before this save runs */
-  const snap = JSON.parse(JSON.stringify({state:STATE, history:HISTORY, bodyweight:BODYWEIGHT, rules:RULES_STORED}));
+  const snap = JSON.parse(JSON.stringify({state:STATE, history:HISTORY, bodyweight:BODYWEIGHT, rules:RULES_STORED, custom:CUSTOM}));
   SAVE_CHAIN = SAVE_CHAIN.then(async ()=>{
     if(READONLY) throw new Error('no GitHub token (Settings)');
     if(PROGRESS_SHA===null) throw new Error('progress not loaded');
@@ -511,7 +556,7 @@ function saveState(message){
 }
 /* log/undo/reset buttons only work with a token */
 function applyReadonly(){
-  document.querySelectorAll('#sgrid .logbtn, #todayFinish, #logtbody .delbtn, .resetbtn, .bwbtn, #bwtbody .delbtn, .rulebtn').forEach(b=>{ b.disabled = READONLY; });
+  document.querySelectorAll('#sgrid .logbtn, #todayFinish, #logtbody .delbtn, .resetbtn, .bwbtn, #bwtbody .delbtn, .rulebtn, fieldset.cxfs').forEach(b=>{ b.disabled = READONLY; });
 }
 
 /* ---------- GitHub settings panel ---------- */
@@ -620,7 +665,12 @@ const EXERCISE_KEY = {
 };
 /* each variant has its own working set s and its own rule (rules.js; Settings can change it) */
 function advance(key, outcome, s){ Rules.advance(ruleOf(key), outcome, s); }
-function keyOf(exercise){ return Object.hasOwn(EXERCISE_KEY, exercise) ? EXERCISE_KEY[exercise] : null; }
+/* the program's log names, then the exercises added from Settings (movements.js registers their names) */
+function keyOf(exercise){
+  if(Object.hasOwn(EXERCISE_KEY, exercise)) return EXERCISE_KEY[exercise];
+  const k = Object.hasOwn(Movements.EXERCISE_KEY, exercise) ? Movements.EXERCISE_KEY[exercise] : null;
+  return Movements.isCustom(k) ? k : null;
+}
 function latestIndexFor(key){
   for(let i=HISTORY.length-1;i>=0;i--) if(keyOf(HISTORY[i].exercise)===key) return i;
   return -1;
@@ -671,6 +721,13 @@ const CARD = {
   squat: {badge:'isf', cues:['ISF standard: hip crease below top of knee'], after:['If lower back fatigue ≥ 7/10 → reduce backoff volume or skip']},
   frontsquat: {badge:'acc', cues:['Keep elbows high, brace before each rep, and maintain an upright torso']},
 };
+
+/* an added exercise's card: Aux badge for a big compound, Acc otherwise, and general cues */
+function cardOf(base){
+  if(Object.hasOwn(CARD, base)) return CARD[base];
+  const m = Movements.MOVEMENTS[base];
+  return {badge: m.category==='compound' ? 'aux' : 'acc', cues:['Added exercise: controlled reps through the full range of motion', 'Same load and form every set before progressing']};
+}
 
 /* ================= ARM VARIANTS =================
    Lat pulldown, dumbbell row and bicep curl (Pull), shoulder fly, chest fly and tricep extension (Push)
@@ -726,7 +783,7 @@ function effState(key){
 }
 /* a movement's Program card (base = the movement; a movement with arm variants shows the picked one) */
 function renderMovement(base){
-  const key = activeKey(base), s = effState(key), rule = ruleOf(key), c = CARD[base];
+  const key = activeKey(base), s = effState(key), rule = ruleOf(key), c = cardOf(base);
   const ws = Plan.workingSets(key, s, rule);
   const outcome = Rules.outcomeFromCount(countDone(key, ws.sets.length), ws.target);
   const edited = s.weight!==STATE[key].weight;
@@ -770,8 +827,8 @@ function recordMovement(key){
   const n = countDone(key, ws.sets.length);
   const outcome = Rules.outcomeFromCount(n, ws.target);
   const volume = ws.top ? round2(ws.sets[0].load * ws.sets[0].reps * n) : round2(done.weight * done.reps * done.sets);
-  const weight = ws.top || Plan.KIND[key]!=='accessory' ? done.weight : null;
-  pushHistory(HISTORY_NAME[key], Plan.resultText(key, done, rule, n), outcome, weight, volume);
+  const weight = ws.top || Plan.kindOf(key)!=='accessory' ? done.weight : null;
+  pushHistory(histName(key), Plan.resultText(key, done, rule, n), outcome, weight, volume);
   s.weight = done.weight;
   advance(key, outcome, s);
   clearPending(key);
@@ -786,8 +843,15 @@ const HISTORY_NAME = {
   latpulldownboth:'Lat Pulldown (both arms)', invertedrowboth:'Dumbbell Row (both arms)', bicepcurlboth:'Bicep Curl (both arms)',
   shoulderflysingle:'Shoulder Fly (single arm)', chestflyboth:'Chest Fly (both arms)', tricepextsingle:'Tricep Extension (single arm)',
 };
+/* the session-log name a key logs under: the program's, or an added exercise's own name */
+function histName(key){ return HISTORY_NAME[key] || Movements.MOVEMENTS[key].name; }
+/* can be planned and logged: the program's movements and the added exercises not retired */
+function isLoggable(key){
+  return Object.hasOwn(RECORD, key) || (Movements.isCustom(key) && !Movements.MOVEMENTS[key].retired);
+}
 function logOne(key){
-  RECORD[key](key);
+  if(!isLoggable(key)) return;
+  recordMovement(key);
   clearTodayExtras(key);
   saveState();
   render();
@@ -802,7 +866,7 @@ function getPlan(){
   let raw = [];
   try{ raw = JSON.parse(localStorage.getItem(PLAN_KEY) || '[]'); }catch(_){}
   if(!Array.isArray(raw)) return [];
-  const bases = raw.map(k=>Object.hasOwn(RECORD,k) ? Movements.baseOf(k) : null);
+  const bases = raw.map(k=>typeof k==='string' && isLoggable(k) ? Movements.baseOf(k) : null);
   return raw.filter((k,i)=>bases[i] && bases.indexOf(bases[i])===i);
 }
 function setPlan(keys){
@@ -982,12 +1046,12 @@ async function finishWorkout(){
   if(!confirm(`Log today's workout?\n\n${lines.join('\n')}`)) return;
   /* recordXxx() clears each movement's taps; put them back until the save succeeds */
   const pend = log.map(key=>{ try{ return localStorage.getItem('q2_pend_'+key); }catch(_){ return null; } });
-  log.forEach(key=>RECORD[key](key));
+  log.forEach(key=>recordMovement(key));
   log.forEach((key,i)=>{ if(pend[i]!=null) try{ localStorage.setItem('q2_pend_'+key, pend[i]); }catch(_){} });
   FINISHING = 'saving';
   TODAY_OPEN = null;
   render();
-  const saved = await saveState(`Log workout: ${log.map(k=>HISTORY_NAME[k]).join(', ')}`);
+  const saved = await saveState(`Log workout: ${log.map(histName).join(', ')}`);
   if(saved){
     plan.forEach(key=>{ clearPending(key); clearTodayExtras(key); });
     try{ localStorage.removeItem(PLAN_KEY); }catch(_){}
@@ -1004,7 +1068,7 @@ async function finishWorkout(){
    (renderMovement is called with the movement's key). */
 function renderDay(day, n){
   const {DAYS, CATEGORIES, movementsFor, familyName} = Movements;
-  const names = movementsFor(day).map(familyName).join(' / ');
+  const names = esc(movementsFor(day).map(familyName).join(' / '));
   const groups = Object.keys(CATEGORIES).map(cat => {
     const keys = movementsFor(day, cat);
     const body = keys.length ? keys.map(renderMovement).join('') : '<div class="cgroup-empty">None yet</div>';
@@ -1084,19 +1148,21 @@ function openRuleEditor(key){
   renderSettings();
 }
 function closeRuleEditor(){ RULE_EDIT = null; renderSettings(); }
-/* the draft as typed: blank = null, anything else a number (NaN if it isn't one, which Save rejects) */
-function readRuleForm(){
-  const d = {...RULE_EDIT.draft};
-  const el = f=>document.getElementById('rule-'+f);
-  d.scheme = el('scheme').value;
-  d.progression = el('progression').value;
+/* the draft as typed: blank = null, anything else a number (NaN if it isn't one, which Save rejects).
+   prefix is the form's id prefix (the Add exercise form shares these inputs). */
+function readRuleFields(prefix, base){
+  const d = {...base};
+  const el = f=>document.getElementById(prefix+f);
+  d.scheme = el('scheme').value || null;
+  d.progression = el('progression').value || null;
   RULE_INPUTS.forEach(([f])=>{ const i = el(f); if(i) d[f] = i.value.trim()==='' ? null : Number(i.value); });
   return d;
 }
+function readRuleForm(){ return readRuleFields('rule-', RULE_EDIT.draft); }
 /* fill the fields a scheme / progression switch now needs: the movement's default where it has one,
    else a sensible start (e.g. a dip switched to straight sets keeps its reps and gets 3 sets) */
 function fillDraft(key, d){
-  const def = Rules.DEFAULT_RULES[key], out = {...d};
+  const def = Rules.DEFAULT_RULES[key] || {}, out = {...d};
   const floor = Number.isInteger(d.repFloor) ? d.repFloor : def.repFloor!=null ? def.repFloor : (d.reps > 0 ? d.reps : 8);
   const fallback = {
     inc: 2.5, bonusInc: (d.inc > 0 ? d.inc : 2.5) * 2, repFloor: floor, repCap: floor + (isTop(d) ? 2 : 5),
@@ -1111,17 +1177,23 @@ function ruleFormChanged(){
   RULE_EDIT.draft = fillDraft(RULE_EDIT.key, readRuleForm());
   renderSettings();
 }
-function ruleFormHtml(key){
-  const d = RULE_EDIT.draft;
-  const sel = (f, label, opts)=>`<label>${label}<select id="rule-${f}" onchange="ruleFormChanged()">${Object.entries(opts).map(([v,t])=>
+/* the rule's selects and inputs (those its scheme / progression use). onSelect runs when a select
+   changes, onInput on typing; choose = start the selects on a blank "Choose…" (Add exercise);
+   extra = inputs placed after the selects */
+function ruleFieldsHtml(d, prefix, onSelect, onInput, choose, extra){
+  const sel = (f, label, opts)=>`<label>${label}<select id="${prefix}${f}" onchange="${onSelect}">${choose ? `<option value=""${d[f]==null?' selected':''}>Choose…</option>` : ''}${Object.entries(opts).map(([v,t])=>
     `<option value="${v}"${d[f]===v?' selected':''}>${t}</option>`).join('')}</select></label>`;
   const inputs = RULE_INPUTS.filter(i=>i[3](d)).map(([f,label,step])=>
-    `<label>${esc(label(d))}<input id="rule-${f}" type="number" inputmode="decimal" step="${step}" min="0" value="${Number.isFinite(d[f]) ? esc(d[f]) : ''}"></label>`).join('');
-  return `<div class="ruleform">${sel('scheme','Scheme',Rules.SCHEMES)}${sel('progression','Progression',Rules.PROGRESSIONS)}${inputs}</div>
+    `<label>${esc(label(d))}<input id="${prefix}${f}" type="number" inputmode="decimal" step="${step}" min="0" value="${Number.isFinite(d[f]) ? esc(d[f]) : ''}"${onInput ? ` oninput="${onInput}"` : ''}></label>`).join('');
+  return `${sel('scheme','Scheme',Rules.SCHEMES)}${sel('progression','Progression',Rules.PROGRESSIONS)}${extra || ''}${inputs}`;
+}
+function ruleFormHtml(key){
+  const d = RULE_EDIT.draft, added = Movements.isCustom(key);
+  return `<div class="ruleform">${ruleFieldsHtml(d, 'rule-', 'ruleFormChanged()', '', false, '')}</div>
     <div class="ghbtns"><button class="logbtn rulebtn" onclick="saveRule()">Save</button>
       <button class="pbtn" onclick="closeRuleEditor()">Cancel</button>
-      ${Object.hasOwn(RULES_STORED, key) ? `<button class="pbtn rulebtn" onclick="resetRule('${key}')">Reset to default</button>` : ''}</div>
-    <div class="settings-note">Default: ${esc(Rules.summary(Rules.DEFAULT_RULES[key]))}. Reps and sets are the working set's: progression moves them from here.</div>`;
+      ${Object.hasOwn(RULES_STORED, key) && !added ? `<button class="pbtn rulebtn" onclick="resetRule('${key}')">Reset to default</button>` : ''}</div>
+    <div class="settings-note">${added ? 'An exercise you added has no default rule: its rule is always kept in progress.md.' : `Default: ${esc(Rules.summary(Rules.DEFAULT_RULES[key]))}.`} Reps and sets are the working set's: progression moves them from here.</div>`;
 }
 function saveRule(){
   if(READONLY || !RULE_EDIT) return;
@@ -1153,7 +1225,7 @@ function saveRule(){
 /* back to the program's rule; a scheme switch back also takes the program's starting reps (top-set
    reps of 3 rather than, say, the 8 of a straight-set phase) */
 function resetRule(key){
-  if(READONLY || !Object.hasOwn(RULES_STORED, key)) return;
+  if(READONLY || !Object.hasOwn(RULES_STORED, key) || !Rules.DEFAULT_RULES[key]) return;
   const name = Movements.MOVEMENTS[key].name, def = Rules.DEFAULT_RULES[key];
   if(!confirm(`Reset the ${name} progression rule to the default (${Rules.summary(def)})?`)) return;
   const shape = tapShape(key), schemeChanged = ruleOf(key).scheme!==def.scheme;
@@ -1172,8 +1244,10 @@ function renderSettings(){
   const rows = settingsKeys().map(key=>{
     const m = Movements.MOVEMENTS[key], rule = ruleOf(key);
     const day = `Day ${Plan.DAYS.indexOf(m.day)+1} · ${Movements.DAYS[m.day]}`;
-    const custom = Object.hasOwn(RULES_STORED, key) && !RULE_ERRORS[key];
-    const bad = RULE_ERRORS[key] ? `<div class="tag-hold">The rule in progress.md is ignored (${esc(RULE_ERRORS[key])}), so the default is in use. Edit or reset it here.</div>` : '';
+    const custom = Object.hasOwn(RULES_STORED, key) && !RULE_ERRORS[key] && !Movements.isCustom(key);
+    const bad = !RULE_ERRORS[key] ? ''
+      : Movements.isCustom(key) ? `<div class="tag-hold">This exercise has no usable rule in progress.md (${esc(RULE_ERRORS[key])}), so a stand-in is in use. Edit it here.</div>`
+      : `<div class="tag-hold">The rule in progress.md is ignored (${esc(RULE_ERRORS[key])}), so the default is in use. Edit or reset it here.</div>`;
     const editing = RULE_EDIT && RULE_EDIT.key===key;
     const text = [Rules.backoffText(rule), Rules.describe(rule)].filter(Boolean).map(t=>esc(t + (t.endsWith('.') ? '' : '.'))).join(' ');
     return `<tr><td class="setting-group">${day}</td><td class="setting-lift">${esc(liftLabel(key))}</td><td class="setting-current">${esc(prescText(key))}</td>
@@ -1181,10 +1255,211 @@ function renderSettings(){
       <td>${editing ? '<button class="pbtn" onclick="closeRuleEditor()">Close</button>' : `<button class="pbtn rulebtn" onclick="openRuleEditor('${key}')">Edit</button>`}</td></tr>`
       + (editing ? `<tr class="rule-edit"><td colspan="5"><div class="rule-edit-box">${ruleFormHtml(key)}</div></td></tr>` : '');
   }).join('');
-  const unknown = Object.keys(RULE_ERRORS).filter(k=>!Object.hasOwn(Rules.DEFAULT_RULES, k));
+  const unknown = Object.keys(RULE_ERRORS).filter(k=>!Object.hasOwn(Movements.MOVEMENTS, k));
   document.getElementById('settingsTable').innerHTML = `<div class="settings-wrap"><table class="settings-table"><thead><tr><th>Day</th><th>Lift</th><th>Current prescription</th><th>Progression rule</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`
     + (unknown.length ? `<div class="settings-note tag-hold">progress.md has progression rules for unknown movements, which are ignored: ${unknown.map(esc).join(', ')}.</div>` : '');
+  renderCustomCard();
   applyReadonly();
+}
+
+/* ---------- Settings: add, edit, retire and delete your own exercises ----------
+   The form needs every detail (name, day, type, pattern, load kind), the whole progression rule (the
+   rule editor's inputs and checks) and the starting working set; Save stays disabled, with the list
+   of what is missing, until they are all valid. Muscles are optional. The key is made from the name
+   once, when the exercise is added, and never changes. The name is also the session-log name, so it
+   can't change once the exercise has been logged (the log rows would stop matching it). */
+let CUSTOM_EDIT = null;  /* {mode:'add'|'edit', key, draft} while the form is open */
+const CUSTOM_SELECTS = [['day','Day',()=>Movements.DAYS], ['category','Type',()=>Movements.CATEGORIES],
+  ['pattern','Movement pattern',()=>Movements.PATTERNS], ['kind','Load kind',()=>Movements.KINDS]];
+/* session-log rows of an added exercise (its log name is its name) */
+function customLogCount(c){ return HISTORY.filter(h=>h.exercise===c.name).length; }
+function customEntry(key){ return CUSTOM.find(c=>c.key===key) || null; }
+/* a hand-edited row whose key is a built-in movement's (movements.js ignores it): its working set
+   and rule are the built-in's, so Edit and Delete must not touch them */
+function shadowsBuiltin(key){ return Object.hasOwn(Movements.MOVEMENTS, key) && !Movements.isCustom(key); }
+const SHADOW_NOTE = 'This row in progress.md uses the key of a built-in movement, so it is ignored. Delete removes only the row; fix it in progress.md to keep it.';
+
+function openCustomForm(key){
+  if(READONLY) return;
+  if(key==null){
+    const blank = Object.fromEntries(Rules.FIELDS.map(f=>[f, null]));
+    CUSTOM_EDIT = {mode:'add', key:null, draft:{...blank, name:'', day:null, category:null, pattern:null, kind:null, muscles:{}, weight:null, reps:null, sets:null}};
+  }else{
+    const c = customEntry(key);
+    if(!c) return;
+    if(shadowsBuiltin(key)){ alert(SHADOW_NOTE); return; }
+    const s = STATE[key] || {}, rule = RULES_STORED[key] ? Rules.normalize(RULES_STORED[key]) : {};
+    CUSTOM_EDIT = {mode:'edit', key, draft:{...rule, name:c.name, day:c.day, category:c.category, pattern:c.pattern, kind:c.kind,
+      muscles:{...c.muscles}, weight: s.weight ?? null, reps: s.reps ?? null, sets: s.sets ?? null}};
+  }
+  renderCustomCard();
+}
+function closeCustomForm(){ CUSTOM_EDIT = null; renderCustomCard(); }
+function readCustomForm(){
+  const el = id=>document.getElementById('cx-'+id);
+  const d = readRuleFields('cx-', CUSTOM_EDIT.draft);
+  if(!el('name').disabled) d.name = el('name').value;
+  CUSTOM_SELECTS.forEach(([f])=>{ d[f] = el(f).value || null; });
+  d.muscles = {};
+  Object.keys(Movements.MUSCLES).forEach(m=>{ const v = el('m-'+m).value; if(v) d.muscles[m] = Number(v); });
+  d.weight = el('weight').value.trim()==='' ? null : Number(el('weight').value);
+  return d;
+}
+/* everything missing or wrong in the form, one line each ([] = it can be saved) */
+function customDraftProblems(d){
+  const key = CUSTOM_EDIT.key;
+  const logNames = HISTORY.map(h=>h.exercise).filter(n=>key==null || keyOf(n)!==key);
+  const out = Movements.customProblems(d, Movements.namesTaken(logNames, key));
+  for(const msg of Rules.problems(Rules.normalize(d)))
+    out.push(msg.startsWith('scheme must') && !d.scheme ? 'scheme is missing'
+      : msg.startsWith('progression must') && !d.progression ? 'progression is missing' : msg);
+  const belt = d.kind==='belt';
+  if(!(Number.isFinite(d.weight) && (belt ? d.weight>=0 : d.weight>0) && d.weight<500))
+    out.push(belt ? 'added weight must be 0 (bodyweight) or more, under 500 kg' : 'weight must be more than 0 and under 500 kg');
+  if(!(Number.isInteger(d.reps) && d.reps>=1 && d.reps<=100)) out.push(`${isTop(d) ? 'top-set reps' : 'reps'} must be a whole number from 1 to 100`);
+  if(!isTop(d) && !(Number.isInteger(d.sets) && d.sets>=1 && d.sets<=10)) out.push('sets must be a whole number from 1 to 10');
+  return out;
+}
+function problemsHtml(list){
+  return list.length ? `Can't save yet:<ul>${list.map(p=>`<li>${esc(p)}</li>`).join('')}</ul>` : '<span class="cxok">Ready to save.</span>';
+}
+/* typing: refresh the list of problems and the Save button without redrawing the form (keeps focus) */
+function customFormInput(){
+  CUSTOM_EDIT.draft = readCustomForm();
+  const probs = customDraftProblems(CUSTOM_EDIT.draft);
+  document.getElementById('cx-problems').innerHTML = problemsHtml(probs);
+  document.getElementById('cx-save').disabled = READONLY || probs.length>0;
+}
+/* a select changed: the fields shown may change (e.g. backoff inputs for a top set), so redraw */
+function customFormChanged(){ CUSTOM_EDIT.draft = readCustomForm(); renderCustomCard(); }
+function customFormHtml(){
+  const d = CUSTOM_EDIT.draft, editing = CUSTOM_EDIT.mode==='edit';
+  const logs = editing ? customLogCount(customEntry(CUSTOM_EDIT.key)) : 0;
+  const opts = (f, o)=>`<option value=""${d[f]==null?' selected':''}>Choose…</option>`
+    + Object.entries(o).map(([v,t])=>`<option value="${v}"${d[f]===v?' selected':''}>${esc(t)}</option>`).join('');
+  const details = `<label>Name<input id="cx-name" class="cxname" maxlength="40" autocomplete="off" spellcheck="false" value="${esc(d.name || '')}"${logs ? ' disabled' : ''} oninput="customFormInput()"></label>`
+    + CUSTOM_SELECTS.map(([f,label,o])=>`<label>${label}<select id="cx-${f}" onchange="customFormChanged()">${opts(f, o())}</select></label>`).join('');
+  const muscles = Object.entries(Movements.MUSCLES).map(([m,label])=>{
+    const w = d.muscles[m];
+    return `<label>${esc(label)}<select id="cx-m-${m}" onchange="customFormInput()"><option value="">—</option>`
+      + `<option value="1"${w===1?' selected':''}>Primary</option><option value="0.5"${w===0.5?' selected':''}>Secondary</option></select></label>`;
+  }).join('');
+  const weight = `<label>${d.kind==='belt' ? 'Added weight (kg, 0 = BW)' : 'Weight (kg)'}<input id="cx-weight" type="number" inputmode="decimal" step="0.25" min="0" value="${Number.isFinite(d.weight) ? esc(d.weight) : ''}" oninput="customFormInput()"></label>`;
+  const probs = customDraftProblems(d);
+  return `<fieldset class="cxfs"><div class="cxsec">Exercise</div><div class="ruleform">${details}</div>
+    ${logs ? `<div class="settings-note" style="margin:-4px 0 10px">The name is its session-log name and it has ${logs} logged session${logs===1?'':'s'}, so it can't change.</div>` : ''}
+    <div class="cxsec">Progression rule and ${editing ? 'working' : 'starting'} set</div><div class="ruleform">${ruleFieldsHtml(d, 'cx-', 'customFormChanged()', 'customFormInput()', true, weight)}</div>
+    <div class="cxsec">Muscles (optional)</div><div class="ruleform cxmuscles">${muscles}</div>
+    <div id="cx-problems" class="cxproblems">${problemsHtml(probs)}</div>
+    <div class="ghbtns"><button class="logbtn" id="cx-save" onclick="saveCustom()"${READONLY || probs.length ? ' disabled' : ''}>${editing ? 'Save changes' : 'Add exercise'}</button>
+      <button class="pbtn" onclick="closeCustomForm()">Cancel</button></div></fieldset>`;
+}
+function renderCustomCard(){
+  const el = document.getElementById('customCard');
+  if(!el) return;
+  const adding = CUSTOM_EDIT && CUSTOM_EDIT.mode==='add';
+  const head = adding ? `<div class="cxbox">${customFormHtml()}</div>`
+    : `<div class="cxadd"><button class="logbtn rulebtn" onclick="openCustomForm()">＋ Add exercise</button></div>`;
+  const rows = CUSTOM.map(c=>{
+    const err = CUSTOM_ERRORS[c.key], logs = customLogCount(c), k = esc(c.key);
+    const label = (words, v)=>esc(Object.hasOwn(words, v) ? words[v] : v);
+    const status = err ? `<span class="tag-hold">Ignored: ${esc(err)}. Edit it to fix.</span>`
+      : (c.retired ? 'Retired' : 'In the program') + (MISSING_STATE.has(c.key) ? '<div class="tag-hold">No working set in progress.md: set it with Edit.</div>' : '');
+    const btns = [
+      `<button class="pbtn rulebtn" onclick="openCustomForm('${k}')">Edit</button>`,
+      err ? '' : `<button class="pbtn rulebtn" onclick="retireCustom('${k}', ${!c.retired})">${c.retired ? 'Restore' : 'Retire'}</button>`,
+      logs ? '' : `<button class="pbtn rulebtn" onclick="deleteCustom('${k}')">Delete</button>`,
+    ].filter(Boolean).join(' ');
+    const editing = CUSTOM_EDIT && CUSTOM_EDIT.mode==='edit' && CUSTOM_EDIT.key===c.key;
+    return `<tr><td class="setting-lift">${esc(c.name)}</td><td>${label(Movements.DAYS, c.day)}</td>
+      <td>${label(Movements.CATEGORIES, c.category)} · ${label(Movements.PATTERNS, c.pattern)} · ${label(Movements.KINDS, c.kind)}</td>
+      <td class="tm">${logs} log${logs===1?'':'s'}</td><td>${status}</td><td style="white-space:nowrap">${btns}</td></tr>`
+      + (editing ? `<tr class="rule-edit"><td colspan="6"><div class="rule-edit-box">${customFormHtml()}</div></td></tr>` : '');
+  }).join('');
+  el.innerHTML = head + (CUSTOM.length
+    ? `<div class="settings-wrap"><table class="settings-table"><thead><tr><th>Exercise</th><th>Day</th><th>Type · pattern · load</th><th>Logged</th><th>Status</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`
+    : '<div class="tm">No exercises added yet.</div>');
+  applyReadonly();
+}
+function saveCustom(){
+  if(READONLY || !CUSTOM_EDIT) return;
+  const d = CUSTOM_EDIT.draft = readCustomForm();
+  if(customDraftProblems(d).length){ renderCustomCard(); return; }
+  const rule = Rules.normalize(d), name = Movements.cleanName(d.name);
+  const details = {name, day:d.day, category:d.category, pattern:d.pattern, kind:d.kind, muscles:{...d.muscles}};
+  const next = {weight: round2(d.weight), reps: d.reps};
+  if(!isTop(rule)) next.sets = d.sets;
+  const describe = `${Movements.DAYS[d.day]}, ${Movements.CATEGORIES[d.category].toLowerCase()}, ${Movements.PATTERNS[d.pattern].toLowerCase()}, ${Movements.KINDS[d.kind].toLowerCase()}; ${Rules.summary(rule)}`;
+  let key, message;
+  if(CUSTOM_EDIT.mode==='add'){
+    key = Movements.customKey(name, [...Object.keys(STATE), ...Object.keys(RULES_STORED), ...CUSTOM.map(c=>c.key)]);
+    CUSTOM = [...CUSTOM, {key, ...details, retired:false}];
+    clearTaps(key);
+    clearTodayExtras(key);
+    message = `Add exercise: ${name} — ${describe}`;
+  }else{
+    key = CUSTOM_EDIT.key;
+    const old = customEntry(key);
+    if(!old || shadowsBuiltin(key)) return;
+    if(name!==old.name && customLogCount(old)){ alert('This exercise has logged sessions, so its name (the session-log name) can\'t change.'); return; }
+    const s = STATE[key] || {};
+    const same = JSON.stringify({...old, retired:false}) === JSON.stringify({key, ...details, retired:false})
+      && RULES_STORED[key] && Rules.sameRule(RULES_STORED[key], rule) && !RULE_ERRORS[key] && !CUSTOM_ERRORS[key] && !MISSING_STATE.has(key)
+      && s.weight===next.weight && s.reps===next.reps && (isTop(rule) || s.sets===next.sets);
+    if(same){ closeCustomForm(); return; }
+    if(STATE[key] && tapShape(key)!==`${isTop(rule) ? 'top' : 'straight'}:${isTop(rule) ? rule.backoffMax : next.sets}`) clearTaps(key);
+    CUSTOM = CUSTOM.map(c=>c.key===key ? {key, ...details, retired:c.retired} : c);
+    message = `Edit exercise: ${name}${name!==old.name ? ` (was ${old.name})` : ''} — ${describe}`;
+  }
+  RULES_STORED = {...RULES_STORED, [key]: rule};
+  setCustom(CUSTOM);
+  STATE[key] = Rules.fitState(rule, next);
+  MISSING_STATE.delete(key);
+  CUSTOM_EDIT = null;
+  saveState(`${message}; working set ${prescText(key)}`);
+  render();
+  renderSettings();
+}
+/* retire = off the Program tab, Today Plan and presets (log, stats and working set kept); restore = back */
+function retireCustom(key, retire){
+  const c = customEntry(key);
+  if(READONLY || !c || CUSTOM_ERRORS[key]) return;
+  if(retire && !confirm(`Retire ${c.name}? It leaves the Program tab, Today Plan and presets. Its log, stats and working set are kept, and Restore brings it back.`)) return;
+  CUSTOM = CUSTOM.map(x=>x.key===key ? {...x, retired:retire} : x);
+  setCustom(CUSTOM);
+  if(CUSTOM_EDIT && CUSTOM_EDIT.key===key) CUSTOM_EDIT = null;
+  saveState(`${retire ? 'Retire' : 'Restore'} exercise: ${c.name}`);
+  render();
+  renderSettings();
+}
+/* only while it has no logged sessions: drops its row, working set and rule from progress.md */
+function deleteCustom(key){
+  const c = customEntry(key);
+  if(READONLY || !c) return;
+  if(customLogCount(c)){ alert(`${c.name} has logged sessions, so it can't be deleted. Retire it instead.`); return; }
+  if(shadowsBuiltin(key)){
+    if(!confirm(`${SHADOW_NOTE}\n\nDelete the ${c.name} row?`)) return;
+    CUSTOM = CUSTOM.filter(x=>x.key!==key);
+    setCustom(CUSTOM);
+    saveState(`Delete exercise: ${c.name} (ignored row)`);
+    render();
+    renderSettings();
+    return;
+  }
+  if(!confirm(`Delete ${c.name}? It has no logged sessions; its working set and rule are removed too.`)) return;
+  const stored = {...RULES_STORED};
+  delete stored[key];
+  RULES_STORED = stored;
+  CUSTOM = CUSTOM.filter(x=>x.key!==key);
+  setCustom(CUSTOM);
+  delete STATE[key];
+  MISSING_STATE.delete(key);
+  clearTaps(key);
+  clearTodayExtras(key);
+  if(CUSTOM_EDIT && CUSTOM_EDIT.key===key) CUSTOM_EDIT = null;
+  saveState(`Delete exercise: ${c.name}`);
+  render();
+  renderSettings();
 }
 
 /* progress.md is hand-editable, so text from it is escaped before going into innerHTML */
@@ -1202,9 +1477,10 @@ function showTab(id,btn){
 
 function resetAll(){
   if(!confirm('Reset all logged progress and current working sets back to the Q2 2026 starting point?')) return;
-  Object.keys(DEFAULT_STATE).forEach(k=>{ clearPending(k); clearTodayExtras(k); });
+  Object.keys(STATE).forEach(k=>{ clearPending(k); clearTodayExtras(k); });
   try{ localStorage.removeItem(PLAN_KEY); }catch(_){}
-  STATE = mergeState({});
+  /* the exercises you added have no starting point to go back to: they keep their working sets */
+  STATE = mergeState(Object.fromEntries(CUSTOM.filter(c=>STATE[c.key]).map(c=>[c.key, STATE[c.key]])));
   HISTORY = [];
   saveState('Reset all progress');
   render();
@@ -1352,6 +1628,13 @@ function renderChart(){
     ...seriesFrom(HISTORY.filter(h=>keyOf(h.exercise)===key), color, h=>h.volume), dash: key!==base,
   })));
 
+  /* one line per exercise added from Settings (retired ones too: their stats are kept), coloured in turn */
+  const CUSTOM_COLORS = ['#14b8a6','#e879f9','#fde047','#93c5fd','#fca5a5','#c4b5fd','#5eead4','#fdba74'];
+  const customKeys = Movements.customKeys();
+  const customSeries = customKeys.map((key,i)=>seriesFrom(HISTORY.filter(h=>keyOf(h.exercise)===key), CUSTOM_COLORS[i % CUSTOM_COLORS.length], h=>h.volume));
+  document.getElementById('volLegendCustom').innerHTML = customKeys.map((key,i)=>
+    `<span><span class="ldot" style="background:${CUSTOM_COLORS[i % CUSTOM_COLORS.length]}"></span>${esc(Movements.MOVEMENTS[key].name)}${Movements.MOVEMENTS[key].retired ? ' (retired)' : ''} (kg)</span>`).join('');
+
   renderLineChart(document.getElementById('chartHolderTop'), [
     seriesFrom(pull, '#3b82f6', h=>h.weight),
     seriesFrom(dip,  '#f97316', h=>h.weight),
@@ -1365,6 +1648,7 @@ function renderChart(){
     seriesFrom(HISTORY.filter(h=>h.exercise==='Front Squat'), '#22c55e', h=>h.volume),
     ...armSeries,
     seriesFrom(fp,   '#a3e635', h=>h.volume),
+    ...customSeries,
   ], 'kg × reps');
 
   const tbody = document.getElementById('logtbody');
