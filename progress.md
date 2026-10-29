@@ -12,6 +12,7 @@ pull the `data` branch first; the page will ask to reload if it was open.
 | latpulldown | 12.5 | 18 | 2 |
 | invertedrow | 22.5 | 6 | 2 |
 | bicepcurl | 12.5 | 15 | 2 |
+| facepull | 15 | 16 | 2 |
 | dip | 27.5 | 3 |  |
 | ohp | 55 | 4 | 3 |
 | shoulderfly | 10 | 24 | 2 |
@@ -66,16 +67,20 @@ pull the `data` branch first; the page will ask to reload if it was open.
 | 2026-08-03T16:47:55.889Z | OHP | 3 × 3 @ 50 kg | normal |  |  |  |
 | 2026-08-06T10:37:46.996Z | Pull-up | 1 rep top @ +23.75 kg, 3×3 backoff @ +18.75 kg | normal | 23.75 | 168.75 |  |
 | 2026-08-06T10:37:50.102Z | Dip | 1 rep top @ +26.25 kg, 3×3 backoff @ +21.25 kg | normal | 26.25 | 191.25 |  |
+| 2026-08-06T12:00:00.000Z | Face Pull | 3 × 8 @ 15 kg | normal |  | 360 | 15 kg, 8 reps, 3 sets |
+| 2026-08-10T12:00:00.000Z | Face Pull | 3 × 5 @ 15 kg | normal |  | 225 | 15 kg, 5 reps, 3 sets |
 | 2026-08-10T16:34:41.506Z | Pull-up | 1 rep top @ +25 kg, 3×3 backoff @ +20 kg | normal | 25 | 180 |  |
 | 2026-08-10T16:34:43.923Z | Dip | 1 rep top @ +27.5 kg, 3×3 backoff @ +22.5 kg | normal | 27.5 | 202.5 |  |
 | 2026-08-10T16:34:46.554Z | OHP | 3 × 4 @ 50 kg | normal |  |  |  |
 | 2026-08-11T11:17:09.822Z | Squat | 1 rep top @ 107.5 kg, 4×3 backoff @ 85 kg | double | 107.5 | 1020 |  |
 | 2026-08-13T10:25:48.464Z | Pull-up | 1 rep top @ +26.25 kg, 3×3 backoff @ +21.25 kg | normal | 26.25 | 191.25 |  |
 | 2026-08-13T10:25:50.432Z | Dip | 1 rep top @ +28.75 kg, 3×3 backoff @ +22.5 kg | normal | 28.75 | 202.5 |  |
+| 2026-08-13T12:00:00.000Z | Face Pull | 3 × 6 @ 15 kg | normal |  | 270 | 15 kg, 6 reps, 3 sets |
 | 2026-08-18T10:25:11.228Z | Pull-up | 1 rep top @ +27.5 kg, 1×3 backoff @ +22.5 kg | hold | 27.5 | 67.5 |  |
 | 2026-08-18T10:25:13.725Z | Dip | 1 rep top @ +30 kg, 3×3 backoff @ +23.75 kg | normal | 30 | 213.75 |  |
 | 2026-08-18T10:25:15.989Z | OHP | 3 × 5 @ 50 kg | hold |  |  |  |
 | 2026-08-18T15:28:26.827Z | Squat | 1 rep top @ 112.5 kg, 3×3 backoff @ 90 kg | normal | 112.5 | 810 |  |
+| 2026-08-19T12:00:00.000Z | Face Pull | 2 × 6–7 @ 15 kg | normal |  | 195 | 15 kg, 6 reps, 2 sets |
 | 2026-08-19T12:25:16.677Z | Pull-up | 1 rep top @ +27.5 kg, 2×3 backoff @ +22.5 kg | hold | 27.5 | 135 |  |
 | 2026-08-19T12:25:43.302Z | Dip | 3 reps top @ +15 kg, 2×5 backoff @ +12.5 kg | normal | 15 | 125 |  |
 | 2026-08-21T08:49:48.316Z | Squat | 1 rep top @ 115 kg, 3×3 backoff @ 92.5 kg | normal | 115 | 832.5 |  |
@@ -161,16 +166,19 @@ pull the `data` branch first; the page will ask to reload if it was open.
 | 2026-10-16T11:19:58.730Z | Pull-up | 3 reps top @ +22.5 kg, 2×5 backoff @ +17.5 kg | normal | 22.5 | 175 |  |
 | 2026-10-16T11:47:36.477Z | Lat Pulldown | 2 × 16 @ 12.5 kg | normal |  | 400 |  |
 | 2026-10-16T11:57:01.295Z | Bicep Curl | 2 × 12 @ 12.5 kg | normal |  | 300 |  |
+| 2026-10-16T12:00:00.000Z | Face Pull | 2 × 13 @ 15 kg | normal |  | 390 | 15 kg, 13 reps, 2 sets |
 | 2026-10-16T12:01:37.953Z | Dumbbell Row | 2 × 15 @ 20 kg | normal |  | 600 |  |
 | 2026-10-17T11:10:38.002Z | Shoulder Fly | 2 × 21 @ 10 kg | normal |  | 420 |  |
 | 2026-10-17T11:10:39.860Z | Tricep Extension | 2 × 14 @ 12.5 kg | normal |  | 350 |  |
 | 2026-10-18T09:28:59.442Z | Front Squat | 2 × 20 @ 25 kg | normal | 25 | 1000 |  |
+| 2026-10-19T12:00:00.000Z | Face Pull | 2 × 14 @ 15 kg | normal |  | 420 | 15 kg, 14 reps, 2 sets |
 | 2026-10-19T14:01:41.063Z | Shoulder Fly | 2 × 22 @ 10 kg | normal |  | 440 |  |
 | 2026-10-19T14:01:58.122Z | Lat Pulldown | 2 × 17 @ 12.5 kg | normal |  | 425 |  |
 | 2026-10-19T14:02:05.425Z | Bicep Curl | 2 × 13 @ 12.5 kg | normal |  | 325 |  |
 | 2026-10-19T14:02:13.365Z | Tricep Extension | 2 × 15 @ 12.5 kg | normal |  | 375 |  |
 | 2026-10-20T10:41:01.446Z | Front Squat | 2 × 20 @ 27.5 kg | normal | 27.5 | 1100 |  |
 | 2026-10-20T11:20:47.617Z | OHP | 3 × 7 @ 52.5 kg | normal |  |  |  |
+| 2026-10-22T12:00:00.000Z | Face Pull | 2 × 15 @ 15 kg (last set @ 10 kg) | normal |  | 375 | 15 kg, 15 reps, 2 sets |
 | 2026-10-22T15:07:31.447Z | Bicep Curl | 2 × 14 @ 12.5 kg | normal |  | 350 |  |
 | 2026-10-24T15:03:06.790Z | Pull-up | 3 reps top @ +23.75 kg, 2×5 backoff @ +18.75 kg | normal | 23.75 | 187.5 |  |
 | 2026-10-24T15:03:12.731Z | Dip | 3 reps top @ +26.25 kg, 2×5 backoff @ +21.25 kg | normal | 26.25 | 212.5 |  |
