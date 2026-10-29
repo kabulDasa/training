@@ -17,6 +17,7 @@ const DAYS = ['pull', 'push', 'legs'];
 const KIND = {
   pullup:'belt', dip:'belt', squat:'squat', ohp:'barbell', frontsquat:'barbell',
   latpulldown:'accessory', invertedrow:'accessory', bicepcurl:'accessory', facepull:'accessory', shoulderfly:'accessory', chestfly:'accessory', tricepext:'accessory',
+  latpulldownboth:'accessory', invertedrowboth:'accessory', bicepcurlboth:'accessory', shoulderflysingle:'accessory', chestflyboth:'accessory', tricepextsingle:'accessory',
 };
 /* loadable increment of each top-set lift's backoff */
 const BACKOFF_INC = {pullup:1.25, dip:1.25, squat:2.5};
@@ -93,6 +94,16 @@ function workingSets(key, s){
 }
 function isAdded(key){ return KIND[key]==='belt'; }
 
+/* ---------- arm variants ---------- */
+/* starting working set for an arm variant that has none yet, from its sibling's (the other arm
+   variant's) working set: same reps and sets, about half the load for single arm or double for
+   both arms, rounded to 1.25 kg. startWeight, when given, is the load to use instead. */
+function seedVariant(sibling, arms, startWeight){
+  const weight = startWeight != null ? startWeight
+    : roundTo(arms === 'single' ? sibling.weight / 2 : sibling.weight * 2, 1.25);
+  return {...sibling, weight};
+}
+
 /* ---------- freshness ---------- */
 /* ISO date of the newest log for key, or null. keyOf maps an exercise name to its key. */
 function lastTrained(history, key, keyOf){
@@ -138,6 +149,7 @@ function splitFinish(plan, ticked){
 const api = {
   DAYS, KIND, FRESH_DAYS, DUE_DAYS, backoffOf, calWarmups, squatWarmups, barbellWarmups, accessoryWarmups,
   warmups, workingSets, isAdded, lastTrained, freshness, ageLabel, suggestDay, checklistLength, splitFinish,
+  seedVariant,
 };
 if(typeof module !== 'undefined' && module.exports) module.exports = api;
 else root.Plan = api;

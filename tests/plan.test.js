@@ -105,3 +105,27 @@ test('splitFinish logs movements with anything ticked and skips the rest, in pla
     {log:['pullup', 'invertedrow'], skip:['latpulldown', 'bicepcurl']});
   assert.deepEqual(P.splitFinish(['dip'], ()=>0), {log:[], skip:['dip']});
 });
+
+test('seedVariant: same reps and sets, about half (single arm) or double (both arms) the load', () => {
+  assert.deepEqual(P.seedVariant({weight:12.5, reps:10, sets:2}, 'single'), {weight:6.25, reps:10, sets:2});
+  assert.deepEqual(P.seedVariant({weight:11.25, reps:17, sets:2}, 'single'), {weight:6.25, reps:17, sets:2});
+  assert.deepEqual(P.seedVariant({weight:12.5, reps:15, sets:2}, 'both'), {weight:25, reps:15, sets:2});
+  assert.deepEqual(P.seedVariant({weight:11.25, reps:8, sets:2}, 'both'), {weight:22.5, reps:8, sets:2});
+  assert.equal(P.seedVariant({weight:3.75, reps:8, sets:2}, 'single').weight, 2.5);
+});
+
+test('seedVariant: a given start weight wins', () => {
+  assert.deepEqual(P.seedVariant({weight:11.25, reps:10, sets:2}, 'single', 6.25), {weight:6.25, reps:10, sets:2});
+});
+
+test('seedVariant copies the working set instead of sharing it', () => {
+  const sib = {weight:10, reps:12, sets:2};
+  const v = P.seedVariant(sib, 'both');
+  v.reps = 13;
+  assert.equal(sib.reps, 12);
+});
+
+test('arm variants are prescribed like their movement', () => {
+  for(const [base, v] of Object.entries(require('../movements.js').ARM_VARIANTS))
+    assert.equal(P.KIND[v.single], P.KIND[v.both], base);
+});

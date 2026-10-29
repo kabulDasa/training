@@ -6,7 +6,12 @@
    individual muscles so the volume chart can group them any way. The skill movements are retired:
    they are only in the July-August session log, have no working set and don't show on the Program
    tab, which shows skill work and cardio as empty groups for now. EXERCISE_KEY maps the exercise
-   names used in the session log to keys. Loaded as a plain <script> in the page and with require() in the node tests. */
+   names used in the session log to keys.
+   Arm variants: six accessories can be done single arm or both arms. Each variant is its own movement
+   (own working set, progression, session-log name and undo stack). The entry that existed first keeps
+   its key and log name; the other variant is a sibling key with variantOf = that key, so movementsFor()
+   lists the movement once and the page picks the variant (ARM_VARIANTS). arms says which variant an
+   entry is. Loaded as a plain <script> in the page and with require() in the node tests. */
 (function(root){
 'use strict';
 
@@ -27,12 +32,12 @@ const MUSCLES = {
 const MOVEMENTS = {
   pullup:      {name: 'Weighted Pull-Up',        day: 'pull', category: 'compound',  pattern: 'vertical_pull',
                 muscles: {lats: 1, biceps: 0.5, rear_delts: 0.5}},
-  invertedrow: {name: 'Dumbbell Row',            day: 'pull', category: 'compound',  pattern: 'horizontal_pull',
-                muscles: {lats: 1, traps: 0.5, rear_delts: 0.5, biceps: 0.5}},
-  latpulldown: {name: 'Single-Arm Lat Pulldown', day: 'pull', category: 'isolation', pattern: 'vertical_pull',
-                muscles: {lats: 1, biceps: 0.5}},
-  bicepcurl:   {name: 'Bicep Curl',              day: 'pull', category: 'isolation', pattern: 'isolation',
-                muscles: {biceps: 1}},
+  invertedrow: {name: 'Dumbbell Row (single arm)', day: 'pull', category: 'compound', pattern: 'horizontal_pull',
+                muscles: {lats: 1, traps: 0.5, rear_delts: 0.5, biceps: 0.5}, arms: 'single'},
+  latpulldown: {name: 'Lat Pulldown (single arm)', day: 'pull', category: 'isolation', pattern: 'vertical_pull',
+                muscles: {lats: 1, biceps: 0.5}, arms: 'single'},
+  bicepcurl:   {name: 'Bicep Curl (single arm)', day: 'pull', category: 'isolation', pattern: 'isolation',
+                muscles: {biceps: 1}, arms: 'single'},
   facepull:    {name: 'Face Pull',               day: 'pull', category: 'isolation', pattern: 'isolation',
                 muscles: {rear_delts: 1, traps: 0.5}},
   /* the dip presses down along the torso with the body near upright, so it counts as a vertical
@@ -41,12 +46,12 @@ const MOVEMENTS = {
                 muscles: {chest: 1, triceps: 1, front_delts: 0.5}},
   ohp:         {name: 'Overhead Press',          day: 'push', category: 'compound',  pattern: 'vertical_push',
                 muscles: {front_delts: 1, triceps: 0.5, side_delts: 0.5}},
-  shoulderfly: {name: 'Shoulder Fly',            day: 'push', category: 'isolation', pattern: 'isolation',
-                muscles: {side_delts: 1}},
-  chestfly:    {name: 'Unilateral Chest Fly',    day: 'push', category: 'isolation', pattern: 'isolation',
-                muscles: {chest: 1, front_delts: 0.5}},
-  tricepext:   {name: 'Tricep Extension',        day: 'push', category: 'isolation', pattern: 'isolation',
-                muscles: {triceps: 1}},
+  shoulderfly: {name: 'Shoulder Fly (both arms)', day: 'push', category: 'isolation', pattern: 'isolation',
+                muscles: {side_delts: 1}, arms: 'both'},
+  chestfly:    {name: 'Chest Fly (single arm)',  day: 'push', category: 'isolation', pattern: 'isolation',
+                muscles: {chest: 1, front_delts: 0.5}, arms: 'single'},
+  tricepext:   {name: 'Tricep Extension (both arms)', day: 'push', category: 'isolation', pattern: 'isolation',
+                muscles: {triceps: 1}, arms: 'both'},
   squat:       {name: 'Competition Squat',       day: 'legs', category: 'compound',  pattern: 'squat',
                 muscles: {quads: 1, glutes: 0.5, adductors: 0.5}},
   frontsquat:  {name: 'Front Squat',             day: 'legs', category: 'isolation', pattern: 'squat',
@@ -59,21 +64,64 @@ const MOVEMENTS = {
                 muscles: {core: 1}, retired: true},
 };
 
-/* session-log exercise name -> key; Dumbbell Row replaced Inverted Row and shares its key */
+/* the other arm variant of each two-variant accessory: same day, category, pattern and muscles as
+   the movement it varies (a set with one arm per side counts like a set with both) */
+const ARMS = {single: 'single arm', both: 'both arms'};
+const VARIANT_NAMES = {
+  invertedrowboth:   'Dumbbell Row (both arms)',
+  latpulldownboth:   'Lat Pulldown (both arms)',
+  bicepcurlboth:     'Bicep Curl (both arms)',
+  shoulderflysingle: 'Shoulder Fly (single arm)',
+  chestflyboth:      'Chest Fly (both arms)',
+  tricepextsingle:   'Tricep Extension (single arm)',
+};
+for(const [key, name] of Object.entries(VARIANT_NAMES)){
+  const base = key.replace(/(single|both)$/, '');
+  const b = MOVEMENTS[base];
+  MOVEMENTS[key] = {name, day: b.day, category: b.category, pattern: b.pattern, muscles: {...b.muscles},
+    arms: b.arms === 'single' ? 'both' : 'single', variantOf: base};
+}
+
+/* base key -> {single: key, both: key} for every movement with arm variants */
+const ARM_VARIANTS = {};
+for(const [key, m] of Object.entries(MOVEMENTS))
+  if(m.variantOf) ARM_VARIANTS[m.variantOf] = {[m.arms]: key, [MOVEMENTS[m.variantOf].arms]: m.variantOf};
+
+/* the movement a key is a variant of (itself for anything else); null for null */
+function baseOf(key){
+  if(key == null) return null;
+  return MOVEMENTS[key] && MOVEMENTS[key].variantOf || key;
+}
+/* {single, both} keys of the movement key belongs to, or null when it has no arm variants */
+function variantsOf(key){ return ARM_VARIANTS[baseOf(key)] || null; }
+/* the other arm variant of key, or null */
+function siblingOf(key){
+  const v = variantsOf(key);
+  return v ? (v.single === key ? v.both : v.single) : null;
+}
+
+/* a movement's name without its arm variant, e.g. 'Shoulder Fly' for both shoulder fly keys */
+function familyName(key){ return MOVEMENTS[key].name.replace(/ \((single arm|both arms)\)$/, ''); }
+
+/* session-log exercise name -> key; Dumbbell Row replaced Inverted Row and shares its key. The arm
+   variants that existed first keep their plain names, so their log rows didn't move. */
 const EXERCISE_KEY = {
   'Pull-up': 'pullup', 'Lat Pulldown': 'latpulldown', 'Inverted Row': 'invertedrow', 'Dumbbell Row': 'invertedrow',
   'Bicep Curl': 'bicepcurl', 'Face Pull': 'facepull', 'Dip': 'dip', 'OHP': 'ohp', 'Shoulder Fly': 'shoulderfly', 'Chest Fly': 'chestfly', 'Tricep Extension': 'tricepext',
   'Squat': 'squat', 'Front Squat': 'frontsquat',
+  'Dumbbell Row (both arms)': 'invertedrowboth', 'Lat Pulldown (both arms)': 'latpulldownboth', 'Bicep Curl (both arms)': 'bicepcurlboth',
+  'Shoulder Fly (single arm)': 'shoulderflysingle', 'Chest Fly (both arms)': 'chestflyboth', 'Tricep Extension (single arm)': 'tricepextsingle',
   'Muscle-up': 'muscleup', 'Tuck Front Lever': 'frontlever', 'Hanging Knee Raise': 'kneeraise',
 };
 
-/* keys of the current (not retired) movements in one day, optionally one category, in MOVEMENTS order */
+/* keys of the current (not retired) movements in one day, optionally one category, in MOVEMENTS order.
+   A movement with arm variants is listed once, by its base key. */
 function movementsFor(day, category){
-  return Object.keys(MOVEMENTS).filter(k => !MOVEMENTS[k].retired &&
+  return Object.keys(MOVEMENTS).filter(k => !MOVEMENTS[k].retired && !MOVEMENTS[k].variantOf &&
     MOVEMENTS[k].day === day && (category == null || MOVEMENTS[k].category === category));
 }
 
-const api = {DAYS, CATEGORIES, PATTERNS, MUSCLES, MOVEMENTS, EXERCISE_KEY, movementsFor};
+const api = {DAYS, CATEGORIES, PATTERNS, MUSCLES, MOVEMENTS, EXERCISE_KEY, ARMS, ARM_VARIANTS, movementsFor, baseOf, variantsOf, siblingOf, familyName};
 if(typeof module !== 'undefined' && module.exports) module.exports = api;
 else root.Movements = api;
 })(typeof window !== 'undefined' ? window : globalThis);
