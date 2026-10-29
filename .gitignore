@@ -4,3 +4,5 @@ CLAUDE.md
 __pycache__/
 Copy of Instructions.pdf
 Q1-Q2_2026 SBS.xlsx
+# Intensity app analysis: raw exports stay local (7 years of personal logs)
+intensity-app-analysis/*.csv
