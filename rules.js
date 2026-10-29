@@ -68,44 +68,60 @@ function isNum(v){ return typeof v === 'number' && Number.isFinite(v); }
 function isInt(v, lo, hi){ return Number.isInteger(v) && v >= lo && v <= hi; }
 function inRange(v, lo, hi){ return isNum(v) && v > lo && v <= hi; }
 
-/* the first thing wrong with a rule, as a sentence for the user, or null when it is usable */
-function problem(rule){
-  if(!rule || typeof rule !== 'object') return 'not a rule';
-  if(!Object.hasOwn(SCHEMES, rule.scheme)) return 'scheme must be top set + backoff or straight sets';
-  if(!Object.hasOwn(PROGRESSIONS, rule.progression)) return 'progression must be linear or double progression';
-  if(!inRange(rule.inc, 0, 50)) return 'increment must be more than 0 and at most 50 kg';
+/* everything wrong with a rule, as sentences for the user ([] when it is usable). A missing scheme
+   or progression is reported, and the fields that depend on it are checked once it is chosen. */
+function problems(rule){
+  if(!rule || typeof rule !== 'object') return ['not a rule'];
+  const out = [];
+  const scheme = Object.hasOwn(SCHEMES, rule.scheme), prog = Object.hasOwn(PROGRESSIONS, rule.progression);
+  if(!scheme) out.push('scheme must be top set + backoff or straight sets');
+  if(!prog) out.push('progression must be linear or double progression');
+  if(!inRange(rule.inc, 0, 50)) out.push('increment must be more than 0 and at most 50 kg');
   if(rule.scheme === 'topset'){
-    if(!inRange(rule.backoffPct, 0, 100)) return 'backoff % must be more than 0 and at most 100';
-    if(!isInt(rule.backoffReps, 1, 50)) return 'backoff reps must be a whole number from 1 to 50';
-    if(!isInt(rule.backoffSets, 1, 10)) return 'backoff sets (target) must be a whole number from 1 to 10';
-    if(!isInt(rule.backoffMax, rule.backoffSets, 10)) return 'most backoff sets must be a whole number from the target to 10';
-    if(!inRange(rule.backoffRound, 0, 25)) return 'backoff rounding must be more than 0 and at most 25 kg';
+    if(!inRange(rule.backoffPct, 0, 100)) out.push('backoff % must be more than 0 and at most 100');
+    if(!isInt(rule.backoffReps, 1, 50)) out.push('backoff reps must be a whole number from 1 to 50');
+    if(!isInt(rule.backoffSets, 1, 10)) out.push('backoff sets (target) must be a whole number from 1 to 10');
+    if(!isInt(rule.backoffMax, isInt(rule.backoffSets, 1, 10) ? rule.backoffSets : 1, 10)) out.push('most backoff sets must be a whole number from the target to 10');
+    if(!inRange(rule.backoffRound, 0, 25)) out.push('backoff rounding must be more than 0 and at most 25 kg');
     if(rule.progression === 'linear' && !(isNum(rule.bonusInc) && rule.bonusInc >= rule.inc && rule.bonusInc <= 50))
-      return 'bonus increment must be at least the increment and at most 50 kg';
+      out.push('bonus increment must be at least the increment and at most 50 kg');
   }
   if(rule.progression === 'double'){
-    if(!isInt(rule.repFloor, 1, 99)) return 'rep floor must be a whole number from 1 to 99';
-    if(!isInt(rule.repCap, rule.repFloor + 1, 100)) return 'rep cap must be a whole number above the rep floor, at most 100';
+    if(!isInt(rule.repFloor, 1, 99)) out.push('rep floor must be a whole number from 1 to 99');
+    if(!isInt(rule.repCap, isInt(rule.repFloor, 1, 99) ? rule.repFloor + 1 : 2, 100)) out.push('rep cap must be a whole number above the rep floor, at most 100');
   }
-  return null;
+  return out;
 }
+/* the first thing wrong with a rule, as a sentence for the user, or null when it is usable */
+function problem(rule){ return problems(rule)[0] || null; }
 
 function sameRule(a, b){ return JSON.stringify(normalize(a)) === JSON.stringify(normalize(b)); }
 function isDefault(key, rule){ return !!DEFAULT_RULES[key] && sameRule(DEFAULT_RULES[key], rule); }
 
-/* {rules, errors}: the rule in force for every movement key (a stored rule when it is usable, else
-   the default) and a message for each stored rule that was ignored. stored is progress.md's
-   Progression rules table ({key: rule}), possibly hand-edited. */
+/* a custom movement (movements.js setCustom) has no default: its rule is always stored. Until a
+   usable one is, it follows this stand-in (and Settings says why). */
+const CUSTOM_FALLBACK = straightDouble(2.5, 8, 12);
+
+/* {rules, errors}: the rule in force for every movement key, built-in and registered custom (a
+   stored rule when it is usable, else the default) and a message for each stored rule that was
+   ignored or custom movement without a usable rule. stored is progress.md's Progression rules table
+   ({key: rule}), possibly hand-edited. */
 function effective(stored){
   const rules = {}, errors = {};
+  const has = key => !!stored && Object.hasOwn(stored, key);
   for(const key of Object.keys(DEFAULT_RULES)){
-    const s = stored && Object.hasOwn(stored, key) ? stored[key] : null;
+    const s = has(key) ? stored[key] : null;
     const err = s ? problem(s) : null;
     if(err) errors[key] = err;
     rules[key] = s && !err ? normalize(s) : {...DEFAULT_RULES[key]};
   }
+  for(const key of Movements.customKeys()){
+    const err = has(key) ? problem(stored[key]) : 'no progression rule stored';
+    if(err) errors[key] = err;
+    rules[key] = err ? {...CUSTOM_FALLBACK} : normalize(stored[key]);
+  }
   for(const key of Object.keys(stored || {}))
-    if(!Object.hasOwn(DEFAULT_RULES, key)) errors[key] = 'no such movement';
+    if(!Object.hasOwn(rules, key)) errors[key] = 'no such movement';
   return {rules, errors};
 }
 
@@ -183,7 +199,7 @@ function nextText(rule, outcome, s, loadText){
 }
 
 const api = {
-  SCHEMES, PROGRESSIONS, FIELDS, DEFAULT_RULES, normalize, problem, sameRule, isDefault, effective,
+  SCHEMES, PROGRESSIONS, FIELDS, DEFAULT_RULES, CUSTOM_FALLBACK, normalize, problems, problem, sameRule, isDefault, effective,
   outcomeFromCount, advance, fitState, describe, backoffText, summary, nextText,
 };
 if(typeof module !== 'undefined' && module.exports) module.exports = api;

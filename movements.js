@@ -11,7 +11,14 @@
    (own working set, progression, session-log name and undo stack). The entry that existed first keeps
    its key and log name; the other variant is a sibling key with variantOf = that key, so movementsFor()
    lists the movement once and the page picks the variant (ARM_VARIANTS). arms says which variant an
-   entry is. Loaded as a plain <script> in the page and with require() in the node tests. */
+   entry is.
+   Custom movements: exercises added from the H2 Settings tab live in progress.md's Custom movements
+   table (progress.js). setCustom(list) registers them at load (and again after every add / edit /
+   retire): each becomes a MOVEMENTS entry with custom: true and its load kind (plan.js warm-ups), and
+   its name maps to its key in EXERCISE_KEY, so movementsFor(), baseOf() and the weekly volume pick it
+   up. A retired custom movement keeps its key and log name (history and stats stay) but is not
+   listed by movementsFor(). Loaded as a plain <script> in the page and with require() in the node
+   tests. */
 (function(root){
 'use strict';
 
@@ -100,8 +107,12 @@ function siblingOf(key){
   return v ? (v.single === key ? v.both : v.single) : null;
 }
 
-/* a movement's name without its arm variant, e.g. 'Shoulder Fly' for both shoulder fly keys */
-function familyName(key){ return MOVEMENTS[key].name.replace(/ \((single arm|both arms)\)$/, ''); }
+/* a movement's name without its arm variant, e.g. 'Shoulder Fly' for both shoulder fly keys (a
+   custom movement's name is shown as it was typed) */
+function familyName(key){
+  const m = MOVEMENTS[key];
+  return m.custom ? m.name : m.name.replace(/ \((single arm|both arms)\)$/, '');
+}
 
 /* session-log exercise name -> key; Dumbbell Row replaced Inverted Row and shares its key. The arm
    variants that existed first keep their plain names, so their log rows didn't move. */
@@ -121,7 +132,87 @@ function movementsFor(day, category){
     MOVEMENTS[k].day === day && (category == null || MOVEMENTS[k].category === category));
 }
 
-const api = {DAYS, CATEGORIES, PATTERNS, MUSCLES, MOVEMENTS, EXERCISE_KEY, ARMS, ARM_VARIANTS, movementsFor, baseOf, variantsOf, siblingOf, familyName};
+/* ---------- custom movements ---------- */
+/* load kinds a custom movement can have (plan.js KIND values; the competition squat ladder is the squat's own) */
+const KINDS = {belt: 'Weighted calisthenics (belt)', barbell: 'Barbell', accessory: 'Dumbbell / cable'};
+const KEY_RE = /^[a-z][a-z0-9]*$/;
+const KEY_MAX = 24, NAME_MAX = 40;
+const BUILTIN_KEYS = new Set(Object.keys(MOVEMENTS));
+const BUILTIN_NAMES = new Set(Object.keys(EXERCISE_KEY));
+
+function isCustom(key){ return !!(key != null && MOVEMENTS[key] && MOVEMENTS[key].custom); }
+function customKeys(){ return Object.keys(MOVEMENTS).filter(isCustom); }
+/* a typed name as stored: trimmed, inner whitespace collapsed */
+function cleanName(name){ return String(name == null ? '' : name).replace(/\s+/g, ' ').trim(); }
+/* every name a new movement can't use, lower-cased: built-in movement and log names, registered
+   custom movements' names (except exceptKey's own) and any extra names (e.g. the session log's) */
+function namesTaken(extra, exceptKey){
+  const out = new Set();
+  for(const n of BUILTIN_NAMES) out.add(n.toLowerCase());
+  for(const [k, m] of Object.entries(MOVEMENTS)) if(k !== exceptKey) out.add(m.name.toLowerCase());
+  for(const n of extra || []) out.add(cleanName(n).toLowerCase());
+  return out;
+}
+/* a progress.md key for a new movement named name: its letters and digits, lower case, starting
+   with a letter, at most 24 characters, with 2, 3, … added when the key is taken (a movement's key,
+   or one of taken: keys in the working sets or rules, which a retired or deleted movement may hold) */
+function customKey(name, taken){
+  const busy = new Set([...Object.keys(MOVEMENTS), ...(taken || [])]);
+  let stem = cleanName(name).toLowerCase().normalize('NFKD').replace(/[^a-z0-9]/g, '');
+  if(!/^[a-z]/.test(stem)) stem = 'ex' + stem;
+  stem = stem.slice(0, KEY_MAX);
+  if(!busy.has(stem)) return stem;
+  for(let i = 2; ; i++){
+    const suffix = String(i);
+    const key = stem.slice(0, KEY_MAX - suffix.length) + suffix;
+    if(!busy.has(key)) return key;
+  }
+}
+/* what is wrong with a custom movement's details, one message per field ([] when it can be
+   registered). takenNames is namesTaken() for it. */
+function customProblems(c, takenNames){
+  const out = [];
+  if(!c || typeof c !== 'object') return ['not a movement'];
+  const name = cleanName(c.name);
+  if(!name) out.push('name is missing');
+  else if(name.length > NAME_MAX) out.push(`name must be at most ${NAME_MAX} characters`);
+  else if(/[\u0000-\u001f|]/.test(name)) out.push('name can\'t contain | or control characters');
+  else if(takenNames && takenNames.has(name.toLowerCase())) out.push(`name "${name}" is already used by another movement or log`);
+  if(!Object.hasOwn(DAYS, c.day)) out.push('day is missing');
+  if(!Object.hasOwn(CATEGORIES, c.category)) out.push('type is missing');
+  if(!Object.hasOwn(PATTERNS, c.pattern)) out.push('movement pattern is missing');
+  if(!Object.hasOwn(KINDS, c.kind)) out.push('load kind is missing');
+  if(c.muscles != null && (typeof c.muscles !== 'object' ||
+     Object.entries(c.muscles).some(([m, w]) => !Object.hasOwn(MUSCLES, m) || (w !== 1 && w !== 0.5))))
+    out.push('muscles must be known muscles, each primary (1) or secondary (0.5)');
+  return out;
+}
+
+/* register the custom movements (progress.md's Custom movements table, as a list of
+   {key, name, day, category, pattern, kind, muscles, retired}), replacing any registered before.
+   -> {errors: {key: message}}: an entry that clashes with a built-in or earlier movement (key or
+   name) or has bad details is skipped, so a hand edit can't break the page. */
+function setCustom(list){
+  for(const key of customKeys()) delete MOVEMENTS[key];
+  for(const [name, key] of Object.entries(EXERCISE_KEY)) if(!BUILTIN_KEYS.has(key)) delete EXERCISE_KEY[name];
+  const errors = {};
+  for(const c of list || []){
+    const key = c && c.key;
+    if(typeof key !== 'string' || !KEY_RE.test(key)){ errors[String(key)] = 'bad key'; continue; }
+    if(Object.hasOwn(MOVEMENTS, key)){ errors[key] = 'key already used by another movement'; continue; }
+    const problems = customProblems(c, namesTaken());
+    if(problems.length){ errors[key] = problems[0]; continue; }
+    const name = cleanName(c.name);
+    MOVEMENTS[key] = {name, day: c.day, category: c.category, pattern: c.pattern, kind: c.kind,
+      muscles: {...(c.muscles || {})}, custom: true, ...(c.retired ? {retired: true} : {})};
+    EXERCISE_KEY[name] = key;
+  }
+  return {errors};
+}
+
+const api = {DAYS, CATEGORIES, PATTERNS, MUSCLES, MOVEMENTS, EXERCISE_KEY, ARMS, ARM_VARIANTS, KINDS,
+  movementsFor, baseOf, variantsOf, siblingOf, familyName,
+  isCustom, customKeys, cleanName, namesTaken, customKey, customProblems, setCustom};
 if(typeof module !== 'undefined' && module.exports) module.exports = api;
 else root.Movements = api;
 })(typeof window !== 'undefined' ? window : globalThis);

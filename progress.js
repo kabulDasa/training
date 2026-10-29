@@ -4,7 +4,9 @@
    replaced, which undo restores, and is blank on rows logged before the column existed), plus an
    optional "Bodyweight" table (Date | Bodyweight (kg), one row per day, oldest first) and an optional
    "Progression rules" table (one row per movement key whose rule differs from the H2 page's default;
-   rules.js says what the columns mean and checks the values make sense). The page
+   rules.js says what the columns mean and checks the values make sense), plus an optional "Custom
+   movements" table (exercises added from the H2 Settings tab: Key | Name | Day | Type | Pattern |
+   Load | Muscles | Retired; movements.js registers them). The page
    reads and writes it through the GitHub contents API on the repo's `data` branch, so every save is
    a commit there and never touches `main`, which GitHub Pages serves the site from. Loaded as a plain
    <script> in the page and with require() in the node tests. */
@@ -26,6 +28,28 @@ const RULE_COLUMNS = [
 ];
 const RULE_WORDS = {scheme: ['topset', 'straight'], progression: ['linear', 'double']};
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+/* Custom movements columns after Key and Name: [field, header, allowed words]. Muscles is
+   "lats 1, biceps 0.5" (blank = none), Retired is "yes" or blank. The words match movements.js. */
+const CUSTOM_COLUMNS = [
+  ['day', 'Day', ['pull', 'push', 'legs']],
+  ['category', 'Type', ['compound', 'isolation', 'skill', 'cardio']],
+  ['pattern', 'Pattern', ['vertical_pull', 'horizontal_pull', 'vertical_push', 'horizontal_push', 'squat', 'hinge', 'isolation']],
+  ['kind', 'Load', ['belt', 'barbell', 'accessory']],
+];
+const CUSTOM_FIELDS = ['key', 'name', ...CUSTOM_COLUMNS.map(c => c[0]), 'muscles', 'retired'];
+const MUSCLE_RE = /^[a-z][a-z_]*$/;
+function fmtMuscles(m){ return Object.entries(m || {}).map(([k, w]) => `${k} ${w}`).join(', '); }
+function parseMuscles(text){
+  const out = {};
+  text = text.trim();
+  if(!text) return out;
+  for(const part of text.split(',')){
+    const m = /^([a-z_]+)\s+(\S+)$/i.exec(part.trim());
+    if(!m) throw new Error(`bad muscles: ${JSON.stringify(text)}`);
+    out[m[1].toLowerCase()] = num(m[2]);
+  }
+  return out;
+}
 
 const HEADER = `# Q2 2026 progress
 
@@ -136,6 +160,20 @@ function parse(text){
       data.rules[key] = rule;
     }
   }
+  /* optional as well: exercises added from the Settings tab */
+  if('Custom movements' in t){
+    data.custom = t['Custom movements'].map(row => {
+      const key = (row[0] || '').trim();
+      if(!KEY_RE.test(key)) throw new Error(`bad custom movement key: ${JSON.stringify(key)}`);
+      const c = {key, name: (row[1] || '').trim()};
+      CUSTOM_COLUMNS.forEach(([f], i) => { c[f] = (row[i + 2] || '').trim().toLowerCase(); });
+      c.muscles = parseMuscles(row[CUSTOM_COLUMNS.length + 2] || '');
+      const retired = (row[CUSTOM_COLUMNS.length + 3] || '').trim().toLowerCase();
+      if(retired && retired !== 'yes') throw new Error(`custom movement ${key}: Retired must be yes or blank`);
+      c.retired = retired === 'yes';
+      return c;
+    });
+  }
   return data;
 }
 
@@ -162,6 +200,14 @@ function serialize(data){
       '|' + '---|'.repeat(RULE_COLUMNS.length + 1));
     for(const [key, rule] of Object.entries(data.rules))
       lines.push('| ' + [key, ...RULE_COLUMNS.map(([f]) => fmt(rule[f]))].join(' | ') + ' |');
+  }
+  /* and only once an exercise has been added */
+  if(data.custom && data.custom.length){
+    lines.push('', '## Custom movements', '',
+      '| ' + ['Key', 'Name', ...CUSTOM_COLUMNS.map(c => c[1]), 'Muscles', 'Retired'].join(' | ') + ' |',
+      '|' + '---|'.repeat(CUSTOM_COLUMNS.length + 4));
+    for(const c of data.custom)
+      lines.push('| ' + [c.key, cell(c.name), ...CUSTOM_COLUMNS.map(([f]) => c[f]), fmtMuscles(c.muscles), c.retired ? 'yes' : ''].join(' | ') + ' |');
   }
   return lines.join('\n') + '\n';
 }
@@ -221,6 +267,25 @@ function validate(data){
         if(!RULE_COLUMNS.some(c => c[0] === f)) throw new Error(`bad progression rule field ${key}.${f}`);
     }
   }
+  /* the shape only; whether a name clashes with another movement is movements.js's call */
+  if(data.custom !== undefined){
+    if(!Array.isArray(data.custom)) throw new Error('custom movements must be a list');
+    const keys = new Set();
+    for(const c of data.custom){
+      if(!c || typeof c !== 'object' || typeof c.key !== 'string' || !KEY_RE.test(c.key)) throw new Error('bad custom movement key');
+      if(keys.has(c.key)) throw new Error(`two custom movements ${c.key}`);
+      keys.add(c.key);
+      if(typeof c.name !== 'string' || !c.name.trim() || /[\r\n]/.test(c.name)) throw new Error(`bad custom movement name: ${c.key}`);
+      for(const [f, , words] of CUSTOM_COLUMNS)
+        if(!words.includes(c[f])) throw new Error(`bad custom movement ${c.key}.${f}`);
+      if(!c.muscles || typeof c.muscles !== 'object' || Array.isArray(c.muscles)) throw new Error(`bad custom movement ${c.key}.muscles`);
+      for(const [m, w] of Object.entries(c.muscles))
+        if(!MUSCLE_RE.test(m) || !isNum(w) || w <= 0 || w > 1) throw new Error(`bad custom movement ${c.key}.muscles.${m}`);
+      if(typeof c.retired !== 'boolean') throw new Error(`bad custom movement ${c.key}.retired`);
+      for(const f of Object.keys(c))
+        if(!CUSTOM_FIELDS.includes(f)) throw new Error(`bad custom movement field ${c.key}.${f}`);
+    }
+  }
 }
 
 /* ---------- GitHub contents API ---------- */
@@ -250,6 +315,8 @@ const LOADED_BODYWEIGHT = new Map();
 /* the same for the Progression rules table (pages that predate editable rules: Q2-2026.html, a
    cached older H2-2026.html) */
 const LOADED_RULES = new Map();
+/* and for the Custom movements table */
+const LOADED_CUSTOM = new Map();
 
 /* cfg: {owner, repo, branch, path, token}. token may be empty for reads of a public repo. */
 function makeStore(cfg, fetchImpl){
@@ -288,6 +355,7 @@ function makeStore(cfg, fetchImpl){
       validate(data);
       LOADED_BODYWEIGHT.set(url, data.bodyweight);
       LOADED_RULES.set(url, data.rules);
+      LOADED_CUSTOM.set(url, data.custom);
       return {data, sha: body.sha};
     },
     /* commit data as progress.md on top of sha -> new sha. Throws ConflictError if sha is stale. */
@@ -296,6 +364,8 @@ function makeStore(cfg, fetchImpl){
         data = {...data, bodyweight: LOADED_BODYWEIGHT.get(url)};
       if(data && data.rules === undefined && LOADED_RULES.get(url))
         data = {...data, rules: LOADED_RULES.get(url)};
+      if(data && data.custom === undefined && LOADED_CUSTOM.get(url))
+        data = {...data, custom: LOADED_CUSTOM.get(url)};
       validate(data);
       const r = await f(url, {
         method: 'PUT', headers: {...headers(), 'Content-Type': 'application/json'},
@@ -310,12 +380,13 @@ function makeStore(cfg, fetchImpl){
       if(!r.ok) await fail(r);
       LOADED_BODYWEIGHT.set(url, data.bodyweight);
       LOADED_RULES.set(url, data.rules);
+      LOADED_CUSTOM.set(url, data.custom);
       return (await r.json()).content.sha;
     },
   };
 }
 
-const api = {parse, serialize, validate, makeStore, ConflictError, b64encode, b64decode};
+const api = {CUSTOM_COLUMNS, parse, serialize, validate, makeStore, ConflictError, b64encode, b64decode};
 if(typeof module !== 'undefined' && module.exports) module.exports = api;
 else root.Progress = api;
 })(typeof window !== 'undefined' ? window : globalThis);

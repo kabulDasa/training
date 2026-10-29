@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+- H2 tracker: **add your own exercises** from Settings (Your exercises → Add exercise). The form
+  needs the name (also its session-log name, which can't match an existing movement or log name),
+  the **day** (push / pull / legs), **type** (big compound / isolation / skill work / cardio),
+  **movement pattern**, **load kind** (belt, barbell, dumbbell/cable: sets the warm-ups and how the
+  load is shown), the whole **progression rule** (scheme, progression, increments, rep floor/cap,
+  backoff) and the starting working set; it lists what is still missing and can't be saved until
+  everything is valid. Muscles are optional. An added exercise works like the program's own: Program
+  day and type group, Today Plan picker and presets, freshness, Log / Finish / undo, rule editing in
+  Lift Settings, its own line on the volume chart, the weekly pattern grid and Sync to Notes.
+  **Edit** changes its details, rule and working set (the name only until it is first logged),
+  **Retire** takes it off the program but keeps its log and stats (**Restore** brings it back), and
+  **Delete** works only while it has no logged sessions. Each add, edit, retire or delete is one
+  commit to progress.md, which gets an optional `## Custom movements` table; files without it are
+  unchanged, and Q2-2026.html and older cached pages keep the table when they save.
+
 - H2 tracker: **progression rules are editable** in Settings, per movement and per arm variant. Edit a
   row to pick the scheme (**top set + backoff** or **straight sets**), the progression (**linear**:
   +kg on success, with a bigger jump for beating the backoff target; **double progression**: +1 rep
