@@ -107,3 +107,25 @@ MOVEMENTS = {
   without the table behave exactly as now, and saves from pages that don't know it keep its rows.
 - `advance()`, the Program/Today cards, warm-ups (`plan.js`), the volume set counter and the Settings
   text all follow the rule instead of per-key code. Builds on item 6.
+
+## 8. Add a new exercise from Settings — `feat/custom-exercises`
+
+- Settings tab: **Add exercise** form. Every field is required before it can be saved:
+  - name (also its session-log name; unique, not an existing movement or log name),
+  - **day** (push / pull / legs), **type** (big compound / isolation / skill work / cardio),
+    **movement pattern** (vertical/horizontal pull and push, squat, hinge, isolation),
+  - load kind for warm-ups and display (weighted calisthenics belt, barbell, dumbbell/cable),
+  - the **progression rule**: everything the item 7 rule editor has (scheme, progression,
+    increments, rep floor/cap, backoff %, reps and sets),
+  - the starting working set (weight, reps, sets as the scheme needs).
+- Muscles are optional (primary / secondary) so the movement can count for muscles later; the weekly
+  volume grid counts it by pattern.
+- Stored in `progress.md` as an optional `## Custom movements` table owned by `progress.js` (key,
+  name, day, category, pattern, kind, muscles), alongside its working-set row and a rule row. Files
+  without it round-trip unchanged, and saves from pages that don't know it keep its rows (as
+  Bodyweight and Progression rules do). Adding one is a single commit (`Add exercise: <name>`).
+- A custom movement behaves like a built-in one everywhere: Program day and category group, Today
+  Plan picker, presets, freshness, Log / Finish / undo, Settings rule editing, Chart volume line,
+  weekly pattern grid, Notes sync.
+- Custom movements can be edited (details and rule) and **retired** (hidden from the program, history
+  kept), not hard-deleted while they have log rows.
