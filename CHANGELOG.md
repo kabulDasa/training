@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- H2 tracker: **progression rules are editable** in Settings, per movement and per arm variant. Edit a
+  row to pick the scheme (**top set + backoff** or **straight sets**), the progression (**linear**:
+  +kg on success, with a bigger jump for beating the backoff target; **double progression**: +1 rep
+  up to a **rep cap**, then +kg and back to a **rep floor**), the increments, backoff %, reps, target
+  and most sets, and the working set's reps and sets. Save and **Reset to default** are each a commit
+  to progress.md, so every device follows the same rules; rules equal to the program's defaults
+  aren't stored, and progress.md without the new optional `## Progression rules` table behaves as
+  before. Program and Today Plan cards, the outcome badge, warm-up checklist, Finish, header, Sync to
+  Notes and the weekly volume grid all follow the rule. Q2-2026.html and older cached pages keep the
+  table when they save.
+- H2 tracker: OHP logs now record their load and volume like the other lifts, and Front Squat logs
+  its prescribed sets (like the accessories) instead of only the ticked ones.
+
 - H2 tracker: lat pulldown, dumbbell row, bicep curl, shoulder fly, chest fly and tricep extension
   can each be done **single arm** or **both arms**. Pick it on the movement's Program card or Today
   Plan card (the pick is remembered on this device). Each variant has its own working set,

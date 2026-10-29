@@ -198,6 +198,15 @@ main{max-width:1100px;margin:0 auto;padding:24px}
 .setting-lift{font-weight:700;white-space:nowrap}
 .setting-current{font-weight:600;white-space:nowrap}
 .settings-note{margin-top:12px;font-size:12px;color:var(--muted)}
+.setting-rule{min-width:260px}
+.rule-custom{background:var(--gold-dim);color:var(--gold);font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;text-transform:uppercase;letter-spacing:.3px;white-space:nowrap}
+.rule-edit td{background:var(--surface2)}
+/* the table scrolls sideways on a phone; keep the form in view at the scroller's left edge */
+.rule-edit-box{position:sticky;left:14px;max-width:calc(100vw - 110px)}
+.ruleform{display:flex;flex-wrap:wrap;gap:10px 12px;margin-bottom:12px}
+.ruleform label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted);font-weight:600}
+.ruleform input,.ruleform select{background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:6px 8px;font-size:16px}
+.ruleform input{width:110px}
 .tag-hold{color:var(--red)}.tag-normal{color:var(--legs)}.tag-double{color:var(--gold)}
 .delbtn{background:var(--red-dim);border:1px solid rgba(239,68,68,.4);color:var(--red);width:24px;height:24px;border-radius:5px;cursor:pointer;font-size:12px;font-weight:700;line-height:1;transition:all .15s}
 .delbtn:hover{background:var(--red);color:#fff}
@@ -319,7 +328,7 @@ main{max-width:1100px;margin:0 auto;padding:24px}
 <div id="tab-settings" class="tp">
   <div class="cc">
     <div class="ctitle">Lift Settings</div>
-    <div class="csub">Current working prescriptions and progression rules. Loads update as you log sessions in Program.</div>
+    <div class="csub">Current working prescriptions and progression rules, one per movement and arm variant. Loads update as you log sessions. Edit a rule to switch between a top set + backoff and straight sets, linear and double progression, or change its increments, rep cap and backoff; each change is a commit to progress.md, shared by every device.</div>
     <div id="settingsTable"></div>
     <div class="settings-note">Weighted pull-up and dip loads are added belt weight. Squat load is bar weight.</div>
   </div>
@@ -349,6 +358,7 @@ main{max-width:1100px;margin:0 auto;padding:24px}
 
 <script src="progress.js"></script>
 <script src="movements.js"></script>
+<script src="rules.js"></script>
 <script src="plan.js"></script>
 <script src="volume.js"></script>
 <script>
@@ -368,7 +378,7 @@ const DEFAULT_STATE = {
   shoulderfly:  {weight:10, reps:15, sets:2},
   chestfly:     {weight:5, reps:8, sets:2},
   tricepext:    {weight:10, reps:17, sets:2},
-  squat:        {weight:100},
+  squat:        {weight:100, reps:3},
   frontsquat:   {weight:22.5, reps:20, sets:2},
   /* the other arm variant of six accessories (movements.js ARM_VARIANTS). When progress.md has no
      row for one yet, mergeState() starts it from its sibling's live working set instead. */
@@ -409,23 +419,34 @@ function store(){
   return Progress.makeStore({owner, repo, branch:GH.branch, path:GH.path, token:GH.token});
 }
 
+/* ---------- progression rules (rules.js) ----------
+   RULES_STORED is progress.md's Progression rules table as loaded: rows only for movements whose
+   rule differs from the default, possibly hand-edited. RULES is the rule in force for every key; a
+   stored rule that doesn't make sense is ignored (default used, reason in RULE_ERRORS) but kept in
+   the file as it is until it is edited or reset from Settings. */
+let RULES_STORED = {};
+let RULES = {}, RULE_ERRORS = {};
+function setRules(stored){
+  RULES_STORED = stored;
+  ({rules: RULES, errors: RULE_ERRORS} = Rules.effective(stored));
+}
+setRules({});
+function ruleOf(key){ return RULES[key] || Rules.DEFAULT_RULES[key]; }
+
 function mergeState(s){
-  /* per-field merge, so a blank cell in a hand-edited progress.md falls back to the default */
+  /* per-field merge, so a blank cell in a hand-edited progress.md falls back to the default. A
+     top-set lift's reps are its top-set reps (its rule's double progression can move them), so
+     they come from progress.md like any other field. */
   const merged = JSON.parse(JSON.stringify(DEFAULT_STATE));
   Object.keys(merged).forEach(k=>{ if(s[k]) Object.assign(merged[k], s[k]); });
-  /* pull-up/dip top-set rep target is a fixed program constant — advance() never
-     mutates it, only weight does — so always take it from DEFAULT_STATE. Otherwise a
-     stale saved value from before a program update (e.g. the old 3-rep target) would
-     stick forever via the shallow merge above, since it replaces the whole exercise
-     object rather than merging field-by-field. */
-  merged.pullup.reps = DEFAULT_STATE.pullup.reps;
-  merged.dip.reps = DEFAULT_STATE.dip.reps;
   /* an arm variant never logged has no row yet: start it from the other variant's working set
      (same reps and sets, about half or double the load); its first save adds the row */
   Object.keys(merged).forEach(k=>{
     const m = Movements.MOVEMENTS[k];
     if(m && m.variantOf && !s[k] && s[m.variantOf]) merged[k] = Plan.seedVariant(merged[m.variantOf], m.arms, VARIANT_START_KG[k]);
   });
+  /* fill what each rule needs that the working set lacks (reps and sets after a switch to straight sets) */
+  Object.keys(merged).forEach(k=>{ merged[k] = Rules.fitState(ruleOf(k), merged[k]); });
   return merged;
 }
 let STATE = mergeState({});
@@ -444,6 +465,7 @@ function readonlyNote(){
 async function loadProgress(){
   try{
     const {data, sha} = await store().load();
+    setRules({...(data.rules || {})});
     STATE = mergeState(data.state);
     HISTORY = data.history;
     BODYWEIGHT = data.bodyweight || [];
@@ -463,7 +485,7 @@ function saveState(message){
     message = h ? `Log ${h.exercise}: ${h.result}` : 'Update progress';
   }
   /* snapshot now: later logs may change STATE before this save runs */
-  const snap = JSON.parse(JSON.stringify({state:STATE, history:HISTORY, bodyweight:BODYWEIGHT}));
+  const snap = JSON.parse(JSON.stringify({state:STATE, history:HISTORY, bodyweight:BODYWEIGHT, rules:RULES_STORED}));
   SAVE_CHAIN = SAVE_CHAIN.then(async ()=>{
     if(READONLY) throw new Error('no GitHub token (Settings)');
     if(PROGRESS_SHA===null) throw new Error('progress not loaded');
@@ -489,7 +511,7 @@ function saveState(message){
 }
 /* log/undo/reset buttons only work with a token */
 function applyReadonly(){
-  document.querySelectorAll('#sgrid .logbtn, #todayFinish, #logtbody .delbtn, .resetbtn, .bwbtn, #bwtbody .delbtn').forEach(b=>{ b.disabled = READONLY; });
+  document.querySelectorAll('#sgrid .logbtn, #todayFinish, #logtbody .delbtn, .resetbtn, .bwbtn, #bwtbody .delbtn, .rulebtn').forEach(b=>{ b.disabled = READONLY; });
 }
 
 /* ---------- GitHub settings panel ---------- */
@@ -516,36 +538,25 @@ function writeGhConfig(cfg){
 }
 
 /* ---------- sync current Day 1/2/3 state to the Notes app via Shortcuts ---------- */
+/* one variant's prescription under its rule: "top set +25 kg x 3 | backoff +20 kg x 5 (target 2 sets)"
+   or "12.5 kg x 15 x 2 sets" */
+function noteText(key){
+  const s = STATE[key], ws = Plan.workingSets(key, s, ruleOf(key));
+  if(ws.top) return `top set ${loadText(key, s.weight)} x ${ws.top.reps} | backoff ${loadText(key, ws.sets[0].load)} x ${ws.sets[0].reps} (target ${ws.target} sets)`;
+  return `${loadText(key, s.weight)} x ${s.reps} x ${s.sets} sets`;
+}
 /* "single arm 6.25 kg x 15 x 2 sets | both arms 12.5 kg x 15 x 2 sets" for a movement with arm variants */
 function armsNoteText(base){
-  return ['single','both'].map(a=>{ const s = STATE[Movements.ARM_VARIANTS[base][a]];
-    return `${Movements.ARMS[a]} ${s.weight} kg x ${s.reps} x ${s.sets} sets`; }).join(' | ');
+  return ['single','both'].map(a=>`${Movements.ARMS[a]} ${noteText(Movements.ARM_VARIANTS[base][a])}`).join(' | ');
 }
 function buildNotesText(){
-  const p=STATE.pullup, fp=STATE.facepull;
-  const d=STATE.dip, o=STATE.ohp, sq=STATE.squat, fs=STATE.frontsquat;
-  const boP=backoffOf(p.weight,1.25), boD=backoffOf(d.weight,1.25), boSq=backoffOf(sq.weight,2.5);
-  return [
-    `Q2 2026 Training — synced ${new Date().toLocaleString()}`,
-    '',
-    'Day 1 — Pull',
-    `Weighted pull-up — top set +${p.weight} kg x ${p.reps} | backoff +${boP} kg x 5 (target 2 sets)`,
-    `Lat pulldown — ${armsNoteText('latpulldown')}`,
-    `Dumbbell row — ${armsNoteText('invertedrow')}`,
-    `Bicep curl — ${armsNoteText('bicepcurl')}`,
-    `Face pull — ${fp.weight} kg x ${fp.reps} x ${fp.sets} sets`,
-    '',
-    'Day 2 — Push',
-    `Weighted dip — top set +${d.weight} kg x ${d.reps} | backoff +${boD} kg x 5 (target 2 sets)`,
-    `OHP — ${o.weight} kg x ${o.reps} reps x ${o.sets} sets`,
-    `Shoulder fly — ${armsNoteText('shoulderfly')}`,
-    `Chest fly — ${armsNoteText('chestfly')}`,
-    `Tricep extension — ${armsNoteText('tricepext')}`,
-    '',
-    'Day 3 — Legs',
-    `Squat — top set ${sq.weight} kg x 3 | backoff ${boSq} kg x 5 (target 2 sets)`,
-    `Front squat — ${fs.weight} kg x ${fs.reps} x ${fs.sets} sets`,
-  ].join('\n');
+  const lines = [`Q2 2026 Training — synced ${new Date().toLocaleString()}`];
+  Plan.DAYS.forEach((day,i)=>{
+    lines.push('', `Day ${i+1} — ${Movements.DAYS[day]}`);
+    Movements.movementsFor(day).forEach(base=>
+      lines.push(`${Movements.familyName(base)} — ${Movements.variantsOf(base) ? armsNoteText(base) : noteText(base)}`));
+  });
+  return lines.join('\n');
 }
 function syncToNotes(){
   const url = 'shortcuts://run-shortcut?name=' + encodeURIComponent(NOTE_SHORTCUT_NAME)
@@ -555,9 +566,6 @@ function syncToNotes(){
 
 function round2(x){ return Math.round(x*100)/100; }
 function fmt(v){ return round2(v).toFixed(2).replace(/\.?0+$/,''); }
-/* backoff load = 80% of top-set weight, rounded to the nearest loadable increment */
-function backoffOf(weight, inc){ return Plan.backoffOf(weight, inc); }
-function repWord(n){ return n===1 ? 'rep' : 'reps'; }
 
 /* ---------- pending taps (persisted per exercise, cleared on log) ---------- */
 function getPending(uid, len){
@@ -575,25 +583,8 @@ function togglePending(e, uid, idx, len){
   render();
 }
 function countDone(uid, len){ return getPending(uid, len).filter(Boolean).length; }
-function allSetsDone(uid, len){ return len>0 && countDone(uid,len)===len; }
 
-/* ---------- warm-up ladders (plan.js, shared with the Today Plan tab) ---------- */
-function calcCalWarmups(belt){ return Plan.calWarmups(belt); }
-function calcSquatWarmups(working){ return Plan.squatWarmups(working); }
-function warmupLine(sets, type){
-  return sets.map(s=>
-    type==='cal'
-      ? `<span class="ewu-set">${s===0?'BW':'+'+s+' kg'}</span>`
-      : `<span class="ewu-set">${s} kg</span>`
-  ).join('<span class="ewu-arr"> → </span>');
-}
-
-/* ---------- outcome from backoff set count ---------- */
-function outcomeFromCount(n, target){
-  if(n < target) return 'hold';
-  if(n === target) return 'normal';
-  return 'double';
-}
+/* ---------- outcome badge (the outcome is Rules.outcomeFromCount of the ticked sets) ---------- */
 function outcomeBadge(outcome, holdLabel, normalLabel, doubleLabel){
   if(outcome==='hold')   return `<span class="eout eout-miss">↺ ${holdLabel}</span>`;
   if(outcome==='double') return `<span class="eout eout-bonus">⚡ ${doubleLabel}</span>`;
@@ -627,61 +618,8 @@ const EXERCISE_KEY = {
   'Dumbbell Row (both arms)':'invertedrowboth', 'Lat Pulldown (both arms)':'latpulldownboth', 'Bicep Curl (both arms)':'bicepcurlboth',
   'Shoulder Fly (single arm)':'shoulderflysingle', 'Chest Fly (both arms)':'chestflyboth', 'Tricep Extension (single arm)':'tricepextsingle',
 };
-/* each arm variant has its own working set s and advances on its own, by its movement's rule for now
-   (rule = the base key); per-variant rules can switch on key here instead */
-function advance(key, outcome, s){
-  const rule = Movements.baseOf(key);
-  switch(rule){
-    case 'pullup':
-    case 'dip':
-      if(outcome==='normal') s.weight = round2(s.weight+1.25);
-      if(outcome==='double') s.weight = round2(s.weight+2.5);
-      break;
-    case 'squat':
-      if(outcome==='normal') s.weight = round2(s.weight+2.5);
-      if(outcome==='double') s.weight = round2(s.weight+5);
-      break;
-    case 'frontsquat':
-      if(outcome==='normal') s.weight = round2(s.weight+2.5);
-      break;
-    case 'ohp':
-      if(outcome==='normal'){
-        if(s.reps<7) s.reps += 1; else { s.weight = round2(s.weight+2.5); s.reps = 3; }
-      }
-      break;
-    case 'latpulldown':
-    case 'facepull':
-      if(outcome==='normal'){
-        if(s.reps<20) s.reps += 1; else { s.weight = round2(s.weight+1.25); s.reps = 10; }
-      }
-      break;
-    case 'bicepcurl':
-      if(outcome==='normal'){
-        if(s.reps<20) s.reps += 1; else { s.weight = round2(s.weight+2.5); s.reps = 10; }
-      }
-      break;
-    case 'tricepext':
-      if(outcome==='normal'){
-        if(s.reps<20) s.reps += 1; else { s.weight = round2(s.weight+2.5); s.reps = 10; }
-      }
-      break;
-    case 'shoulderfly':
-      if(outcome==='normal'){
-        if(s.reps<20) s.reps += 1; else { s.weight = round2(s.weight+1.25); s.reps = 10; }
-      }
-      break;
-    case 'chestfly':
-      if(outcome==='normal'){
-        if(s.reps<20) s.reps += 1; else { s.weight = round2(s.weight+1.25); s.reps = 8; }
-      }
-      break;
-    case 'invertedrow':
-      if(outcome==='normal'){
-        if(s.reps<15) s.reps += 1; else { s.weight = round2(s.weight+2.5); s.reps = 5; }
-      }
-      break;
-  }
-}
+/* each variant has its own working set s and its own rule (rules.js; Settings can change it) */
+function advance(key, outcome, s){ Rules.advance(ruleOf(key), outcome, s); }
 function keyOf(exercise){ return Object.hasOwn(EXERCISE_KEY, exercise) ? EXERCISE_KEY[exercise] : null; }
 function latestIndexFor(key){
   for(let i=HISTORY.length-1;i>=0;i--) if(keyOf(HISTORY[i].exercise)===key) return i;
@@ -703,175 +641,45 @@ function popLatest(idx){
   renderChart();
 }
 
-/* ================= TOP SET + BACKOFF CARD (pull-up / dip / squat / muscle-up) ================= */
-function tapRow(uid, len, target){
+/* ================= PROGRAM CARDS =================
+   One card per movement, laid out by its rule: a top-set lift shows its top set and backoff boxes,
+   warm-ups and the backoff taps (past the target = bonus); straight sets show sets × reps and one
+   tap per set. The outcome badge and the rule line in the cues come from the rule too. */
+function tapRow(uid, len, target, label){
   const done = getPending(uid, len);
   const btns = Array.from({length:len},(_,i)=>{
     const cls = 'eset' + (i>=target ? ' eset-bonus' : '') + (done[i] ? ' done' : '');
     return `<button class="${cls}" onclick="togglePending(event,'${uid}',${i},${len})">${i+1}</button>`;
   }).join('');
-  return `<div class="taprow-wrap"><div class="taplabel">Backoff sets completed (target ${target})</div><div class="esets">${btns}</div></div>`;
+  return `<div class="taprow-wrap"><div class="taplabel">${label} completed (target ${target})</div><div class="esets">${btns}</div></div>`;
 }
 
-function renderPullup(){
-  const s = STATE.pullup;
-  const wu = warmupLine(calcCalWarmups(s.weight), 'cal');
-  const n = countDone('pullup', 5);
-  const outcome = outcomeFromCount(n, 2);
-  const backoff = backoffOf(s.weight, 1.25);
-  return `<div class="er" id="er-pullup">
-    <div class="etop" onclick="tx('cues-pullup')">
-      <div class="ename">Weighted Pull-Up<span class="b-isf">ISF · Main</span></div>
-    </div>
-    <div class="loadrow">
-      <div class="loadbox loadbox-top"><div class="loadlabel">Top set</div><div class="loadval">+${s.weight} kg × ${s.reps}</div></div>
-      <div class="loadbox loadbox-backoff"><div class="loadlabel">Backoff · 80%</div><div class="loadval">+${backoff} kg × 5</div></div>
-    </div>
-    <div class="ewu"><span class="ewu-label">Warm-up</span>${wu}</div>
-    ${tapRow('pullup',5,2)}
-    <div class="logrow">
-      <button class="logbtn" onclick="logOne('pullup')">Log &amp; advance</button>
-      <div class="eoutcome">${outcomeBadge(outcome,'Hold — repeat '+s.weight+' kg','+1.25 kg → '+fmt(s.weight+1.25)+' kg next','+2.5 kg → '+fmt(s.weight+2.5)+' kg next')}</div>
-    </div>
-    <div class="ecues" id="cues-pullup"><ul class="cl">
-      <li><span>Dead hang start, arms fully extended — no shrug</span></li>
-      <li><span>Chin clearly above bar, return to full dead hang every rep</span></li>
-      <li>&lt;2 backoff sets → hold weight · exactly 2 → +1.25 kg · &gt;2 → +2.5 kg (double progression)</li>
-    </ul></div>
-  </div>`;
-}
-function recordPullup(){
-  const n = countDone('pullup', 5);
-  const outcome = outcomeFromCount(n, 2);
-  const s = STATE.pullup;
-  const boWeight = backoffOf(s.weight, 1.25), boReps = 5;
-  const volume = round2(boWeight * boReps * n);
-  pushHistory('Pull-up', `${s.reps} ${repWord(s.reps)} top @ +${s.weight} kg, ${n}×${boReps} backoff @ +${boWeight} kg`, outcome, s.weight, volume);
-  advance('pullup', outcome, s);
-  clearPending('pullup');
-}
+/* per movement: badge and form cues (the rule's own line is added from the rule); after = cues
+   that go below the rule line */
+const BADGES = {isf:'<span class="b-isf">ISF · Main</span>', aux:'<span class="b-aux">Aux</span>', acc:'<span class="b-acc">Acc</span>'};
+const CARD = {
+  pullup: {badge:'isf', cues:['Dead hang start, arms fully extended — no shrug', 'Chin clearly above bar, return to full dead hang every rep']},
+  latpulldown: {badge:'acc', cues:['Full stretch at top, drive elbow down and back, squeeze at bottom', 'Keep torso still — no torso rotation to move the weight']},
+  invertedrow: {badge:'acc', cues:['Brace your torso and row the dumbbell toward your hip with control', 'Complete both sets at the prescribed reps before progressing']},
+  bicepcurl: {badge:'acc', cues:['Elbows pinned at sides, no swing or shoulder drive', 'Full extension at bottom, squeeze at top']},
+  facepull: {badge:'acc', cues:['Rope to the face with elbows high, rotate out so the hands finish beside the ears', 'Pause and squeeze the rear delts, control the return — shoulder health first']},
+  dip: {badge:'isf', cues:['Full lockout start, shoulders clearly below elbows at bottom', 'Full lockout at top — no partial reps']},
+  ohp: {badge:'aux', cues:['Grip just outside shoulder width, brace before pressing', 'Full lockout at top, lower under control']},
+  shoulderfly: {badge:'acc', cues:['Slight elbow bend held constant, raise to shoulder height', 'Lead with elbows, controlled lowering — no swing']},
+  chestfly: {badge:'acc', cues:['Soft elbow held constant through the arc', 'Stretch the chest at the back, squeeze across the body, square hips — no torso twist']},
+  tricepext: {badge:'acc', cues:['Elbows fixed and tucked, full stretch at bottom', 'Full lockout at top without flaring elbows out']},
+  squat: {badge:'isf', cues:['ISF standard: hip crease below top of knee'], after:['If lower back fatigue ≥ 7/10 → reduce backoff volume or skip']},
+  frontsquat: {badge:'acc', cues:['Keep elbows high, brace before each rep, and maintain an upright torso']},
+};
 
-function renderDip(){
-  const s = STATE.dip;
-  const wu = warmupLine(calcCalWarmups(s.weight), 'cal');
-  const n = countDone('dip', 5);
-  const outcome = outcomeFromCount(n, 2);
-  const backoff = backoffOf(s.weight, 1.25);
-  return `<div class="er" id="er-dip">
-    <div class="etop" onclick="tx('cues-dip')">
-      <div class="ename">Weighted Dip<span class="b-isf">ISF · Main</span></div>
-    </div>
-    <div class="loadrow">
-      <div class="loadbox loadbox-top"><div class="loadlabel">Top set</div><div class="loadval">+${s.weight} kg × ${s.reps}</div></div>
-      <div class="loadbox loadbox-backoff"><div class="loadlabel">Backoff · 80%</div><div class="loadval">+${backoff} kg × 5</div></div>
-    </div>
-    <div class="ewu"><span class="ewu-label">Warm-up</span>${wu}</div>
-    ${tapRow('dip',5,2)}
-    <div class="logrow">
-      <button class="logbtn" onclick="logOne('dip')">Log &amp; advance</button>
-      <div class="eoutcome">${outcomeBadge(outcome,'Hold — repeat '+s.weight+' kg','+1.25 kg → '+fmt(s.weight+1.25)+' kg next','+2.5 kg → '+fmt(s.weight+2.5)+' kg next')}</div>
-    </div>
-    <div class="ecues" id="cues-dip"><ul class="cl">
-      <li><span>Full lockout start, shoulders clearly below elbows at bottom</span></li>
-      <li><span>Full lockout at top — no partial reps</span></li>
-      <li>&lt;2 backoff sets → hold weight · exactly 2 → +1.25 kg · &gt;2 → +2.5 kg (double progression)</li>
-    </ul></div>
-  </div>`;
-}
-function recordDip(){
-  const n = countDone('dip', 5);
-  const outcome = outcomeFromCount(n, 2);
-  const s = STATE.dip;
-  const boWeight = backoffOf(s.weight, 1.25), boReps = 5;
-  const volume = round2(boWeight * boReps * n);
-  pushHistory('Dip', `${s.reps} ${repWord(s.reps)} top @ +${s.weight} kg, ${n}×${boReps} backoff @ +${boWeight} kg`, outcome, s.weight, volume);
-  advance('dip', outcome, s);
-  clearPending('dip');
-}
-
-function renderOhp(){
-  const s = STATE.ohp;
-  const done = allSetsDone('ohp', s.sets);
-  return `<div class="er" id="er-ohp">
-    <div class="etop" onclick="tx('cues-ohp')">
-      <div class="ename">Overhead Press<span class="b-aux">Aux</span></div>
-      <div class="eload"><div class="escheme">${s.sets} × ${s.reps}</div><div class="eweight">${s.weight} kg</div></div>
-    </div>
-    ${tapRow('ohp', s.sets, s.sets)}
-    <div class="logrow">
-      <button class="logbtn" onclick="logOne('ohp')">Log &amp; advance</button>
-      <div class="eoutcome">${done ? '<span class="eout eout-ok">✓ +1 rep next session</span>' : '<span class="eout eout-miss">↺ Repeat current reps/weight</span>'}</div>
-    </div>
-    <div class="ecues" id="cues-ohp"><ul class="cl">
-      <li><span>Grip just outside shoulder width, brace before pressing</span></li>
-      <li><span>Full lockout at top, lower under control</span></li>
-      <li>Add 1 rep/session until 7 reps, then +2.5 kg and reset to 3 reps</li>
-    </ul></div>
-  </div>`;
-}
-function recordOhp(){
-  const s = STATE.ohp;
-  const success = allSetsDone('ohp', s.sets);
-  const outcome = success ? 'normal' : 'hold';
-  pushHistory('OHP', `${s.sets} × ${s.reps} @ ${s.weight} kg`, outcome);
-  advance('ohp', outcome, s);
-  clearPending('ohp');
-}
-
-/* ================= DAY 1 ACCESSORIES (Pull) ================= */
-function renderFacePull(){
-  const s = STATE.facepull;
-  const done = allSetsDone('facepull', s.sets);
-  return `<div class="er" id="er-facepull">
-    <div class="etop" onclick="tx('cues-facepull')">
-      <div class="ename">Face Pull<span class="b-acc">Acc</span></div>
-      <div class="eload"><div class="escheme">${s.sets} × ${s.reps}</div><div class="eweight">${s.weight} kg</div></div>
-    </div>
-    ${tapRow('facepull', s.sets, s.sets)}
-    <div class="logrow">
-      <button class="logbtn" onclick="logOne('facepull')">Log &amp; advance</button>
-      <div class="eoutcome">${done ? '<span class="eout eout-ok">✓ Progressing</span>' : '<span class="eout eout-miss">↺ Repeat current reps/weight</span>'}</div>
-    </div>
-    <div class="ecues" id="cues-facepull"><ul class="cl">
-      <li><span>Rope to the face with elbows high, rotate out so the hands finish beside the ears</span></li>
-      <li><span>Pause and squeeze the rear delts, control the return — shoulder health first</span></li>
-      <li>Add 1 rep/session until 20 reps, then +1.25 kg and reset to 10 reps</li>
-    </ul></div>
-  </div>`;
-}
-function recordFacePull(){
-  const s = STATE.facepull;
-  const success = allSetsDone('facepull', s.sets);
-  const outcome = success ? 'normal' : 'hold';
-  const volume = round2(s.weight * s.reps * s.sets);
-  pushHistory('Face Pull', `${s.sets} × ${s.reps} @ ${s.weight} kg`, outcome, null, volume);
-  advance('facepull', outcome, s);
-  clearPending('facepull');
-}
-
-/* ================= ARM-VARIANT ACCESSORIES =================
+/* ================= ARM VARIANTS =================
    Lat pulldown, dumbbell row and bicep curl (Pull), shoulder fly, chest fly and tricep extension (Push)
    can each be done single arm or both arms. Each variant is its own key with its own working set,
-   taps, log name and undo stack (movements.js ARM_VARIANTS); one card per movement shows the variant
-   picked on this device, and the switch on it (or on its Today Plan card) changes that pick. Today's
-   weight can be edited on the Today Plan card: it is kept on this device until the movement is
-   logged, then becomes that variant's working weight (the log's before keeps the old one, so undo
+   rule, taps, log name and undo stack (movements.js ARM_VARIANTS); one card per movement shows the
+   variant picked on this device, and the switch on it (or on its Today Plan card) changes that pick.
+   Today's weight can be edited on the Today Plan card: it is kept on this device until the movement
+   is logged, then becomes that variant's working weight (the log's before keeps the old one, so undo
    puts it back). */
-const ARM_CARD = {
-  latpulldown: {ok:'Progressing', miss:'Repeat current reps/weight', rule:'Add 1 rep/session until 20 reps, then +1.25 kg and reset to 10 reps',
-    cues:['Full stretch at top, drive elbow down and back, squeeze at bottom', 'Keep torso still — no torso rotation to move the weight']},
-  invertedrow: {ok:'+1 rep next session', miss:'Repeat current reps', rule:'Add 1 rep/session to 15, then add 2.5 kg and reset to 5 reps',
-    cues:['Brace your torso and row the dumbbell toward your hip with control', 'Complete both sets at the prescribed reps before progressing']},
-  bicepcurl: {ok:'Progressing', miss:'Repeat current reps/weight', rule:'Add 1 rep/session until 20 reps, then +2.5 kg and reset to 10 reps',
-    cues:['Elbows pinned at sides, no swing or shoulder drive', 'Full extension at bottom, squeeze at top']},
-  shoulderfly: {ok:'Progressing', miss:'Repeat current reps/weight', rule:'Add 1 rep/session until 20 reps, then +1.25 kg and reset to 10 reps',
-    cues:['Slight elbow bend held constant, raise to shoulder height', 'Lead with elbows, controlled lowering — no swing']},
-  chestfly: {ok:'Progressing', miss:'Repeat current reps/weight', rule:'Add 1 rep/session until 20 reps, then +1.25 kg and reset to 8 reps',
-    cues:['Soft elbow held constant through the arc', 'Stretch the chest at the back, squeeze across the body, square hips — no torso twist']},
-  tricepext: {ok:'Progressing', miss:'Repeat current reps/weight', rule:'Add 1 rep/session until 20 reps, then +2.5 kg and reset to 10 reps',
-    cues:['Elbows fixed and tucked, full stretch at bottom', 'Full lockout at top without flaring elbows out']},
-};
-/* the variant picked for a movement on this device ('single' | 'both'); the variant that existed first by default */
 function getArms(base){
   let a = null;
   try{ a = localStorage.getItem('h2_arms_'+base); }catch(_){}
@@ -916,119 +724,61 @@ function effState(key){
   const w = Movements.variantsOf(key) ? getTodayWeight(key) : null;
   return w==null ? STATE[key] : {...STATE[key], weight:w};
 }
-function renderArmAccessory(base){
-  const key = activeKey(base), s = effState(key), c = ARM_CARD[base];
-  const done = allSetsDone(key, s.sets);
+/* a movement's Program card (base = the movement; a movement with arm variants shows the picked one) */
+function renderMovement(base){
+  const key = activeKey(base), s = effState(key), rule = ruleOf(key), c = CARD[base];
+  const ws = Plan.workingSets(key, s, rule);
+  const outcome = Rules.outcomeFromCount(countDone(key, ws.sets.length), ws.target);
   const edited = s.weight!==STATE[key].weight;
-  const cues = (getArms(base)==='single' ? ['One arm at a time; sets and reps are per arm'] : []).concat(c.cues);
+  const load = kg=>loadText(key, kg);
+  const wus = Plan.warmups(key, s);
+  const top = ws.top ? `<div class="loadrow">
+      <div class="loadbox loadbox-top"><div class="loadlabel">Top set${edited?' · today':''}</div><div class="loadval">${load(s.weight)} × ${ws.top.reps}</div></div>
+      <div class="loadbox loadbox-backoff"><div class="loadlabel">Backoff · ${fmt(rule.backoffPct)}%</div><div class="loadval">${load(ws.sets[0].load)} × ${ws.sets[0].reps}</div></div>
+    </div>
+    ${wus.length ? `<div class="ewu"><span class="ewu-label">Warm-up</span>${wus.map(w=>`<span class="ewu-set">${load(w.load)}</span>`).join('<span class="ewu-arr"> → </span>')}</div>` : ''}` : '';
+  const scheme = ws.top ? '' : `<div class="eload"><div class="escheme">${s.sets} × ${s.reps}</div><div class="eweight">${load(s.weight)}${edited?' today':''}</div></div>`;
+  const cues = (getArms(base)==='single' && Movements.variantsOf(base) ? ['One arm at a time; sets and reps are per arm'] : []).concat(c.cues);
+  const ruleLines = [Rules.backoffText(rule), Rules.describe(rule)].filter(Boolean);
   return `<div class="er" id="er-${base}">
     <div class="etop" onclick="tx('cues-${base}')">
-      <div class="ename">${esc(Movements.familyName(base))}<span class="b-acc">Acc</span></div>
-      <div class="eload"><div class="escheme">${s.sets} × ${s.reps}</div><div class="eweight">${s.weight} kg${edited?' today':''}</div></div>
+      <div class="ename">${esc(Movements.familyName(base))}${BADGES[c.badge]}</div>
+      ${scheme}
     </div>
-    ${armSwitch(base)}
-    ${tapRow(key, s.sets, s.sets)}
+    ${Movements.variantsOf(base) ? armSwitch(base) : ''}
+    ${top}
+    ${tapRow(key, ws.sets.length, ws.target, ws.top ? 'Backoff sets' : 'Sets')}
     <div class="logrow">
       <button class="logbtn" onclick="logOne('${key}')">Log &amp; advance</button>
-      <div class="eoutcome">${done ? `<span class="eout eout-ok">✓ ${c.ok}</span>` : `<span class="eout eout-miss">↺ ${c.miss}</span>`}</div>
+      <div class="eoutcome">${outcomeBadge(outcome, Rules.nextText(rule,'hold',s,load), Rules.nextText(rule,'normal',s,load), Rules.nextText(rule,'double',s,load))}</div>
     </div>
     <div class="ecues" id="cues-${base}"><ul class="cl">
       ${cues.map(t=>`<li><span>${t}</span></li>`).join('')}
-      <li>${c.rule}</li>
+      ${ruleLines.map(t=>`<li>${esc(t)}</li>`).join('')}
+      ${(c.after || []).map(t=>`<li>${t}</li>`).join('')}
     </ul></div>
   </div>`;
 }
-/* key is the variant; a weight entered for today is logged and becomes its working weight */
-function recordArmAccessory(key){
-  const s = STATE[key];
-  const w = effState(key).weight;
-  const success = allSetsDone(key, s.sets);
-  const outcome = success ? 'normal' : 'hold';
-  const volume = round2(w * s.reps * s.sets);
-  pushHistory(HISTORY_NAME[key], `${s.sets} × ${s.reps} @ ${w} kg`, outcome, null, volume);
-  s.weight = w;
+/* record one movement (history + advance + clear taps) without saving, so a single Log and Finish
+   today's workout share the same progression. key is the variant; a weight entered for today is
+   logged and becomes its working weight. Top-set lifts log the backoff volume of the ticked sets;
+   straight sets log all the prescribed sets (a hold still did them, short of the target reps). The
+   Weight column (top-set chart, Records) is kept for everything but dumbbell/cable accessories. */
+function recordMovement(key){
+  const s = STATE[key], rule = ruleOf(key), done = effState(key);
+  const ws = Plan.workingSets(key, done, rule);
+  const n = countDone(key, ws.sets.length);
+  const outcome = Rules.outcomeFromCount(n, ws.target);
+  const volume = ws.top ? round2(ws.sets[0].load * ws.sets[0].reps * n) : round2(done.weight * done.reps * done.sets);
+  const weight = ws.top || Plan.KIND[key]!=='accessory' ? done.weight : null;
+  pushHistory(HISTORY_NAME[key], Plan.resultText(key, done, rule, n), outcome, weight, volume);
+  s.weight = done.weight;
   advance(key, outcome, s);
   clearPending(key);
 }
 
-/* ================= DAY 3 ================= */
-function renderSquat(){
-  const s = STATE.squat;
-  const wu = warmupLine(calcSquatWarmups(s.weight), 'sq');
-  const n = countDone('squat', 5);
-  const outcome = outcomeFromCount(n, 2);
-  const backoff = backoffOf(s.weight, 2.5);
-  return `<div class="er" id="er-squat">
-    <div class="etop" onclick="tx('cues-squat')">
-      <div class="ename">Competition Squat<span class="b-isf">ISF · Main</span></div>
-    </div>
-    <div class="loadrow">
-      <div class="loadbox loadbox-top"><div class="loadlabel">Top set</div><div class="loadval">${s.weight} kg × 3</div></div>
-      <div class="loadbox loadbox-backoff"><div class="loadlabel">Backoff · 80%</div><div class="loadval">${backoff} kg × 5</div></div>
-    </div>
-    <div class="ewu"><span class="ewu-label">Warm-up</span>${wu}</div>
-    ${tapRow('squat',5,2)}
-    <div class="logrow">
-      <button class="logbtn" onclick="logOne('squat')">Log &amp; advance</button>
-      <div class="eoutcome">${outcomeBadge(outcome,'Hold — repeat '+s.weight+' kg','+2.5 kg → '+fmt(s.weight+2.5)+' kg next','+5 kg → '+fmt(s.weight+5)+' kg next')}</div>
-    </div>
-    <div class="ecues" id="cues-squat"><ul class="cl">
-      <li><span>ISF standard: hip crease below top of knee</span></li>
-      <li><span>Backoff: 5 reps @ 80% of top single load</span></li>
-      <li>&lt;2 backoff sets → hold · exactly 2 → +2.5 kg · &gt;2 → +5 kg (double progression)</li>
-      <li>If lower back fatigue ≥ 7/10 → reduce backoff volume or skip</li>
-    </ul></div>
-  </div>`;
-}
-function recordSquat(){
-  const n = countDone('squat', 5);
-  const outcome = outcomeFromCount(n, 2);
-  const s = STATE.squat;
-  const boWeight = backoffOf(s.weight, 2.5), boReps = 5;
-  const volume = round2(boWeight * boReps * n);
-  pushHistory('Squat', `3 reps top @ ${s.weight} kg, ${n}×${boReps} backoff @ ${boWeight} kg`, outcome, s.weight, volume);
-  advance('squat', outcome, s);
-  clearPending('squat');
-}
-
-function renderFrontSquat(){
-  const s = STATE.frontsquat;
-  const outcome = outcomeFromCount(countDone('frontsquat', s.sets), s.sets);
-  return `<div class="er" id="er-frontsquat">
-    <div class="etop" onclick="tx('cues-frontsquat')">
-      <div class="ename">Front Squat<span class="b-acc">Acc</span></div>
-      <div class="eload"><div class="escheme">${s.sets} × ${s.reps}</div><div class="eweight">${s.weight} kg</div></div>
-    </div>
-    ${tapRow('frontsquat',s.sets,s.sets)}
-    <div class="logrow">
-      <button class="logbtn" onclick="logOne('frontsquat')">Log &amp; advance</button>
-      <div class="eoutcome">${outcomeBadge(outcome,'Hold — repeat '+s.weight+' kg','+2.5 kg → '+fmt(s.weight+2.5)+' kg next','+2.5 kg → '+fmt(s.weight+2.5)+' kg next')}</div>
-    </div>
-    <div class="ecues" id="cues-frontsquat"><ul class="cl">
-      <li><span>Keep elbows high, brace before each rep, and maintain an upright torso</span></li>
-      <li><span>Complete both sets of 20 reps to add 2.5 kg; otherwise repeat the load</span></li>
-    </ul></div>
-  </div>`;
-}
-function recordFrontSquat(){
-  const s = STATE.frontsquat;
-  const outcome = outcomeFromCount(countDone('frontsquat', s.sets), s.sets);
-  const volume = round2(s.weight * s.reps * countDone('frontsquat', s.sets));
-  pushHistory('Front Squat', `${countDone('frontsquat', s.sets)} × ${s.reps} @ ${s.weight} kg`, outcome, s.weight, volume);
-  advance('frontsquat', outcome, s);
-  clearPending('frontsquat');
-}
-
-/* ---------- logging: recordXxx() records one movement (history + advance + clear taps)
-   without saving, so a single Log and Finish today's workout share the same progression. Each is
-   called with the key it records (only the arm-variant pair needs it). ---------- */
-const RECORD = {
-  pullup:recordPullup, latpulldown:recordArmAccessory, invertedrow:recordArmAccessory, bicepcurl:recordArmAccessory, facepull:recordFacePull,
-  dip:recordDip, ohp:recordOhp, shoulderfly:recordArmAccessory, chestfly:recordArmAccessory, tricepext:recordArmAccessory,
-  squat:recordSquat, frontsquat:recordFrontSquat,
-  latpulldownboth:recordArmAccessory, invertedrowboth:recordArmAccessory, bicepcurlboth:recordArmAccessory,
-  shoulderflysingle:recordArmAccessory, chestflyboth:recordArmAccessory, tricepextsingle:recordArmAccessory,
-};
+/* every key that can be logged -> its recorder */
+const RECORD = Object.fromEntries(Object.keys(Rules.DEFAULT_RULES).map(k=>[k, recordMovement]));
 const HISTORY_NAME = {
   pullup:'Pull-up', latpulldown:'Lat Pulldown', invertedrow:'Dumbbell Row', bicepcurl:'Bicep Curl', facepull:'Face Pull',
   dip:'Dip', ohp:'OHP', shoulderfly:'Shoulder Fly', chestfly:'Chest Fly', tricepext:'Tricep Extension',
@@ -1148,7 +898,7 @@ function drawerHtml(key, kind){
   const best = (field)=>rows.reduce((b,h)=>h[field]!=null && (!b || h[field]>b[field]) ? h : b, null);
   const top = best('weight'), vol = best('volume');
   const date = h=>new Date(h.date).toLocaleDateString();
-  return (top ? `<div class="tdrow">Heaviest top set: <b>${loadText(key, top.weight)}</b> <span class="tm">· ${date(top)}</span></div>` : '')
+  return (top ? `<div class="tdrow">Heaviest ${ruleOf(key).scheme==='topset' ? 'top set' : 'load'}: <b>${loadText(key, top.weight)}</b> <span class="tm">· ${date(top)}</span></div>` : '')
     + (vol ? `<div class="tdrow">Most volume in a session: <b>${fmt(vol.volume)} kg</b> <span class="tm">· ${date(vol)}</span></div>` : '');
 }
 const CHECK_SVG = '<svg class="tchk" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7"/><path d="M4.8 8.3l2.1 2.1 4.3-4.6"/></svg>';
@@ -1165,7 +915,7 @@ function todayArmsHtml(key){
 }
 function renderTodayCard(key){
   const s = effState(key), m = Movements.MOVEMENTS[key], f = freshOf(key);
-  const ws = Plan.workingSets(key, s);
+  const ws = Plan.workingSets(key, s, ruleOf(key));
   const wus = Plan.warmups(key, s);
   /* checklist chips: warm-ups, then the top set */
   const pre = wus.map(w=>({text:`${w.reps} x ${loadText(key,w.load)}`}));
@@ -1219,14 +969,14 @@ async function finishWorkout(){
   if(!plan.length || READONLY || FINISHING) return;
   /* a movement with no chip ticked wasn't done today: it isn't logged, and drops out of the plan */
   const {log, skip} = Plan.splitFinish(plan, key=>{
-    const ws = Plan.workingSets(key, effState(key));
-    return getTicks(key, Plan.checklistLength(key, effState(key))).filter(Boolean).length + countDone(key, ws.sets.length);
+    const ws = Plan.workingSets(key, effState(key), ruleOf(key));
+    return getTicks(key, Plan.checklistLength(key, effState(key), ruleOf(key))).filter(Boolean).length + countDone(key, ws.sets.length);
   });
   if(!log.length){ alert('Nothing is ticked yet, so there is nothing to log. Tick the sets you did, then press Finish.'); return; }
   const lines = log.map(key=>{
-    const ws = Plan.workingSets(key, effState(key));
+    const ws = Plan.workingSets(key, effState(key), ruleOf(key));
     const n = countDone(key, ws.sets.length);
-    const outcome = outcomeFromCount(n, ws.target);
+    const outcome = Rules.outcomeFromCount(n, ws.target);
     return `${Movements.MOVEMENTS[key].name}: ${n}/${ws.target} sets (${outcome==='hold'?'hold':outcome==='double'?'bonus':'progress'})`;
   }).concat(skip.map(key=>`${Movements.MOVEMENTS[key].name}: skipped (nothing ticked, not logged)`));
   if(!confirm(`Log today's workout?\n\n${lines.join('\n')}`)) return;
@@ -1250,19 +1000,14 @@ async function finishWorkout(){
 
 /* ================= PAGE ASSEMBLY ================= */
 /* each day lists its movements grouped by category (movements.js); skill work and cardio have no
-   movements yet, so they show as empty groups. A movement with arm variants has one card (renderers
-   are called with the movement's key). */
-const RENDERERS = {
-  pullup: renderPullup, latpulldown: renderArmAccessory, invertedrow: renderArmAccessory, bicepcurl: renderArmAccessory, facepull: renderFacePull,
-  dip: renderDip, ohp: renderOhp, shoulderfly: renderArmAccessory, chestfly: renderArmAccessory, tricepext: renderArmAccessory,
-  squat: renderSquat, frontsquat: renderFrontSquat,
-};
+   movements yet, so they show as empty groups. A movement with arm variants has one card
+   (renderMovement is called with the movement's key). */
 function renderDay(day, n){
   const {DAYS, CATEGORIES, movementsFor, familyName} = Movements;
   const names = movementsFor(day).map(familyName).join(' / ');
   const groups = Object.keys(CATEGORIES).map(cat => {
     const keys = movementsFor(day, cat);
-    const body = keys.length ? keys.map(k => RENDERERS[k](k)).join('') : '<div class="cgroup-empty">None yet</div>';
+    const body = keys.length ? keys.map(renderMovement).join('') : '<div class="cgroup-empty">None yet</div>';
     return `<div class="cgroup">${CATEGORIES[cat]}</div>${body}`;
   }).join('');
   return `<div class="sc">
@@ -1271,38 +1016,175 @@ function renderDay(day, n){
   </div>`;
 }
 
+/* header stat for a main lift: its top set, or sets × reps once its rule is straight sets */
+function headStat(key, label){
+  const s = STATE[key], top = ruleOf(key).scheme==='topset';
+  return `<div class="stat"><div class="slabel">${label}${top?' top set':''}</div><div class="sval">${loadText(key, s.weight)} × ${s.reps}${top?'':` × ${s.sets}`}</div></div>`;
+}
 function renderHeaderStats(){
-  const p=STATE.pullup, d=STATE.dip, sq=STATE.squat;
   document.getElementById('hstats').innerHTML = `
     <div class="stat"><div class="slabel">Bodyweight · u74</div><div class="sval">${bwHeaderText()}</div></div>
-    <div class="stat"><div class="slabel">Pull-up top set</div><div class="sval">+${p.weight} kg × ${p.reps}</div></div>
-    <div class="stat"><div class="slabel">Dip top set</div><div class="sval">+${d.weight} kg × ${d.reps}</div></div>
-    <div class="stat"><div class="slabel">Squat top set</div><div class="sval">${sq.weight} kg × 3</div></div>
+    ${headStat('pullup','Pull-up')}${headStat('dip','Dip')}${headStat('squat','Squat')}
     <button class="pbtn" onclick="syncToNotes()">Sync to Notes</button>
     <button class="pbtn" onclick="window.print()">Print / PDF</button>`;
 }
 
-/* Settings rows for both arm variants of a movement (each has its own working set and progression) */
-function armSettingsRows(day, lift, base, rule){
-  return ['single','both'].map(a=>{ const s = STATE[Movements.ARM_VARIANTS[base][a]];
-    return [day, `${lift} · ${Movements.ARMS[a]}`, `${s.weight} kg × ${s.reps} × ${s.sets} sets`, rule]; });
+/* ---------- Settings: prescriptions and editable progression rules ----------
+   One row per movement key (each arm variant has its own rule). Edit opens a form under the row for
+   the rule and the working-set reps (and sets, for straight sets) it prescribes. Save commits
+   progress.md with the rule (kept in its Progression rules table only while it differs from the
+   default) and the working set; Reset to default drops the stored rule. Each is its own commit. */
+let RULE_EDIT = null;  /* {key, draft} while a row's form is open; draft = rule fields + reps, sets */
+
+/* Settings row order: program order, both arm variants of a movement next to each other */
+function settingsKeys(){
+  return Plan.DAYS.flatMap(day=>Movements.movementsFor(day).flatMap(base=>{
+    const v = Movements.variantsOf(base);
+    return v ? [v.single, v.both] : [base];
+  }));
+}
+function liftLabel(key){
+  return Movements.variantsOf(key) ? `${Movements.familyName(key)} · ${Movements.ARMS[Movements.MOVEMENTS[key].arms]}` : Movements.familyName(key);
+}
+/* "+25 kg × 3 top set; backoff +20 kg × 5 for 2 sets" or "12.5 kg × 15 × 2 sets" */
+function prescText(key){
+  const s = STATE[key], ws = Plan.workingSets(key, s, ruleOf(key));
+  if(ws.top) return `${loadText(key, s.weight)} × ${ws.top.reps} top set; backoff ${loadText(key, ws.sets[0].load)} × ${ws.sets[0].reps} for ${ws.target} set${ws.target===1?'':'s'}`;
+  return `${loadText(key, s.weight)} × ${s.reps} × ${s.sets} sets`;
+}
+/* the tap layout a rule gives a movement; when it changes, the ticks kept for it no longer line up */
+function tapShape(key){
+  const ws = Plan.workingSets(key, STATE[key], ruleOf(key));
+  return `${ws.top ? 'top' : 'straight'}:${ws.sets.length}`;
+}
+function clearTaps(key){
+  clearPending(key);
+  try{ localStorage.removeItem('h2_tick_'+key); localStorage.removeItem('h2_extra_'+key); }catch(_){}
+}
+
+/* form inputs: [field, label(draft), step, shown(draft)]; scheme and progression are selects */
+const isTop = d=>d.scheme==='topset';
+const RULE_INPUTS = [
+  ['reps', d=>isTop(d) ? 'Top-set reps' : 'Reps', 1, ()=>true],
+  ['sets', ()=>'Sets', 1, d=>!isTop(d)],
+  ['inc', ()=>'Increment (kg)', 0.25, ()=>true],
+  ['bonusInc', d=>`Past ${d.backoffSets || 'the'} backoff sets (kg)`, 0.25, d=>isTop(d) && d.progression==='linear'],
+  ['repFloor', ()=>'Rep floor (reset to)', 1, d=>d.progression==='double'],
+  ['repCap', ()=>'Rep cap', 1, d=>d.progression==='double'],
+  ['backoffPct', ()=>'Backoff % of top set', 1, isTop],
+  ['backoffReps', ()=>'Backoff reps', 1, isTop],
+  ['backoffSets', ()=>'Backoff sets (target)', 1, isTop],
+  ['backoffMax', ()=>'Backoff sets (most)', 1, isTop],
+  ['backoffRound', ()=>'Backoff rounding (kg)', 0.25, isTop],
+];
+function openRuleEditor(key){
+  if(READONLY) return;
+  const s = STATE[key];
+  RULE_EDIT = {key, draft: fillDraft(key, {...ruleOf(key), reps: s.reps, sets: s.sets})};
+  renderSettings();
+}
+function closeRuleEditor(){ RULE_EDIT = null; renderSettings(); }
+/* the draft as typed: blank = null, anything else a number (NaN if it isn't one, which Save rejects) */
+function readRuleForm(){
+  const d = {...RULE_EDIT.draft};
+  const el = f=>document.getElementById('rule-'+f);
+  d.scheme = el('scheme').value;
+  d.progression = el('progression').value;
+  RULE_INPUTS.forEach(([f])=>{ const i = el(f); if(i) d[f] = i.value.trim()==='' ? null : Number(i.value); });
+  return d;
+}
+/* fill the fields a scheme / progression switch now needs: the movement's default where it has one,
+   else a sensible start (e.g. a dip switched to straight sets keeps its reps and gets 3 sets) */
+function fillDraft(key, d){
+  const def = Rules.DEFAULT_RULES[key], out = {...d};
+  const floor = Number.isInteger(d.repFloor) ? d.repFloor : def.repFloor!=null ? def.repFloor : (d.reps > 0 ? d.reps : 8);
+  const fallback = {
+    inc: 2.5, bonusInc: (d.inc > 0 ? d.inc : 2.5) * 2, repFloor: floor, repCap: floor + (isTop(d) ? 2 : 5),
+    backoffPct: 80, backoffReps: 5, backoffSets: 2, backoffMax: 5, backoffRound: Plan.isAdded(key) ? 1.25 : 2.5,
+    reps: d.progression==='double' ? floor : 5, sets: 3,
+  };
+  for(const f of Object.keys(fallback))
+    if(out[f]==null) out[f] = def[f]!=null ? def[f] : fallback[f];
+  return out;
+}
+function ruleFormChanged(){
+  RULE_EDIT.draft = fillDraft(RULE_EDIT.key, readRuleForm());
+  renderSettings();
+}
+function ruleFormHtml(key){
+  const d = RULE_EDIT.draft;
+  const sel = (f, label, opts)=>`<label>${label}<select id="rule-${f}" onchange="ruleFormChanged()">${Object.entries(opts).map(([v,t])=>
+    `<option value="${v}"${d[f]===v?' selected':''}>${t}</option>`).join('')}</select></label>`;
+  const inputs = RULE_INPUTS.filter(i=>i[3](d)).map(([f,label,step])=>
+    `<label>${esc(label(d))}<input id="rule-${f}" type="number" inputmode="decimal" step="${step}" min="0" value="${Number.isFinite(d[f]) ? esc(d[f]) : ''}"></label>`).join('');
+  return `<div class="ruleform">${sel('scheme','Scheme',Rules.SCHEMES)}${sel('progression','Progression',Rules.PROGRESSIONS)}${inputs}</div>
+    <div class="ghbtns"><button class="logbtn rulebtn" onclick="saveRule()">Save</button>
+      <button class="pbtn" onclick="closeRuleEditor()">Cancel</button>
+      ${Object.hasOwn(RULES_STORED, key) ? `<button class="pbtn rulebtn" onclick="resetRule('${key}')">Reset to default</button>` : ''}</div>
+    <div class="settings-note">Default: ${esc(Rules.summary(Rules.DEFAULT_RULES[key]))}. Reps and sets are the working set's: progression moves them from here.</div>`;
+}
+function saveRule(){
+  if(READONLY || !RULE_EDIT) return;
+  const key = RULE_EDIT.key, d = readRuleForm();
+  const rule = Rules.normalize(d);
+  const err = Rules.problem(rule)
+    || (Number.isInteger(d.reps) && d.reps>=1 && d.reps<=100 ? null : `${isTop(rule) ? 'top-set reps' : 'reps'} must be a whole number from 1 to 100`)
+    || (isTop(rule) || (Number.isInteger(d.sets) && d.sets>=1 && d.sets<=10) ? null : 'sets must be a whole number from 1 to 10');
+  if(err){ alert(`Can't save: ${err}.`); return; }
+  const s = STATE[key], next = {...s, reps: d.reps};
+  if(!isTop(rule)) next.sets = d.sets;
+  const stateChanged = next.reps!==s.reps || next.sets!==s.sets;
+  const ruleChanged = !Rules.sameRule(ruleOf(key), rule) || !!RULE_ERRORS[key];
+  if(!stateChanged && !ruleChanged){ closeRuleEditor(); return; }
+  const shape = tapShape(key);
+  const stored = {...RULES_STORED};
+  if(Rules.isDefault(key, rule)) delete stored[key]; else stored[key] = rule;
+  setRules(stored);
+  STATE[key] = Rules.fitState(rule, next);
+  if(tapShape(key)!==shape) clearTaps(key);
+  RULE_EDIT = null;
+  const name = Movements.MOVEMENTS[key].name;
+  saveState(ruleChanged
+    ? `Set progression rule: ${name} — ${Rules.summary(rule)}${Rules.isDefault(key, rule) ? ' (default)' : ''}${stateChanged ? `; working set ${prescText(key)}` : ''}`
+    : `Set working set: ${name} — ${prescText(key)}`);
+  render();
+  renderSettings();
+}
+/* back to the program's rule; a scheme switch back also takes the program's starting reps (top-set
+   reps of 3 rather than, say, the 8 of a straight-set phase) */
+function resetRule(key){
+  if(READONLY || !Object.hasOwn(RULES_STORED, key)) return;
+  const name = Movements.MOVEMENTS[key].name, def = Rules.DEFAULT_RULES[key];
+  if(!confirm(`Reset the ${name} progression rule to the default (${Rules.summary(def)})?`)) return;
+  const shape = tapShape(key), schemeChanged = ruleOf(key).scheme!==def.scheme;
+  const stored = {...RULES_STORED};
+  delete stored[key];
+  setRules(stored);
+  if(schemeChanged && DEFAULT_STATE[key].reps!=null) STATE[key].reps = DEFAULT_STATE[key].reps;
+  STATE[key] = Rules.fitState(def, STATE[key]);
+  if(tapShape(key)!==shape) clearTaps(key);
+  RULE_EDIT = null;
+  saveState(`Reset progression rule: ${name} to default — ${Rules.summary(def)}`);
+  render();
+  renderSettings();
 }
 function renderSettings(){
-  const rows = [
-    ['Day 1 · Pull','Weighted pull-up', `+${STATE.pullup.weight} kg × ${STATE.pullup.reps} top set; backoff +${backoffOf(STATE.pullup.weight,1.25)} kg × 5 for 2 sets`, 'Under 2 backoff sets: hold. Exactly 2: add 1.25 kg. More than 2: add 2.5 kg.'],
-    ...armSettingsRows('Day 1 · Pull','Lat pulldown', 'latpulldown', 'On success, add 1 rep until 20; then add 1.25 kg and reset to 10 reps.'),
-    ...armSettingsRows('Day 1 · Pull','Dumbbell row', 'invertedrow', 'On success, add 1 rep until 15; then add 2.5 kg and reset to 5 reps.'),
-    ...armSettingsRows('Day 1 · Pull','Bicep curl', 'bicepcurl', 'On success, add 1 rep until 20; then add 2.5 kg and reset to 10 reps.'),
-    ['Day 1 · Pull','Face pull', `${STATE.facepull.weight} kg × ${STATE.facepull.reps} × ${STATE.facepull.sets} sets`, 'On success, add 1 rep until 20; then add 1.25 kg and reset to 10 reps.'],
-    ['Day 2 · Push','Weighted dip', `+${STATE.dip.weight} kg × ${STATE.dip.reps} top set; backoff +${backoffOf(STATE.dip.weight,1.25)} kg × 5 for 2 sets`, 'Under 2 backoff sets: hold. Exactly 2: add 1.25 kg. More than 2: add 2.5 kg.'],
-    ['Day 2 · Push','OHP', `${STATE.ohp.weight} kg × ${STATE.ohp.reps} × ${STATE.ohp.sets} sets`, 'On success, add 1 rep until 7; then add 2.5 kg and reset to 3 reps.'],
-    ...armSettingsRows('Day 2 · Push','Shoulder fly', 'shoulderfly', 'On success, add 1 rep until 20; then add 1.25 kg and reset to 10 reps.'),
-    ...armSettingsRows('Day 2 · Push','Chest fly', 'chestfly', 'On success, add 1 rep until 20; then add 1.25 kg and reset to 8 reps.'),
-    ...armSettingsRows('Day 2 · Push','Tricep extension', 'tricepext', 'On success, add 1 rep until 20; then add 2.5 kg and reset to 10 reps.'),
-    ['Day 3 · Legs','Competition squat', `${STATE.squat.weight} kg × 3 top set; backoff ${backoffOf(STATE.squat.weight,2.5)} kg × 5 for 2 sets`, 'Under 2 backoff sets: hold. Exactly 2: add 2.5 kg. More than 2: add 5 kg.'],
-    ['Day 3 · Legs','Front squat', `${STATE.frontsquat.weight} kg × ${STATE.frontsquat.reps} × ${STATE.frontsquat.sets} sets`, 'Complete both sets at target to add 2.5 kg; otherwise hold.'],
-  ];
-  document.getElementById('settingsTable').innerHTML = `<div class="settings-wrap"><table class="settings-table"><thead><tr><th>Day</th><th>Lift</th><th>Current prescription</th><th>Progression rule</th></tr></thead><tbody>${rows.map(([day,lift,current,rule])=>`<tr><td class="setting-group">${day}</td><td class="setting-lift">${lift}</td><td class="setting-current">${current}</td><td>${rule}</td></tr>`).join('')}</tbody></table></div>`;
+  const rows = settingsKeys().map(key=>{
+    const m = Movements.MOVEMENTS[key], rule = ruleOf(key);
+    const day = `Day ${Plan.DAYS.indexOf(m.day)+1} · ${Movements.DAYS[m.day]}`;
+    const custom = Object.hasOwn(RULES_STORED, key) && !RULE_ERRORS[key];
+    const bad = RULE_ERRORS[key] ? `<div class="tag-hold">The rule in progress.md is ignored (${esc(RULE_ERRORS[key])}), so the default is in use. Edit or reset it here.</div>` : '';
+    const editing = RULE_EDIT && RULE_EDIT.key===key;
+    const text = [Rules.backoffText(rule), Rules.describe(rule)].filter(Boolean).map(t=>esc(t + (t.endsWith('.') ? '' : '.'))).join(' ');
+    return `<tr><td class="setting-group">${day}</td><td class="setting-lift">${esc(liftLabel(key))}</td><td class="setting-current">${esc(prescText(key))}</td>
+      <td class="setting-rule">${text}${custom ? ' <span class="rule-custom">custom</span>' : ''}${bad}</td>
+      <td>${editing ? '<button class="pbtn" onclick="closeRuleEditor()">Close</button>' : `<button class="pbtn rulebtn" onclick="openRuleEditor('${key}')">Edit</button>`}</td></tr>`
+      + (editing ? `<tr class="rule-edit"><td colspan="5"><div class="rule-edit-box">${ruleFormHtml(key)}</div></td></tr>` : '');
+  }).join('');
+  const unknown = Object.keys(RULE_ERRORS).filter(k=>!Object.hasOwn(Rules.DEFAULT_RULES, k));
+  document.getElementById('settingsTable').innerHTML = `<div class="settings-wrap"><table class="settings-table"><thead><tr><th>Day</th><th>Lift</th><th>Current prescription</th><th>Progression rule</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`
+    + (unknown.length ? `<div class="settings-note tag-hold">progress.md has progression rules for unknown movements, which are ignored: ${unknown.map(esc).join(', ')}.</div>` : '');
+  applyReadonly();
 }
 
 /* progress.md is hand-editable, so text from it is escaped before going into innerHTML */

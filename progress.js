@@ -2,7 +2,9 @@
    progress.md holds two Markdown tables: "Current working sets" (Key | Weight | Reps | Sets) and
    "Session log" (oldest first, one row per logged session; Before is the working set the log
    replaced, which undo restores, and is blank on rows logged before the column existed), plus an
-   optional "Bodyweight" table (Date | Bodyweight (kg), one row per day, oldest first). The page
+   optional "Bodyweight" table (Date | Bodyweight (kg), one row per day, oldest first) and an optional
+   "Progression rules" table (one row per movement key whose rule differs from the H2 page's default;
+   rules.js says what the columns mean and checks the values make sense). The page
    reads and writes it through the GitHub contents API on the repo's `data` branch, so every save is
    a commit there and never touches `main`, which GitHub Pages serves the site from. Loaded as a plain
    <script> in the page and with require() in the node tests. */
@@ -15,6 +17,14 @@ const HISTORY_FIELDS = ['date', 'exercise', 'result', 'outcome', 'weight', 'volu
 const UNITS = {weight: ['kg', 'kg'], reps: ['rep', 'reps'], sets: ['set', 'sets']};
 const OUTCOMES = ['hold', 'normal', 'double'];
 const KEY_RE = /^[a-z][a-z0-9]*$/;
+/* Progression rules columns after Key: [field, header]. scheme and progression are words, the rest
+   numbers; a blank cell is a field the rule doesn't use (null). */
+const RULE_COLUMNS = [
+  ['scheme', 'Scheme'], ['progression', 'Progression'], ['inc', 'Increment (kg)'], ['bonusInc', 'Bonus increment (kg)'],
+  ['repFloor', 'Rep floor'], ['repCap', 'Rep cap'], ['backoffPct', 'Backoff %'], ['backoffReps', 'Backoff reps'],
+  ['backoffSets', 'Backoff sets'], ['backoffMax', 'Backoff max'], ['backoffRound', 'Backoff rounding (kg)'],
+];
+const RULE_WORDS = {scheme: ['topset', 'straight'], progression: ['linear', 'double']};
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 const HEADER = `# Q2 2026 progress
@@ -111,6 +121,21 @@ function parse(text){
       if(!DATE_RE.test(date)) throw new Error(`bad bodyweight date: ${JSON.stringify(date)}`);
       return {date, kg: num(row[1] || '')};
     });
+  /* optional too: only movements whose rule differs from the default have a row */
+  if('Progression rules' in t){
+    data.rules = {};
+    for(const row of t['Progression rules']){
+      const key = (row[0] || '').trim();
+      if(!KEY_RE.test(key)) throw new Error(`bad progression rule key: ${JSON.stringify(key)}`);
+      if(Object.hasOwn(data.rules, key)) throw new Error(`two progression rules for ${key}`);
+      const rule = {};
+      RULE_COLUMNS.forEach(([f], i) => {
+        const text = (row[i + 1] || '').trim();
+        rule[f] = RULE_WORDS[f] ? text.toLowerCase() : num(text);
+      });
+      data.rules[key] = rule;
+    }
+  }
   return data;
 }
 
@@ -129,6 +154,14 @@ function serialize(data){
     lines.push('', '## Bodyweight', '', '| Date | Bodyweight (kg) |', '|---|---|');
     for(const b of [...data.bodyweight].sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
       lines.push(`| ${b.date} | ${fmt(b.kg)} |`);
+  }
+  /* likewise only once a rule differs from the default */
+  if(data.rules && Object.keys(data.rules).length){
+    lines.push('', '## Progression rules', '',
+      '| ' + ['Key', ...RULE_COLUMNS.map(c => c[1])].join(' | ') + ' |',
+      '|' + '---|'.repeat(RULE_COLUMNS.length + 1));
+    for(const [key, rule] of Object.entries(data.rules))
+      lines.push('| ' + [key, ...RULE_COLUMNS.map(([f]) => fmt(rule[f]))].join(' | ') + ' |');
   }
   return lines.join('\n') + '\n';
 }
@@ -175,6 +208,19 @@ function validate(data){
       seen.add(b.date);
     }
   }
+  /* the shape only; whether a rule makes sense (rep cap above the floor, …) is rules.js's call */
+  if(data.rules !== undefined){
+    if(!data.rules || typeof data.rules !== 'object' || Array.isArray(data.rules)) throw new Error('rules must be an object');
+    for(const [key, rule] of Object.entries(data.rules)){
+      if(!KEY_RE.test(key) || !rule || typeof rule !== 'object') throw new Error(`bad progression rule: ${key}`);
+      for(const [f] of RULE_COLUMNS){
+        const v = rule[f];
+        if(RULE_WORDS[f] ? !RULE_WORDS[f].includes(v) : v != null && !isNum(v)) throw new Error(`bad progression rule ${key}.${f}`);
+      }
+      for(const f of Object.keys(rule))
+        if(!RULE_COLUMNS.some(c => c[0] === f)) throw new Error(`bad progression rule field ${key}.${f}`);
+    }
+  }
 }
 
 /* ---------- GitHub contents API ---------- */
@@ -201,6 +247,9 @@ const STALE_SHA_RE = /does not match|is at [0-9a-f]+ but expected|sha/i;
    is safe because the save is made against the loaded sha: if the file changed since, GitHub
    refuses it as a conflict. */
 const LOADED_BODYWEIGHT = new Map();
+/* the same for the Progression rules table (pages that predate editable rules: Q2-2026.html, a
+   cached older H2-2026.html) */
+const LOADED_RULES = new Map();
 
 /* cfg: {owner, repo, branch, path, token}. token may be empty for reads of a public repo. */
 function makeStore(cfg, fetchImpl){
@@ -238,12 +287,15 @@ function makeStore(cfg, fetchImpl){
       const data = parse(b64decode(body.content));
       validate(data);
       LOADED_BODYWEIGHT.set(url, data.bodyweight);
+      LOADED_RULES.set(url, data.rules);
       return {data, sha: body.sha};
     },
     /* commit data as progress.md on top of sha -> new sha. Throws ConflictError if sha is stale. */
     async save(data, sha, message){
       if(data && data.bodyweight === undefined && LOADED_BODYWEIGHT.get(url))
         data = {...data, bodyweight: LOADED_BODYWEIGHT.get(url)};
+      if(data && data.rules === undefined && LOADED_RULES.get(url))
+        data = {...data, rules: LOADED_RULES.get(url)};
       validate(data);
       const r = await f(url, {
         method: 'PUT', headers: {...headers(), 'Content-Type': 'application/json'},
@@ -257,6 +309,7 @@ function makeStore(cfg, fetchImpl){
       }
       if(!r.ok) await fail(r);
       LOADED_BODYWEIGHT.set(url, data.bodyweight);
+      LOADED_RULES.set(url, data.rules);
       return (await r.json()).content.sha;
     },
   };

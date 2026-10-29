@@ -47,16 +47,17 @@ test("the page's EXERCISE_KEY agrees with movements.js", () => {
   for(const [, name, key] of pairs) assert.equal(M.EXERCISE_KEY[name], key, name);
 });
 
-test('every page renderer key is a movement (one card per movement, not per arm variant)', () => {
-  const html = fs.readFileSync(path.join(__dirname, '..', 'H2-2026.html'), 'utf8');
-  const block = html.match(/const RENDERERS = \{([\s\S]*?)\n\};/)[1];
-  const keys = [...block.matchAll(/([a-z][a-z0-9]*)\s*:\s*render/g)].map(m => m[1]);
+test('every Program card key is a movement (one card per movement, not per arm variant)', () => {
+  const block = pageHtml().match(/const CARD = \{([\s\S]*?)\n\};/)[1];
+  const keys = [...block.matchAll(/^\s*([a-z][a-z0-9]*)\s*:\s*\{badge/gm)].map(m => m[1]);
   assert.deepEqual(keys.sort(), current().filter(k => !M.MOVEMENTS[k].variantOf).sort());
 });
 
 test("the page records every working set, under a log name that maps back to its key", () => {
-  const record = pageMap('RECORD'), names = pageMap('HISTORY_NAME');
-  assert.deepEqual(Object.keys(record).sort(), pageKeys().sort());
+  /* RECORD covers every key with a progression rule */
+  assert.match(pageHtml(), /const RECORD = Object\.fromEntries\(Object\.keys\(Rules\.DEFAULT_RULES\)/);
+  assert.deepEqual(Object.keys(require('../rules.js').DEFAULT_RULES).sort(), pageKeys().sort());
+  const names = pageMap('HISTORY_NAME');
   assert.deepEqual(Object.keys(names).sort(), pageKeys().sort());
   for(const [key, name] of Object.entries(names)) assert.equal(M.EXERCISE_KEY[name], key, name);
 });

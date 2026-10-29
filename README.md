@@ -61,7 +61,9 @@ and set the load under Current working sets by hand.
 - `powerlifting_summary.md`, `streetlifting.md`: athlete profile and reference notes
 - `streetlifting_tests.feature`: acceptance scenarios for the program pages
 - `H2-2026.html`: H2 2026 tracker, in progress (same `progress.md`); planned features in `QUEUE.md`.
-  `plan.js` holds its Today Plan maths (warm-ups, working sets, freshness), `movements.js` the movement grouping
+  `plan.js` holds its Today Plan maths (warm-ups, working sets, freshness), `movements.js` the movement grouping,
+  `rules.js` the progression rules (defaults, validation, advancing a working set; editable in Settings and
+  stored in progress.md's optional `## Progression rules` table when they differ from the default)
 - `Q2-2026.md`: original program notes
 - `Q2-2026-alt.html`, `streetlifting_program.html`: older pages (static)
 
