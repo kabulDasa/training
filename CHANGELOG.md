@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- H2 tracker: lat pulldown, dumbbell row, bicep curl, shoulder fly, chest fly and tricep extension
+  can each be done **single arm** or **both arms**. Pick it on the movement's Program card or Today
+  Plan card (the pick is remembered on this device). Each variant has its own working set,
+  progression, undo and session-log name (e.g. `Shoulder Fly (single arm)`); existing log rows stay
+  on the variant they were done as. A variant never logged starts from the other one's reps and sets
+  at about half (single arm) or double (both arms) the load; shoulder fly single arm starts at 6.25 kg.
+- H2 tracker: a Today Plan card for those movements has a **Weight** box for today's load. Logging
+  makes it that variant's new working weight (undo puts the old one back). Settings, Sync to Notes,
+  the weekly volume grid and the volume chart (dashed line = the other variant) cover both variants.
 - H2 tracker: the page now opens on **Today Plan**, the first tab; Program, Chart and Settings
   follow it.
 - H2 tracker: **Unilateral Chest Fly** joins Day 2 (Push) as an isolation movement, starting at

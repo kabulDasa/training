@@ -78,3 +78,14 @@ test('every session in the fixture log is credited', () => {
   const {skipped} = V.weeklyByPattern(history);
   assert.equal(skipped, 0);
 });
+
+test('both arm variants of a movement count, each to the movement pattern', () => {
+  const {weeks, skipped} = V.weeklyByPattern([
+    log('2026-10-26', 'Shoulder Fly', '2 × 10 @ 12.5 kg'),
+    log('2026-10-26', 'Shoulder Fly (single arm)', '2 × 10 @ 6.25 kg'),
+    log('2026-10-27', 'Lat Pulldown (both arms)', '2 × 20 @ 22.5 kg'),
+    log('2026-10-27', 'Dumbbell Row (both arms)', '2 × 14 @ 40 kg'),
+  ], new Date(at('2026-10-28')));
+  assert.equal(skipped, 0);
+  assert.deepEqual(weeks, [{week: '2026-10-26', sets: {isolation: 4, vertical_pull: 2, horizontal_pull: 2}}]);
+});
