@@ -23,6 +23,7 @@ PROGRAM = {
     'Dips': 'dip',
     'Overhead press': 'ohp',
     'Shoulder fly': 'shoulderfly',
+    'Cable chest flys': 'chestfly',
     'Triceps extensions': 'tricepext',
     'Squats': 'squat',
     'Front squat': 'frontsquat', 'Front squats': 'frontsquat',

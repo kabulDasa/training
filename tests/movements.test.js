@@ -87,5 +87,5 @@ test('movement patterns', () => {
   assert.deepEqual(byPattern('horizontal_pull'), ['invertedrow', 'frontlever']);
   assert.deepEqual(byPattern('vertical_push'), ['dip', 'ohp']);
   assert.deepEqual(byPattern('squat'), ['squat', 'frontsquat']);
-  assert.deepEqual(byPattern('isolation'), ['bicepcurl', 'facepull', 'shoulderfly', 'tricepext', 'kneeraise']);
+  assert.deepEqual(byPattern('isolation'), ['bicepcurl', 'facepull', 'shoulderfly', 'chestfly', 'tricepext', 'kneeraise']);
 });

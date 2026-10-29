@@ -279,6 +279,7 @@ main{max-width:1100px;margin:0 auto;padding:24px}
       <span><span class="ldot" style="background:#facc15"></span>Shoulder fly (kg)</span>
       <span><span class="ldot" style="background:#f43f5e"></span>Tricep extension (kg)</span>
       <span><span class="ldot" style="background:#a3e635"></span>Face pull (kg)</span>
+      <span><span class="ldot" style="background:#fb923c"></span>Unilateral chest fly (kg)</span>
     </div>
   </div>
   <div class="cc">
@@ -354,6 +355,7 @@ const DEFAULT_STATE = {
   dip:          {weight:20, reps:3},
   ohp:          {weight:45, reps:5, sets:3},
   shoulderfly:  {weight:10, reps:15, sets:2},
+  chestfly:     {weight:5, reps:8, sets:2},
   tricepext:    {weight:10, reps:17, sets:2},
   squat:        {weight:100},
   frontsquat:   {weight:22.5, reps:20, sets:2},
@@ -489,7 +491,7 @@ function writeGhConfig(cfg){
 /* ---------- sync current Day 1/2/3 state to the Notes app via Shortcuts ---------- */
 function buildNotesText(){
   const p=STATE.pullup, lp=STATE.latpulldown, ir=STATE.invertedrow, bc=STATE.bicepcurl, fp=STATE.facepull;
-  const d=STATE.dip, o=STATE.ohp, sf=STATE.shoulderfly, te=STATE.tricepext, sq=STATE.squat, fs=STATE.frontsquat;
+  const d=STATE.dip, o=STATE.ohp, sf=STATE.shoulderfly, cf=STATE.chestfly, te=STATE.tricepext, sq=STATE.squat, fs=STATE.frontsquat;
   const boP=backoffOf(p.weight,1.25), boD=backoffOf(d.weight,1.25), boSq=backoffOf(sq.weight,2.5);
   return [
     `Q2 2026 Training — synced ${new Date().toLocaleString()}`,
@@ -505,6 +507,7 @@ function buildNotesText(){
     `Weighted dip — top set +${d.weight} kg x ${d.reps} | backoff +${boD} kg x 5 (target 2 sets)`,
     `OHP — ${o.weight} kg x ${o.reps} reps x ${o.sets} sets`,
     `Shoulder fly — ${sf.weight} kg x ${sf.reps} x ${sf.sets} sets`,
+    `Unilateral chest fly — ${cf.weight} kg x ${cf.reps} x ${cf.sets} sets`,
     `Tricep extension — ${te.weight} kg x ${te.reps} x ${te.sets} sets`,
     '',
     'Day 3 — Legs',
@@ -586,7 +589,7 @@ function pushHistory(exercise, result, outcome, weight, volume){
 const EXERCISE_KEY = {
   'Pull-up':'pullup', 'Lat Pulldown':'latpulldown', 'Inverted Row':'invertedrow', 'Dumbbell Row':'invertedrow', 'Bicep Curl':'bicepcurl',
   'Face Pull':'facepull',
-  'Dip':'dip', 'OHP':'ohp', 'Shoulder Fly':'shoulderfly', 'Tricep Extension':'tricepext',
+  'Dip':'dip', 'OHP':'ohp', 'Shoulder Fly':'shoulderfly', 'Chest Fly':'chestfly', 'Tricep Extension':'tricepext',
   'Squat':'squat', 'Front Squat':'frontsquat',
 };
 function advance(key, outcome, s){
@@ -625,7 +628,14 @@ function advance(key, outcome, s){
       }
       break;
     case 'shoulderfly':
-      if(outcome==='normal') s.reps += 1;
+      if(outcome==='normal'){
+        if(s.reps<20) s.reps += 1; else { s.weight = round2(s.weight+1.25); s.reps = 10; }
+      }
+      break;
+    case 'chestfly':
+      if(outcome==='normal'){
+        if(s.reps<20) s.reps += 1; else { s.weight = round2(s.weight+1.25); s.reps = 8; }
+      }
       break;
     case 'invertedrow':
       if(outcome==='normal'){
@@ -903,12 +913,12 @@ function renderShoulderFly(){
     ${tapRow('shoulderfly', s.sets, s.sets)}
     <div class="logrow">
       <button class="logbtn" onclick="logOne('shoulderfly')">Log &amp; advance</button>
-      <div class="eoutcome">${done ? '<span class="eout eout-ok">✓ +1 rep next session</span>' : '<span class="eout eout-miss">↺ Repeat current reps</span>'}</div>
+      <div class="eoutcome">${done ? '<span class="eout eout-ok">✓ Progressing</span>' : '<span class="eout eout-miss">↺ Repeat current reps/weight</span>'}</div>
     </div>
     <div class="ecues" id="cues-shoulderfly"><ul class="cl">
       <li><span>Slight elbow bend held constant, raise to shoulder height</span></li>
       <li><span>Lead with elbows, controlled lowering — no swing</span></li>
-      <li>Add 1 rep/session, no cap</li>
+      <li>Add 1 rep/session until 20 reps, then +1.25 kg and reset to 10 reps</li>
     </ul></div>
   </div>`;
 }
@@ -920,6 +930,36 @@ function recordShoulderFly(){
   pushHistory('Shoulder Fly', `${s.sets} × ${s.reps} @ ${s.weight} kg`, outcome, null, volume);
   advance('shoulderfly', outcome, s);
   clearPending('shoulderfly');
+}
+
+function renderChestFly(){
+  const s = STATE.chestfly;
+  const done = allSetsDone('chestfly', s.sets);
+  return `<div class="er" id="er-chestfly">
+    <div class="etop" onclick="tx('cues-chestfly')">
+      <div class="ename">Unilateral Chest Fly<span class="b-acc">Acc</span></div>
+      <div class="eload"><div class="escheme">${s.sets} × ${s.reps}</div><div class="eweight">${s.weight} kg</div></div>
+    </div>
+    ${tapRow('chestfly', s.sets, s.sets)}
+    <div class="logrow">
+      <button class="logbtn" onclick="logOne('chestfly')">Log &amp; advance</button>
+      <div class="eoutcome">${done ? '<span class="eout eout-ok">✓ Progressing</span>' : '<span class="eout eout-miss">↺ Repeat current reps/weight</span>'}</div>
+    </div>
+    <div class="ecues" id="cues-chestfly"><ul class="cl">
+      <li><span>One arm at a time, sets are per arm; soft elbow held constant through the arc</span></li>
+      <li><span>Stretch the chest at the back, squeeze across the body, square hips — no torso twist</span></li>
+      <li>Add 1 rep/session until 20 reps, then +1.25 kg and reset to 8 reps</li>
+    </ul></div>
+  </div>`;
+}
+function recordChestFly(){
+  const s = STATE.chestfly;
+  const success = allSetsDone('chestfly', s.sets);
+  const outcome = success ? 'normal' : 'hold';
+  const volume = round2(s.weight * s.reps * s.sets);
+  pushHistory('Chest Fly', `${s.sets} × ${s.reps} @ ${s.weight} kg`, outcome, null, volume);
+  advance('chestfly', outcome, s);
+  clearPending('chestfly');
 }
 
 function renderTricepExt(){
@@ -1024,12 +1064,12 @@ function recordFrontSquat(){
    without saving, so a single Log and Finish today's workout share the same progression ---------- */
 const RECORD = {
   pullup:recordPullup, latpulldown:recordLatPulldown, invertedrow:recordInvertedRow, bicepcurl:recordBicepCurl, facepull:recordFacePull,
-  dip:recordDip, ohp:recordOhp, shoulderfly:recordShoulderFly, tricepext:recordTricepExt,
+  dip:recordDip, ohp:recordOhp, shoulderfly:recordShoulderFly, chestfly:recordChestFly, tricepext:recordTricepExt,
   squat:recordSquat, frontsquat:recordFrontSquat,
 };
 const HISTORY_NAME = {
   pullup:'Pull-up', latpulldown:'Lat Pulldown', invertedrow:'Dumbbell Row', bicepcurl:'Bicep Curl', facepull:'Face Pull',
-  dip:'Dip', ohp:'OHP', shoulderfly:'Shoulder Fly', tricepext:'Tricep Extension',
+  dip:'Dip', ohp:'OHP', shoulderfly:'Shoulder Fly', chestfly:'Chest Fly', tricepext:'Tricep Extension',
   squat:'Squat', frontsquat:'Front Squat',
 };
 function logOne(key){
@@ -1227,7 +1267,7 @@ async function finishWorkout(){
    movements yet, so they show as empty groups */
 const RENDERERS = {
   pullup: renderPullup, latpulldown: renderLatPulldown, invertedrow: renderInvertedRow, bicepcurl: renderBicepCurl, facepull: renderFacePull,
-  dip: renderDip, ohp: renderOhp, shoulderfly: renderShoulderFly, tricepext: renderTricepExt,
+  dip: renderDip, ohp: renderOhp, shoulderfly: renderShoulderFly, chestfly: renderChestFly, tricepext: renderTricepExt,
   squat: renderSquat, frontsquat: renderFrontSquat,
 };
 function renderDay(day, n){
@@ -1264,7 +1304,8 @@ function renderSettings(){
     ['Day 1 · Pull','Face pull', `${STATE.facepull.weight} kg × ${STATE.facepull.reps} × ${STATE.facepull.sets} sets`, 'On success, add 1 rep until 20; then add 1.25 kg and reset to 10 reps.'],
     ['Day 2 · Push','Weighted dip', `+${STATE.dip.weight} kg × ${STATE.dip.reps} top set; backoff +${backoffOf(STATE.dip.weight,1.25)} kg × 5 for 2 sets`, 'Under 2 backoff sets: hold. Exactly 2: add 1.25 kg. More than 2: add 2.5 kg.'],
     ['Day 2 · Push','OHP', `${STATE.ohp.weight} kg × ${STATE.ohp.reps} × ${STATE.ohp.sets} sets`, 'On success, add 1 rep until 7; then add 2.5 kg and reset to 3 reps.'],
-    ['Day 2 · Push','Shoulder fly', `${STATE.shoulderfly.weight} kg × ${STATE.shoulderfly.reps} × ${STATE.shoulderfly.sets} sets`, 'On success, add 1 rep. No rep cap or weight increase is currently set.'],
+    ['Day 2 · Push','Shoulder fly', `${STATE.shoulderfly.weight} kg × ${STATE.shoulderfly.reps} × ${STATE.shoulderfly.sets} sets`, 'On success, add 1 rep until 20; then add 1.25 kg and reset to 10 reps.'],
+    ['Day 2 · Push','Unilateral chest fly', `${STATE.chestfly.weight} kg × ${STATE.chestfly.reps} × ${STATE.chestfly.sets} sets`, 'On success, add 1 rep until 20; then add 1.25 kg and reset to 8 reps.'],
     ['Day 2 · Push','Tricep extension', `${STATE.tricepext.weight} kg × ${STATE.tricepext.reps} × ${STATE.tricepext.sets} sets`, 'On success, add 1 rep until 20; then add 2.5 kg and reset to 10 reps.'],
     ['Day 3 · Legs','Competition squat', `${STATE.squat.weight} kg × 3 top set; backoff ${backoffOf(STATE.squat.weight,2.5)} kg × 5 for 2 sets`, 'Under 2 backoff sets: hold. Exactly 2: add 2.5 kg. More than 2: add 5 kg.'],
     ['Day 3 · Legs','Front squat', `${STATE.frontsquat.weight} kg × ${STATE.frontsquat.reps} × ${STATE.frontsquat.sets} sets`, 'Complete both sets at target to add 2.5 kg; otherwise hold.'],
@@ -1287,7 +1328,7 @@ function showTab(id,btn){
 
 function resetAll(){
   if(!confirm('Reset all logged progress and current working sets back to the Q2 2026 starting point?')) return;
-  ['pullup','latpulldown','invertedrow','bicepcurl','facepull','dip','ohp','shoulderfly','tricepext','squat','frontsquat'].forEach(k=>{ clearPending(k); clearTodayExtras(k); });
+  ['pullup','latpulldown','invertedrow','bicepcurl','facepull','dip','ohp','shoulderfly','chestfly','tricepext','squat','frontsquat'].forEach(k=>{ clearPending(k); clearTodayExtras(k); });
   try{ localStorage.removeItem(PLAN_KEY); }catch(_){}
   STATE = mergeState({});
   HISTORY = [];
@@ -1434,6 +1475,7 @@ function renderChart(){
   const ir   = HISTORY.filter(h=>h.exercise==='Dumbbell Row' || h.exercise==='Inverted Row');
   const bc   = HISTORY.filter(h=>h.exercise==='Bicep Curl');
   const sf   = HISTORY.filter(h=>h.exercise==='Shoulder Fly');
+  const cf   = HISTORY.filter(h=>h.exercise==='Chest Fly');
   const te   = HISTORY.filter(h=>h.exercise==='Tricep Extension');
   const fp   = HISTORY.filter(h=>h.exercise==='Face Pull');
 
@@ -1454,6 +1496,7 @@ function renderChart(){
     seriesFrom(sf,   '#facc15', h=>h.volume),
     seriesFrom(te,   '#f43f5e', h=>h.volume),
     seriesFrom(fp,   '#a3e635', h=>h.volume),
+    seriesFrom(cf,   '#fb923c', h=>h.volume),
   ], 'kg × reps');
 
   const tbody = document.getElementById('logtbody');
