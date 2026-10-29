@@ -219,8 +219,8 @@ main{max-width:1100px;margin:0 auto;padding:24px}
 </header>
 
 <div class="tabs">
-  <button class="tb active" onclick="showTab('program',this)">Program</button>
-  <button class="tb" onclick="showTab('today',this)">Today Plan</button>
+  <button class="tb active" onclick="showTab('today',this)">Today Plan</button>
+  <button class="tb" onclick="showTab('program',this)">Program</button>
   <button class="tb" data-tab="chart" onclick="showTab('chart',this)">Chart</button>
   <button class="tb" onclick="showTab('settings',this)">Settings</button>
 </div>
@@ -230,13 +230,13 @@ main{max-width:1100px;margin:0 auto;padding:24px}
 <div id="bwnudge" class="bwnudge" style="display:none"></div>
 
 <!-- PROGRAM -->
-<div id="tab-program" class="tp active">
+<div id="tab-program" class="tp">
   <div class="daynote">Tap the backoff/set circles to log what you actually hit, then press Log to advance. Progress is saved to progress.md on GitHub and committed on every log — there are no fixed weeks.</div>
   <div id="sgrid" class="sgrid"></div>
 </div>
 
 <!-- TODAY PLAN -->
-<div id="tab-today" class="tp">
+<div id="tab-today" class="tp active">
   <div class="cc">
     <div class="ctitle">Build today's plan</div>
     <div class="csub">Start from a day preset or tap movements to add them. Colour shows how long since each was last logged: green within a week, amber 1–2 weeks, red longer or never.</div>
