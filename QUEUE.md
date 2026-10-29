@@ -1,8 +1,10 @@
 # Queue — H2 2026 tracker
 
 Features for `H2-2026.html` (a copy of `Q2-2026.html`; same `progress.md` on the `data` branch).
-`Q2-2026.html` stays untouched and `index.html` keeps pointing at it until H2 is ready.
+`Q2-2026.html` stays untouched. ✅ `index.html` opens H2 since #10.
 Ordered by priority. Each item is one branch + PR into `main`; merges happen one at a time, in this order.
+Flow: the queue is updated here first, an agent builds each item on its branch and opens the PR, and
+it is merged once the tests and reviews pass. Done items stay with their PR for reference.
 
 ## Shared contract: `movements.js`
 
@@ -28,7 +30,7 @@ MOVEMENTS = {
 //           movementsFor() skips them. EXERCISE_KEY maps session-log exercise names to keys.
 ```
 
-## 1. Movement / muscle grouping — `feat/movement-groups`
+## 1. ✅ Movement / muscle grouping — `feat/movement-groups` (done, #5)
 
 - Categories: **big compound** (push: dip, OHP · pull: dumbbell row, pull-up · legs: squat),
   **isolation**, **skill work**, **cardio**. Skill and cardio have no movements yet; the UI shows them
@@ -37,7 +39,7 @@ MOVEMENTS = {
 - Every movement mapped to primary/secondary muscles for item 3.
 - Tests for `movements.js` (every program key has an entry, valid day/category).
 
-## 2. Today Plan tab — `feat/today-plan`
+## 2. ✅ Today Plan tab — `feat/today-plan` (done, #6; Finish skips unticked movements, #9)
 
 - New **Today Plan** tab: build the day's session by picking movements from the Program tab.
 - **Preset** buttons: Push / Pull / Legs fill the plan with that day's movements.
@@ -49,14 +51,14 @@ MOVEMENTS = {
 - **Finish today's workout**: bulk "log & advance" for every movement in the plan, using what was
   ticked, as **one** commit to `progress.md`.
 
-## 3. Weekly volume per movement pattern — `feat/weekly-muscle-volume`
+## 3. ✅ Weekly volume per movement pattern — `feat/weekly-muscle-volume` (done, #7)
 
 - Chart tab: working sets per week for each movement pattern (from the session log + `movements.js`),
   as a pattern × week grid with a 4-week average. Logic in `volume.js`.
 - Mock-ups compared grouping granularity (push/pull/legs, movement patterns, individual muscles);
   the user picked movement patterns (2026-10-28).
 
-## 4. Bodyweight log, trend and reminder — `feat/bodyweight`
+## 4. ✅ Bodyweight log, trend and reminder — `feat/bodyweight` (done, #8)
 
 - Log today's bodyweight (one entry per local day; logging again the same day replaces it). Each log
   or delete is its own commit (`Log bodyweight: 75.2 kg`).
@@ -67,3 +69,41 @@ MOVEMENTS = {
   limit, entries with change and ✕ delete).
 - Reminder banner with a quick-log input when the last entry is older than X days (default 7, 0 = off;
   Settings, per device) or when nothing is logged yet.
+
+### Also done (outside the numbered items)
+
+- ✅ Front page opens the H2 tracker (#10).
+- ✅ Face Pull on Day 1 (Pull), its sessions since August backfilled from the Intensity app, and
+  `intensity-app-analysis/` (#11).
+- ✅ Unilateral Chest Fly on Day 2 (Push); Shoulder Fly capped at 20 reps (+1.25 kg, back to 10) (#12).
+
+## 5. Today Plan is the primary tab — `feat/today-first`
+
+- The page opens on **Today Plan**: it is the first tab and the one active on load. Program, Chart and
+  Settings follow. Deep links / in-page jumps to other tabs keep working.
+
+## 6. Single-arm or both-arm accessories — `feat/arm-variants`
+
+- For shoulder fly, lat pulldown, bicep curl, dumbbell row, tricep extension and chest fly, adding the
+  movement to Today Plan offers **single arm** or **both arms**, with the weight adjustable there.
+- Each variant keeps its **own working set and progression** (a single-arm load isn't half a two-arm
+  load), with its own session-log name (e.g. `Shoulder Fly (single arm)`) and undo stack. Existing
+  log rows stay on the variant they were done as.
+- Current variants (what the existing working set and log are): shoulder fly both arms (12.5 kg;
+  single arm 6.25 kg), lat pulldown single, curl single, dumbbell row single, tricep extension both,
+  chest fly single. The other variant starts from the current reps and sets at a sensible load and is
+  adjustable from the plan.
+- Program tab, Settings, Notes sync, weekly volume (`movements.js` muscles) and Chart cover both
+  variants.
+
+## 7. Editable progression rules — `feat/progression-rules`
+
+- Settings tab: edit each movement's (and each variant's) **progression rule** instead of the fixed
+  text: scheme (**top set + backoff** or **straight sets**), progression (**linear**: +kg on success;
+  **double progression**: +1 rep up to a **rep cap**, then +kg and reset to a rep floor), increments,
+  sets, backoff % / count, rep targets.
+- Rules are kept in `progress.md` (an optional table owned by `progress.js`, like Bodyweight) so every
+  device shares them; changing one is a commit. Defaults equal today's hard-coded rules, so files
+  without the table behave exactly as now, and saves from pages that don't know it keep its rows.
+- `advance()`, the Program/Today cards, warm-ups (`plan.js`), the volume set counter and the Settings
+  text all follow the rule instead of per-key code. Builds on item 6.
