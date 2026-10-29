@@ -1274,6 +1274,10 @@ const CUSTOM_SELECTS = [['day','Day',()=>Movements.DAYS], ['category','Type',()=
 /* session-log rows of an added exercise (its log name is its name) */
 function customLogCount(c){ return HISTORY.filter(h=>h.exercise===c.name).length; }
 function customEntry(key){ return CUSTOM.find(c=>c.key===key) || null; }
+/* a hand-edited row whose key is a built-in movement's (movements.js ignores it): its working set
+   and rule are the built-in's, so Edit and Delete must not touch them */
+function shadowsBuiltin(key){ return Object.hasOwn(Movements.MOVEMENTS, key) && !Movements.isCustom(key); }
+const SHADOW_NOTE = 'This row in progress.md uses the key of a built-in movement, so it is ignored. Delete removes only the row; fix it in progress.md to keep it.';
 
 function openCustomForm(key){
   if(READONLY) return;
@@ -1283,6 +1287,7 @@ function openCustomForm(key){
   }else{
     const c = customEntry(key);
     if(!c) return;
+    if(shadowsBuiltin(key)){ alert(SHADOW_NOTE); return; }
     const s = STATE[key] || {}, rule = RULES_STORED[key] ? Rules.normalize(RULES_STORED[key]) : {};
     CUSTOM_EDIT = {mode:'edit', key, draft:{...rule, name:c.name, day:c.day, category:c.category, pattern:c.pattern, kind:c.kind,
       muscles:{...c.muscles}, weight: s.weight ?? null, reps: s.reps ?? null, sets: s.sets ?? null}};
@@ -1395,7 +1400,7 @@ function saveCustom(){
   }else{
     key = CUSTOM_EDIT.key;
     const old = customEntry(key);
-    if(!old) return;
+    if(!old || shadowsBuiltin(key)) return;
     if(name!==old.name && customLogCount(old)){ alert('This exercise has logged sessions, so its name (the session-log name) can\'t change.'); return; }
     const s = STATE[key] || {};
     const same = JSON.stringify({...old, retired:false}) === JSON.stringify({key, ...details, retired:false})
@@ -1432,6 +1437,15 @@ function deleteCustom(key){
   const c = customEntry(key);
   if(READONLY || !c) return;
   if(customLogCount(c)){ alert(`${c.name} has logged sessions, so it can't be deleted. Retire it instead.`); return; }
+  if(shadowsBuiltin(key)){
+    if(!confirm(`${SHADOW_NOTE}\n\nDelete the ${c.name} row?`)) return;
+    CUSTOM = CUSTOM.filter(x=>x.key!==key);
+    setCustom(CUSTOM);
+    saveState(`Delete exercise: ${c.name} (ignored row)`);
+    render();
+    renderSettings();
+    return;
+  }
   if(!confirm(`Delete ${c.name}? It has no logged sessions; its working set and rule are removed too.`)) return;
   const stored = {...RULES_STORED};
   delete stored[key];
