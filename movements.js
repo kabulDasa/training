@@ -33,6 +33,8 @@ const MOVEMENTS = {
                 muscles: {lats: 1, biceps: 0.5}},
   bicepcurl:   {name: 'Bicep Curl',              day: 'pull', category: 'isolation', pattern: 'isolation',
                 muscles: {biceps: 1}},
+  facepull:    {name: 'Face Pull',               day: 'pull', category: 'isolation', pattern: 'isolation',
+                muscles: {rear_delts: 1, traps: 0.5}},
   /* the dip presses down along the torso with the body near upright, so it counts as a vertical
      push here, though it loads the chest more than the OHP does */
   dip:         {name: 'Weighted Dip',            day: 'push', category: 'compound',  pattern: 'vertical_push',
@@ -58,7 +60,7 @@ const MOVEMENTS = {
 /* session-log exercise name -> key; Dumbbell Row replaced Inverted Row and shares its key */
 const EXERCISE_KEY = {
   'Pull-up': 'pullup', 'Lat Pulldown': 'latpulldown', 'Inverted Row': 'invertedrow', 'Dumbbell Row': 'invertedrow',
-  'Bicep Curl': 'bicepcurl', 'Dip': 'dip', 'OHP': 'ohp', 'Shoulder Fly': 'shoulderfly', 'Tricep Extension': 'tricepext',
+  'Bicep Curl': 'bicepcurl', 'Face Pull': 'facepull', 'Dip': 'dip', 'OHP': 'ohp', 'Shoulder Fly': 'shoulderfly', 'Tricep Extension': 'tricepext',
   'Squat': 'squat', 'Front Squat': 'frontsquat',
   'Muscle-up': 'muscleup', 'Tuck Front Lever': 'frontlever', 'Hanging Knee Raise': 'kneeraise',
 };

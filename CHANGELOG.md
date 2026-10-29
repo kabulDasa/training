@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- H2 tracker: **Face Pull** joins Day 1 (Pull) as an isolation movement (2 sets, +1 rep per session
+  up to 20, then +1.25 kg and back to 10 reps), with its own volume line on the Chart tab. Its
+  sessions since August, from the Intensity app, are in the session log.
+- New `intensity-app-analysis/` folder: a script that lists the exercises in an Intensity app export
+  that are trained most but aren't in the program, and its first report.
 - The site's front page now opens the H2 2026 tracker instead of Q2.
 - H2 tracker: log your bodyweight (Chart tab or the reminder banner; the header shows the latest); one entry per day, kept
   in a new Bodyweight table in `progress.md`. The Chart tab plots the trend against the 74 kg class

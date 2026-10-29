@@ -16,7 +16,7 @@ const DAYS = ['pull', 'push', 'legs'];
    accessory = dumbbell/cable sets × reps */
 const KIND = {
   pullup:'belt', dip:'belt', squat:'squat', ohp:'barbell', frontsquat:'barbell',
-  latpulldown:'accessory', invertedrow:'accessory', bicepcurl:'accessory', shoulderfly:'accessory', tricepext:'accessory',
+  latpulldown:'accessory', invertedrow:'accessory', bicepcurl:'accessory', facepull:'accessory', shoulderfly:'accessory', tricepext:'accessory',
 };
 /* loadable increment of each top-set lift's backoff */
 const BACKOFF_INC = {pullup:1.25, dip:1.25, squat:2.5};
