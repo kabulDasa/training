@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- H2 tracker: the page now opens on **Today Plan**, the first tab; Program, Chart and Settings
+  follow it.
 - H2 tracker: **Unilateral Chest Fly** joins Day 2 (Push) as an isolation movement, starting at
   5 kg × 8 × 2 sets: +1 rep per session up to 20, then +1.25 kg and back to 8 reps. It has its own
   volume line on the Chart tab.
