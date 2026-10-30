@@ -177,6 +177,7 @@ main{max-width:1100px;margin:0 auto;padding:24px}
 /* CHART */
 .cc{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:22px;overflow-x:auto;margin-bottom:16px}
 .ctitle{font-size:15px;font-weight:700;margin-bottom:4px}
+.clogh{display:flex;justify-content:space-between;align-items:center;gap:12px}
 .csub{font-size:13px;color:var(--muted);margin-bottom:18px}
 .cleg{display:flex;gap:18px;margin-top:14px;font-size:13px;flex-wrap:wrap}
 .ldot{width:12px;height:12px;border-radius:50%;display:inline-block;vertical-align:middle;margin-right:5px}
@@ -318,13 +319,16 @@ fieldset.cxfs{border:none;min-width:0}
     </table>
   </div>
   <div class="cc">
-    <div class="ctitle">Session Log</div>
-    <div class="csub">Every logged session across all 7 exercises, most recent first</div>
-    <table class="dt">
-      <thead><tr><th>Date</th><th>Exercise</th><th>Result</th><th>Outcome</th><th></th></tr></thead>
-      <tbody id="logtbody"></tbody>
-    </table>
-    <div id="logempty" class="emptychart" style="display:none">No sessions logged yet.</div>
+    <div class="clogh"><div class="ctitle">Session Log</div>
+      <button class="pbtn" id="logToggle" aria-expanded="false" aria-controls="logBody" onclick="toggleSessionLog()">Expand</button></div>
+    <div class="csub">Every logged session, most recent first</div>
+    <div id="logBody" hidden>
+      <table class="dt">
+        <thead><tr><th>Date</th><th>Exercise</th><th>Result</th><th>Outcome</th><th></th></tr></thead>
+        <tbody id="logtbody"></tbody>
+      </table>
+      <div id="logempty" class="emptychart" style="display:none">No sessions logged yet.</div>
+    </div>
   </div>
   <div class="cc">
     <div class="ctitle">Bodyweight</div>
@@ -1778,6 +1782,14 @@ function pickSeries(view, id){
 function resetChartView(view){
   CHART_PICKED[view] = new Set();
   drawLineCard(view);
+}
+
+/* the Session Log card starts collapsed each time the page loads */
+function toggleSessionLog(){
+  const body = document.getElementById('logBody'), btn = document.getElementById('logToggle');
+  body.hidden = !body.hidden;
+  btn.textContent = body.hidden ? 'Expand' : 'Hide';
+  btn.setAttribute('aria-expanded', String(!body.hidden));
 }
 
 function renderChart(){
