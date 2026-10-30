@@ -51,15 +51,13 @@ const MOVEMENTS = {
                 muscles: {biceps: 1}, arms: 'single'},
   facepull:    {name: 'Face Pull',               day: 'pull', category: 'isolation', pattern: 'isolation',
                 muscles: {rear_delts: 1, traps: 0.5}},
-  /* the dip presses down along the torso with the body near upright, so it counts as a vertical
-     push here, though it loads the chest more than the OHP does */
-  dip:         {name: 'Weighted Dip',            day: 'push', category: 'compound',  pattern: 'vertical_push',
+  dip:         {name: 'Weighted Dip',            day: 'push', category: 'compound',  pattern: 'horizontal_push',
                 muscles: {chest: 1, triceps: 1, front_delts: 0.5}},
   ohp:         {name: 'Overhead Press',          day: 'push', category: 'compound',  pattern: 'vertical_push',
                 muscles: {front_delts: 1, triceps: 0.5, side_delts: 0.5}},
   shoulderfly: {name: 'Shoulder Fly (both arms)', day: 'push', category: 'isolation', pattern: 'isolation',
                 muscles: {side_delts: 1}, arms: 'both'},
-  chestfly:    {name: 'Chest Fly (single arm)',  day: 'push', category: 'isolation', pattern: 'isolation',
+  chestfly:    {name: 'Chest Fly (single arm)',  day: 'push', category: 'isolation', pattern: 'horizontal_push',
                 muscles: {chest: 1, front_delts: 0.5}, arms: 'single'},
   tricepext:   {name: 'Tricep Extension (both arms)', day: 'push', category: 'isolation', pattern: 'isolation',
                 muscles: {triceps: 1}, arms: 'both'},
