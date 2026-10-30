@@ -11,7 +11,7 @@ const NOW = Date.parse('2026-10-28T12:00:00Z');
 const ago = d => new Date(NOW - d*DAY).toISOString();
 
 test('every current movement has a prescription kind', () => {
-  for(const key of Object.keys(MOVEMENTS).filter(k=>!MOVEMENTS[k].retired)) assert.ok(P.KIND[key], key);
+  for(const key of Object.keys(MOVEMENTS).filter(k=>!MOVEMENTS[k].retired && k!=='cardio')) assert.ok(P.KIND[key], key);
 });
 
 test('backoff is 80% rounded to the increment', () => {
@@ -168,4 +168,65 @@ test('result text keeps a shape volume.js counts, for either scheme', () => {
   assert.equal(straight, '3 × 6 @ +20 kg');  // belt weight keeps its +
   assert.equal(V.setsOf(straight), 3);
   assert.equal(P.resultText('ohp', {weight:55, reps:4, sets:3}, undefined, 3), '3 × 4 @ 55 kg');
+});
+
+test('parseDuration takes mm:ss and h:mm:ss, and nothing else', () => {
+  assert.equal(P.parseDuration('27:30'), 1650);
+  assert.equal(P.parseDuration(' 1:05:00 '), 3900);
+  assert.equal(P.parseDuration('90:00'), 5400);
+  for(const bad of ['', null, '27', '27:5', '27:60', '1:60:00', '0:00', '0:00:00', 'abc', '1:2:3:4', '-5:00', '1:05:00x'])
+    assert.equal(P.parseDuration(bad), null, String(bad));
+});
+
+test('formatDuration shows hours only from an hour up', () => {
+  assert.equal(P.formatDuration(1650), '27:30');
+  assert.equal(P.formatDuration(65), '1:05');
+  assert.equal(P.formatDuration(3900), '1:05:00');
+});
+
+test('cleanNote keeps a note safe for a table cell', () => {
+  assert.equal(P.cleanNote('  run   easy '), 'run easy');
+  assert.equal(P.cleanNote('bike|hills\n\tx'), 'bike hills x');
+  assert.equal(P.cleanNote(null), '');
+  assert.equal(P.cleanNote('x'.repeat(60)).length, 40);
+});
+
+test('readCardio: empty, errors and a logged session', () => {
+  assert.deepEqual(P.readCardio({km: '', time: '', note: 'run'}), {empty: true});
+  assert.deepEqual(P.readCardio({km: ' ', time: ' '}), {empty: true});
+  assert.match(P.readCardio({km: '5', time: ''}).error, /both/);
+  assert.match(P.readCardio({km: '', time: '27:30'}).error, /both/);
+  for(const km of ['0', '0.001', 'abc', '-5', '1e3', '1001', '5.2.1']) assert.match(P.readCardio({km, time: '27:30'}).error, /Distance/, km);
+  for(const time of ['27', '27:99', '0:00']) assert.match(P.readCardio({km: '5', time}).error, /Time/, time);
+  assert.deepEqual(P.readCardio({km: '5', time: '27:30', note: ' run '}),
+    {km: 5, seconds: 1650, note: 'run', result: '5 km in 27:30 (5:30/km) · run'});
+  assert.equal(P.readCardio({km: '5,25', time: '1:05:00'}).result, '5.25 km in 1:05:00 (12:23/km)');
+  assert.equal(P.readCardio({km: '3', time: '10:00', note: 'a|b'}).result, '3 km in 10:00 (3:20/km) · a b');
+});
+
+test('a pace that rounds up to a whole minute carries over', () => {
+  assert.equal(P.readCardio({km: '3', time: '17:59'}).result, '3 km in 17:59 (6:00/km)');
+});
+
+test('parseCardioResult reads back what readCardio writes, and rejects anything else', () => {
+  for(const [km, time, note] of [['5', '27:30', 'run'], ['5.25', '1:05:00', ''], ['10', '50:00', 'bike · hills']]){
+    const c = P.readCardio({km, time, note});
+    assert.deepEqual(P.parseCardioResult(c.result), {km: c.km, seconds: c.seconds, note: c.note});
+  }
+  for(const bad of ['', null, '2 × 15 @ 12.5 kg', '5 km', '0 km in 10:00 (0:00/km)', '5 km in 0:00 (0:00/km)'])
+    assert.equal(P.parseCardioResult(bad), null, String(bad));
+});
+
+test('lastCardioForm starts from the newest readable session', () => {
+  const row = result => ({exercise: 'Cardio', result});
+  assert.deepEqual(P.lastCardioForm([]), {km: '', time: '', note: ''});
+  assert.deepEqual(P.lastCardioForm([row('5 km in 27:30 (5:30/km) · run'), {exercise: 'Dip', result: '3 × 5 @ 10 kg'}, row('by hand')]),
+    {km: '5', time: '27:30', note: 'run'});
+  assert.deepEqual(P.lastCardioForm([row('5 km in 27:30 (5:30/km) · run'), row('3 km in 1:00:00 (20:00/km)')]),
+    {km: '3', time: '1:00:00', note: ''});
+});
+
+test('cardio has no kind or warm-ups', () => {
+  assert.equal(P.kindOf('cardio'), null);
+  assert.deepEqual(P.warmups('cardio', {}), []);
 });

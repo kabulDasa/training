@@ -12,7 +12,8 @@ function pageKeys(){
   return [...block.matchAll(/^\s*([a-z][a-z0-9]*)\s*:/gm)].map(m => m[1]);
 }
 
-const current = () => Object.keys(M.MOVEMENTS).filter(k => !M.MOVEMENTS[k].retired);
+/* cardio has no working set, so it isn't one of the page's program keys */
+const current = () => Object.keys(M.MOVEMENTS).filter(k => !M.MOVEMENTS[k].retired && !M.isCardio(k));
 const pageHtml = () => fs.readFileSync(path.join(__dirname, '..', 'H2-2026.html'), 'utf8');
 /* {key: value} pairs of a `const NAME = {...};` object of key:'string' or key:fn entries in the page */
 function pageMap(name){
@@ -113,6 +114,7 @@ test('variant keys fit the progress.md key format', () => {
 
 test('valid day, category, pattern, name and muscle weights', () => {
   for(const [key, m] of Object.entries(M.MOVEMENTS)){
+    if(M.isCardio(key)) continue;
     assert.ok(m.name, key);
     assert.ok(m.day in M.DAYS, `${key} day ${m.day}`);
     assert.ok(m.category in M.CATEGORIES, `${key} category ${m.category}`);
@@ -157,4 +159,14 @@ test('movement patterns', () => {
   assert.deepEqual(byPattern('squat'), ['squat', 'frontsquat']);
   assert.deepEqual(byPattern('isolation'), ['bicepcurl', 'facepull', 'shoulderfly', 'chestfly', 'tricepext', 'kneeraise',
     'bicepcurlboth', 'shoulderflysingle', 'chestflyboth', 'tricepextsingle']);
+});
+
+test('cardio is one movement on no day, in the cardio category', () => {
+  const m = M.MOVEMENTS.cardio;
+  assert.equal(m.category, 'cardio');
+  assert.equal(M.EXERCISE_KEY.Cardio, 'cardio');
+  assert.equal(m.pattern, null);
+  for(const day of Object.keys(M.DAYS)) assert.ok(!M.movementsFor(day).includes('cardio'), day);
+  assert.ok(M.namesTaken().has('cardio'));
+  assert.equal(M.customKey('Cardio'), 'cardio2');
 });

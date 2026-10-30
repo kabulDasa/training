@@ -134,10 +134,12 @@ MOVEMENTS = {
 
 - One built-in **Cardio** movement (not per day), picked from its own group in the Today Plan picker;
   presets don't add it. Skill-work logging is a later item.
-- Its card takes **distance (km)** and **time (mm:ss or h:mm:ss)**, prefilled from the last session;
-  pace is calculated. No working set and no progression. Finish logs it when both are filled in.
-- Stored as a Session log row, e.g. `5 km in 27:30 (5:30/km)`, so there is no new table. HR zones can
-  be added to that text later. The row can be undone from the log.
+- All cardio is that one movement: its card takes **distance (km)**, **time (mm:ss or h:mm:ss)** and
+  an optional free-text **note** for the type (run / bike / elliptical etc.), prefilled from the last
+  session; pace is calculated (min/km for every type). No working set and no progression. Finish logs
+  it when both are filled in, skips it when both are empty, and stops on a partly filled card.
+- Stored as a Session log row, e.g. `5 km in 27:30 (5:30/km) · run`, so there is no new table. HR zones
+  can be added to that text later. The row can be undone from the log.
 - Not counted in the weekly set grid or as a "not counted" log. Chart tab shows weekly distance and time.
 - While there is only one, Add exercise doesn't offer the Cardio type, and the Program tab drops the
   empty per-day Cardio group.
