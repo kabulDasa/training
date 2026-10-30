@@ -306,7 +306,7 @@ fieldset.cxfs{border:none;min-width:0}
       <span><span class="ldot" style="background:var(--pull)"></span>Pull-up backoff (kg)</span>
       <span><span class="ldot" style="background:var(--push)"></span>Dip backoff (kg)</span>
       <span><span class="ldot" style="background:var(--legs)"></span>Squat backoff (kg)</span>
-      <span><span class="ldot" style="background:#22c55e"></span>Front squat (kg)</span>
+      <span><span class="ldot" style="background:#22c55e"></span>Front squat, both legs (kg)</span>
       <span><span class="ldot" style="background:#8b5cf6"></span>Lat pulldown, single arm (kg)</span>
       <span><span class="ldot" style="background:#ec4899"></span>Dumbbell row, single arm (kg)</span>
       <span><span class="ldot" style="background:#06b6d4"></span>Bicep curl, single arm (kg)</span>
@@ -315,7 +315,7 @@ fieldset.cxfs{border:none;min-width:0}
       <span><span class="ldot" style="background:#a3e635"></span>Face pull (kg)</span>
       <span><span class="ldot" style="background:#fb923c"></span>Chest fly, single arm (kg)</span>
       <span id="volLegendCustom" style="display:contents"></span>
-      <span class="tm">Dashed line, same colour: the other arm variant (e.g. shoulder fly single arm)</span>
+      <span class="tm">Dashed line, same colour: the other variant (e.g. shoulder fly single arm, or lunge / split squat for the front squat)</span>
     </div>
   </div>
   <div class="cc">
@@ -353,7 +353,7 @@ fieldset.cxfs{border:none;min-width:0}
 <div id="tab-settings" class="tp">
   <div class="cc">
     <div class="ctitle">Lift Settings</div>
-    <div class="csub">Current working prescriptions and progression rules, one per movement and arm variant. Loads update as you log sessions. Edit a rule to switch between a top set + backoff and straight sets, linear and double progression, or change its increments, rep cap and backoff; each change is a commit to progress.md, shared by every device.</div>
+    <div class="csub">Current working prescriptions and progression rules, one per movement and variant. Loads update as you log sessions. Edit a rule to switch between a top set + backoff and straight sets, linear and double progression, or change its increments, rep cap and backoff; each change is a commit to progress.md, shared by every device.</div>
     <div id="settingsTable"></div>
     <div class="settings-note">Weighted pull-up and dip loads are added belt weight. Squat load is bar weight.</div>
   </div>
@@ -410,7 +410,7 @@ const DEFAULT_STATE = {
   tricepext:    {weight:10, reps:17, sets:2},
   squat:        {weight:100, reps:3},
   frontsquat:   {weight:22.5, reps:20, sets:2},
-  /* the other arm variant of six accessories (movements.js ARM_VARIANTS). When progress.md has no
+  /* the other variant of six accessories and the front squat (movements.js ARM_VARIANTS). When progress.md has no
      row for one yet, mergeState() starts it from its sibling's live working set instead. */
   invertedrowboth:   {weight:40, reps:14, sets:2},
   latpulldownboth:   {weight:22.5, reps:20, sets:2},
@@ -418,9 +418,12 @@ const DEFAULT_STATE = {
   shoulderflysingle: {weight:6.25, reps:15, sets:2},
   chestflyboth:      {weight:10, reps:8, sets:2},
   tricepextsingle:   {weight:5, reps:17, sets:2},
+  frontsquatsingle:  {weight:11.25, reps:10, sets:2},
 };
 /* start loads that aren't half / double the sibling's (the user's shoulder fly is 12.5 kg with both arms, 6.25 kg single) */
 const VARIANT_START_KG = {shoulderflysingle:6.25};
+/* start reps that aren't the sibling's (a lunge / split squat isn't 20 per leg) */
+const VARIANT_START_REPS = {frontsquatsingle:10};
 
 /* Progress lives in progress.md on the repo's `data` branch and is read and written through
    the GitHub contents API (progress.js), so every save is a commit there; `main` (which Pages
@@ -489,7 +492,7 @@ function mergeState(s){
      (same reps and sets, about half or double the load); its first save adds the row */
   Object.keys(merged).forEach(k=>{
     const m = Movements.MOVEMENTS[k];
-    if(m && m.variantOf && !s[k] && s[m.variantOf]) merged[k] = Plan.seedVariant(merged[m.variantOf], m.arms, VARIANT_START_KG[k]);
+    if(m && m.variantOf && !s[k] && s[m.variantOf]) merged[k] = Plan.seedVariant(merged[m.variantOf], m.arms, VARIANT_START_KG[k], VARIANT_START_REPS[k]);
   });
   /* exercises added from Settings (retired ones too: undo and Restore need their working set). An
      entry movements.js ignored keeps its row as it is, so a save doesn't drop it. */
@@ -603,7 +606,7 @@ function noteText(key){
 }
 /* "single arm 6.25 kg x 15 x 2 sets | both arms 12.5 kg x 15 x 2 sets" for a movement with arm variants */
 function armsNoteText(base){
-  return ['single','both'].map(a=>`${Movements.ARMS[a]} ${noteText(Movements.ARM_VARIANTS[base][a])}`).join(' | ');
+  return ['single','both'].map(a=>`${Movements.limbLabels(base)[a]} ${noteText(Movements.ARM_VARIANTS[base][a])}`).join(' | ');
 }
 function buildNotesText(){
   const lines = [`Q2 2026 Training — synced ${new Date().toLocaleString()}`];
@@ -673,6 +676,7 @@ const EXERCISE_KEY = {
   'Squat':'squat', 'Front Squat':'frontsquat', 'Cardio':'cardio',
   'Dumbbell Row (both arms)':'invertedrowboth', 'Lat Pulldown (both arms)':'latpulldownboth', 'Bicep Curl (both arms)':'bicepcurlboth',
   'Shoulder Fly (single arm)':'shoulderflysingle', 'Chest Fly (both arms)':'chestflyboth', 'Tricep Extension (single arm)':'tricepextsingle',
+  'Lunge / Split Squat':'frontsquatsingle',
 };
 /* each variant has its own working set s and its own rule (rules.js; Settings can change it) */
 function advance(key, outcome, s){ Rules.advance(ruleOf(key), outcome, s); }
@@ -732,7 +736,8 @@ const CARD = {
   chestfly: {badge:'acc', cues:['Soft elbow held constant through the arc', 'Stretch the chest at the back, squeeze across the body, square hips — no torso twist']},
   tricepext: {badge:'acc', cues:['Elbows fixed and tucked, full stretch at bottom', 'Full lockout at top without flaring elbows out']},
   squat: {badge:'isf', cues:['ISF standard: hip crease below top of knee'], after:['If lower back fatigue ≥ 7/10 → reduce backoff volume or skip']},
-  frontsquat: {badge:'acc', cues:['Keep elbows high, brace before each rep, and maintain an upright torso']},
+  frontsquat: {badge:'acc', cues:['Keep elbows high, brace before each rep, and maintain an upright torso'],
+    singleCues:['Torso upright, front knee tracking over the toes; lower the back knee under control']},
 };
 
 /* an added exercise's card: Aux badge for a big compound, Acc otherwise, and general cues */
@@ -744,7 +749,8 @@ function cardOf(base){
 
 /* ================= ARM VARIANTS =================
    Lat pulldown, dumbbell row and bicep curl (Pull), shoulder fly, chest fly and tricep extension (Push)
-   can each be done single arm or both arms. Each variant is its own key with its own working set,
+   can each be done single arm or both arms, and the front squat both legs or single leg (Lunge / Split
+   Squat). Each variant is its own key with its own working set,
    rule, taps, log name and undo stack (movements.js ARM_VARIANTS); one card per movement shows the
    variant picked on this device, and the switch on it (or on its Today Plan card) changes that pick.
    Today's weight can be edited on the Today Plan card: it is kept on this device until the movement
@@ -768,8 +774,9 @@ function setArms(base, arms){
 }
 function armSwitch(base){
   const cur = getArms(base);
-  return `<div class="armsw" role="group" aria-label="Arms">${['single','both'].map(a=>
-    `<button class="armbtn${a===cur?' on':''}" aria-pressed="${a===cur}" onclick="setArms('${base}','${a}')">${a==='single'?'Single arm':'Both arms'}</button>`).join('')}</div>`;
+  const labels = Movements.limbLabels(base), cap = t=>t[0].toUpperCase()+t.slice(1);
+  return `<div class="armsw" role="group" aria-label="${labels===Movements.ARMS?'Arms':'Legs'}">${['single','both'].map(a=>
+    `<button class="armbtn${a===cur?' on':''}" aria-pressed="${a===cur}" onclick="setArms('${base}','${a}')">${cap(labels[a])}</button>`).join('')}</div>`;
 }
 /* today's weight for a variant, edited on its Today Plan card (null = the working weight). Kept
    as {w, date} and ignored on any other day, so a weight entered for a session that was never
@@ -808,11 +815,12 @@ function renderMovement(base){
     </div>
     ${wus.length ? `<div class="ewu"><span class="ewu-label">Warm-up</span>${wus.map(w=>`<span class="ewu-set">${load(w.load)}</span>`).join('<span class="ewu-arr"> → </span>')}</div>` : ''}` : '';
   const scheme = ws.top ? '' : `<div class="eload"><div class="escheme">${s.sets} × ${s.reps}</div><div class="eweight">${load(s.weight)}${edited?' today':''}</div></div>`;
-  const cues = (getArms(base)==='single' && Movements.variantsOf(base) ? ['One arm at a time; sets and reps are per arm'] : []).concat(c.cues);
+  const single = getArms(base)==='single' && Movements.variantsOf(base), limb = Movements.limbLabels(base)===Movements.ARMS ? 'arm' : 'leg';
+  const cues = (single ? [`One ${limb} at a time; sets and reps are per ${limb}`] : []).concat(single && c.singleCues || c.cues);
   const ruleLines = [Rules.backoffText(rule), Rules.describe(rule)].filter(Boolean);
   return `<div class="er" id="er-${base}">
     <div class="etop" onclick="tx('cues-${base}')">
-      <div class="ename">${esc(Movements.familyName(base))}${BADGES[c.badge]}</div>
+      <div class="ename">${esc(Movements.variantName(key))}${BADGES[c.badge]}</div>
       ${scheme}
     </div>
     ${Movements.variantsOf(base) ? armSwitch(base) : ''}
@@ -855,6 +863,7 @@ const HISTORY_NAME = {
   squat:'Squat', frontsquat:'Front Squat',
   latpulldownboth:'Lat Pulldown (both arms)', invertedrowboth:'Dumbbell Row (both arms)', bicepcurlboth:'Bicep Curl (both arms)',
   shoulderflysingle:'Shoulder Fly (single arm)', chestflyboth:'Chest Fly (both arms)', tricepextsingle:'Tricep Extension (single arm)',
+  frontsquatsingle:'Lunge / Split Squat',
 };
 /* the session-log name a key logs under: the program's, or an added exercise's own name */
 function histName(key){ return HISTORY_NAME[key] || Movements.MOVEMENTS[key].name; }
@@ -920,7 +929,7 @@ function renderTodayPicker(plan){
       const f = freshOf(key);
       const planned = plan.find(k=>Movements.baseOf(k)===key);
       /* arm variants: the one planned, or the one picking the chip would add */
-      const arms = Movements.variantsOf(key) ? ` <span class="tm">· ${Movements.ARMS[Movements.MOVEMENTS[planned || activeKey(key)].arms]}</span>` : '';
+      const arms = Movements.variantsOf(key) ? ` <span class="tm">· ${Movements.limbLabel(planned || activeKey(key))}</span>` : '';
       return `<button class="tchip f-${f.level}${planned?' on':''}" onclick="togglePlan('${key}')">
         <span class="tname">${esc(Movements.familyName(key))}${arms}</span><span class="tage">${Plan.ageLabel(f.days)}</span></button>`;
     }).join('');
@@ -989,7 +998,7 @@ const CHECK_SVG = '<svg class="tchk" viewBox="0 0 16 16" aria-hidden="true"><cir
 function chipHtml(text, done, current, onclick){
   return `<button class="tset${done?' done':''}${current?' current':''}" onclick="${onclick}">${CHECK_SVG}<span>${text}</span></button>`;
 }
-/* single / both arms switch and today's weight, for a movement with arm variants */
+/* single / both switch and today's weight, for a movement with arm or leg variants */
 function todayArmsHtml(key){
   if(!Movements.variantsOf(key)) return '';
   const w = effState(key).weight, ws = STATE[key].weight;
@@ -1191,7 +1200,7 @@ function settingsKeys(){
   }));
 }
 function liftLabel(key){
-  return Movements.variantsOf(key) ? `${Movements.familyName(key)} · ${Movements.ARMS[Movements.MOVEMENTS[key].arms]}` : Movements.familyName(key);
+  return Movements.variantsOf(key) ? `${Movements.familyName(key)} · ${Movements.limbLabel(key)}` : Movements.familyName(key);
 }
 /* "+25 kg × 3 top set; backoff +20 kg × 5 for 2 sets" or "12.5 kg × 15 × 2 sets" */
 function prescText(key){
@@ -1725,7 +1734,7 @@ function renderChart(){
   const sq   = HISTORY.filter(h=>h.exercise==='Squat');
   const fp   = HISTORY.filter(h=>h.exercise==='Face Pull');
   /* one line per arm variant: the variant that existed first solid, the other dashed in the same colour */
-  const ARM_COLORS = {latpulldown:'#8b5cf6', invertedrow:'#ec4899', bicepcurl:'#06b6d4', shoulderfly:'#facc15', tricepext:'#f43f5e', chestfly:'#fb923c'};
+  const ARM_COLORS = {latpulldown:'#8b5cf6', invertedrow:'#ec4899', bicepcurl:'#06b6d4', shoulderfly:'#facc15', tricepext:'#f43f5e', chestfly:'#fb923c', frontsquat:'#22c55e'};
   const armSeries = Object.entries(ARM_COLORS).flatMap(([base, color])=>[base, Movements.siblingOf(base)].map(key=>({
     ...seriesFrom(HISTORY.filter(h=>keyOf(h.exercise)===key), color, h=>h.volume), dash: key!==base,
   })));
@@ -1747,7 +1756,6 @@ function renderChart(){
     seriesFrom(pull, '#3b82f6', h=>h.volume),
     seriesFrom(dip,  '#f97316', h=>h.volume),
     seriesFrom(sq,   '#10b981', h=>h.volume),
-    seriesFrom(HISTORY.filter(h=>h.exercise==='Front Squat'), '#22c55e', h=>h.volume),
     ...armSeries,
     seriesFrom(fp,   '#a3e635', h=>h.volume),
     ...customSeries,

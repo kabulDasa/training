@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- H2 tracker: **unilateral option for Front Squat**. Front Squat gets a Both legs / Single leg switch on
+  Program and Today Plan. Single leg is **Lunge / Split Squat**, with its own working set, progression,
+  log name and undo; sets and reps are per leg. It starts at half the current front squat load, 10 reps,
+  2 sets, with the front squat's rule (editable in Settings). Existing Front Squat logs stay on both legs.
 - H2 tracker: **cardio in Today Plan**. Pick Cardio from its own group in the picker (all cardio is one
   movement; no day preset adds it). Its card takes distance (km), time (mm:ss or h:mm:ss) and an
   optional note for the type (run, bike, elliptical…), with the last session one tap away (Same as last), and shows the

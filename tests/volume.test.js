@@ -117,3 +117,12 @@ test('weeklyCardio totals distance and time per week, with no gaps', () => {
   assert.equal(weeks[2].sessions[0].note, '');
   assert.deepEqual(V.weeklyCardio([], new Date()), []);
 });
+
+test('the lunge / split squat counts under the squat pattern', () => {
+  const {weeks, skipped} = V.weeklyByPattern([
+    {date: '2026-10-27T10:00:00', exercise: 'Lunge / Split Squat', result: '2 × 10 @ 15 kg'},
+    {date: '2026-10-27T10:05:00', exercise: 'Front Squat', result: '2 × 20 @ 30 kg'},
+  ], new Date(2026, 9, 28));
+  assert.equal(skipped, 0);
+  assert.deepEqual(weeks[0].sets, {squat: 4});
+});

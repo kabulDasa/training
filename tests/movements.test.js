@@ -66,12 +66,13 @@ test("the page records every working set, under a log name that maps back to its
 const VARIANTS = {
   invertedrow: 'invertedrowboth', latpulldown: 'latpulldownboth', bicepcurl: 'bicepcurlboth',
   shoulderfly: 'shoulderflysingle', chestfly: 'chestflyboth', tricepext: 'tricepextsingle',
+  frontsquat: 'frontsquatsingle',
 };
 
-test('six accessories have a single-arm and a both-arm variant', () => {
+test('six accessories and the front squat have a single and a both variant', () => {
   assert.deepEqual(Object.keys(M.ARM_VARIANTS).sort(), Object.keys(VARIANTS).sort());
   /* the variant that existed first keeps its key: shoulder fly and tricep extension are both arms */
-  for(const base of ['shoulderfly', 'tricepext']) assert.equal(M.ARM_VARIANTS[base].both, base);
+  for(const base of ['shoulderfly', 'tricepext', 'frontsquat']) assert.equal(M.ARM_VARIANTS[base].both, base);
   for(const base of ['invertedrow', 'latpulldown', 'bicepcurl', 'chestfly']) assert.equal(M.ARM_VARIANTS[base].single, base);
   for(const [base, key] of Object.entries(VARIANTS)){
     const b = M.MOVEMENTS[base], v = M.MOVEMENTS[key];
@@ -80,11 +81,28 @@ test('six accessories have a single-arm and a both-arm variant', () => {
     assert.deepEqual(M.ARM_VARIANTS[base], {[b.arms]: base, [v.arms]: key});
     for(const f of ['day', 'category', 'pattern']) assert.equal(v[f], b[f], `${key}.${f}`);
     assert.deepEqual(v.muscles, b.muscles, key);
-    assert.match(v.name, new RegExp(`\\(${M.ARMS[v.arms]}\\)$`), key);
+    if(base !== 'frontsquat') assert.match(v.name, new RegExp(`\\(${M.ARMS[v.arms]}\\)$`), key);
     assert.equal(M.familyName(key), M.familyName(base), key);
   }
   assert.equal(M.familyName('shoulderflysingle'), 'Shoulder Fly');
   assert.equal(M.familyName('pullup'), 'Weighted Pull-Up');
+});
+
+test('the front squat\'s single-leg variant is the lunge / split squat, labelled in legs', () => {
+  const v = M.MOVEMENTS.frontsquatsingle;
+  assert.equal(v.name, 'Lunge / Split Squat');
+  assert.equal(M.EXERCISE_KEY['Lunge / Split Squat'], 'frontsquatsingle');
+  assert.equal(M.EXERCISE_KEY['Front Squat'], 'frontsquat');
+  assert.equal(M.familyName('frontsquatsingle'), 'Front Squat');
+  assert.equal(M.variantName('frontsquatsingle'), 'Lunge / Split Squat');
+  assert.equal(M.variantName('frontsquat'), 'Front Squat');
+  assert.equal(M.limbLabel('frontsquatsingle'), 'single leg');
+  assert.equal(M.limbLabel('frontsquat'), 'both legs');
+  /* the arm movements keep their labels */
+  assert.equal(M.limbLabel('shoulderflysingle'), 'single arm');
+  assert.equal(M.limbLabel('tricepext'), 'both arms');
+  assert.equal(M.variantName('shoulderflysingle'), 'Shoulder Fly');
+  assert.deepEqual(M.limbLabels('chestfly'), M.ARMS);
 });
 
 test('baseOf, variantsOf and siblingOf', () => {
@@ -156,7 +174,7 @@ test('movement patterns', () => {
   assert.deepEqual(byPattern('vertical_pull'), ['pullup', 'latpulldown', 'muscleup', 'latpulldownboth']);
   assert.deepEqual(byPattern('horizontal_pull'), ['invertedrow', 'frontlever', 'invertedrowboth']);
   assert.deepEqual(byPattern('vertical_push'), ['dip', 'ohp']);
-  assert.deepEqual(byPattern('squat'), ['squat', 'frontsquat']);
+  assert.deepEqual(byPattern('squat'), ['squat', 'frontsquat', 'frontsquatsingle']);
   assert.deepEqual(byPattern('isolation'), ['bicepcurl', 'facepull', 'shoulderfly', 'chestfly', 'tricepext', 'kneeraise',
     'bicepcurlboth', 'shoulderflysingle', 'chestflyboth', 'tricepextsingle']);
 });

@@ -21,6 +21,7 @@ const KIND = {
   pullup:'belt', dip:'belt', squat:'squat', ohp:'barbell', frontsquat:'barbell',
   latpulldown:'accessory', invertedrow:'accessory', bicepcurl:'accessory', facepull:'accessory', shoulderfly:'accessory', chestfly:'accessory', tricepext:'accessory',
   latpulldownboth:'accessory', invertedrowboth:'accessory', bicepcurlboth:'accessory', shoulderflysingle:'accessory', chestflyboth:'accessory', tricepextsingle:'accessory',
+  frontsquatsingle:'accessory',
 };
 /* a movement's kind: the program's, or the load kind a custom movement was added with (movements.js) */
 function kindOf(key){
@@ -117,11 +118,11 @@ function resultText(key, s, rule, n){
 /* ---------- arm variants ---------- */
 /* starting working set for an arm variant that has none yet, from its sibling's (the other arm
    variant's) working set: same reps and sets, about half the load for single arm or double for
-   both arms, rounded to 1.25 kg. startWeight, when given, is the load to use instead. */
-function seedVariant(sibling, arms, startWeight){
+   both arms, rounded to 1.25 kg. startWeight and startReps, when given, are used instead. */
+function seedVariant(sibling, arms, startWeight, startReps){
   const weight = startWeight != null ? startWeight
     : roundTo(arms === 'single' ? sibling.weight / 2 : sibling.weight * 2, 1.25);
-  return {...sibling, weight};
+  return {...sibling, weight, ...(startReps != null ? {reps: startReps} : {})};
 }
 
 /* ---------- cardio ---------- */
