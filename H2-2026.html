@@ -1760,11 +1760,11 @@ function drawLineCard(view){
   const cfg = CHART_VIEWS[view], series = CHART_SERIES[view], picked = CHART_PICKED[view];
   const shown = ChartSelect.visible(series, picked);
   renderLineChart(document.getElementById(cfg.holder), shown, cfg.yLabel);
-  const anyPicked = shown.length < series.length;
+  const anyPicked = series.some(s=>picked.has(s.id));
   document.getElementById(cfg.legend).innerHTML = series.map(s=>{
-    const on = anyPicked && shown.includes(s);
+    const on = picked.has(s.id);
     const swatch = s.dash ? `class="ldot ldash" style="border-color:${s.color}"` : `class="ldot" style="background:${s.color}"`;
-    return `<button class="lchip${on ? ' on' : anyPicked ? ' off' : ''}" aria-pressed="${on}" onclick="pickSeries('${view}','${s.id}')"><span ${swatch}></span>${esc(s.label)}</button>`;
+    return `<button class="lchip${on ? ' on' : anyPicked ? ' off' : ''}" aria-pressed="${shown.includes(s)}" onclick="pickSeries('${view}','${s.id}')"><span ${swatch}></span>${esc(s.label)}</button>`;
   }).join('') + (series.length > 1
     ? `<button class="pbtn lreset" onclick="resetChartView('${view}')"${anyPicked ? '' : ' disabled'}>Reset view</button>
        <span class="tm">Tap a label to show only that line, and more to add theirs.</span>` : '');
