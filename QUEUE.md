@@ -130,13 +130,13 @@ MOVEMENTS = {
 - Custom movements can be edited (details and rule) and **retired** (hidden from the program, history
   kept), not hard-deleted while they have log rows.
 
-## 9. Cardio in Today Plan: distance and time — `feat/cardio`
+## 9. ✅ Cardio in Today Plan: distance and time — `feat/cardio` (done, #20)
 
 - One built-in **Cardio** movement (not per day), picked from its own group in the Today Plan picker;
   presets don't add it. Skill-work logging is a later item.
 - All cardio is that one movement: its card takes **distance (km)**, **time (mm:ss or h:mm:ss)** and
-  an optional free-text **note** for the type (run / bike / elliptical etc.), prefilled from the last
-  session; pace is calculated (min/km for every type). No working set and no progression. Finish logs
+  an optional free-text **note** for the type (run / bike / elliptical etc.), empty until filled in, with
+  the last session as placeholders and a **Same as last** button; pace is calculated (min/km for every type). No working set and no progression. Finish logs
   it when both are filled in, skips it when both are empty, and stops on a partly filled card.
 - Stored as a Session log row, e.g. `5 km in 27:30 (5:30/km) · run`, so there is no new table. HR zones
   can be added to that text later. The row can be undone from the log.

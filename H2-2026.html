@@ -998,13 +998,22 @@ function todayArmsHtml(key){
     <span class="tm">${w===ws ? 'working weight' : `working weight ${fmt(ws)} kg; logging makes ${fmt(w)} kg the new one`}</span></div>`;
 }
 /* cardio's card: distance, time and a note saying what it was, which Finish logs as one session-log
-   row. The inputs start from the last session; what is typed is kept per device for today. */
+   row. The inputs start empty, so a planned session that wasn't done isn't logged; the last session
+   shows as their placeholders and "Same as last" copies it in. What is entered is kept per device for today. */
 const CARDIO_DRAFT_KEY = 'h2_cardio_draft';
 let CARDIO_TYPED = null;  /* what was typed, should the browser block storage */
 function getCardioDraft(){
   let d = CARDIO_TYPED;
   if(!d){ try{ d = JSON.parse(localStorage.getItem(CARDIO_DRAFT_KEY)); }catch(_){} }
-  return d && d.date===localDate() ? d : Plan.lastCardioForm(HISTORY);
+  return d && d.date===localDate() ? d : {km: '', time: '', note: ''};
+}
+function saveCardioDraft(d){
+  CARDIO_TYPED = {date: localDate(), ...d};
+  try{ localStorage.setItem(CARDIO_DRAFT_KEY, JSON.stringify(CARDIO_TYPED)); }catch(_){}
+}
+function sameCardioAsLast(){
+  saveCardioDraft(Plan.lastCardioForm(HISTORY));
+  render();
 }
 function clearCardioDraft(){
   CARDIO_TYPED = null;
@@ -1017,12 +1026,11 @@ function cardioStatusHtml(){
 }
 function cardioInput(){
   const v = id=>document.getElementById(id).value;
-  CARDIO_TYPED = {date: localDate(), km: v('cardioKm'), time: v('cardioTime'), note: v('cardioNote')};
-  try{ localStorage.setItem(CARDIO_DRAFT_KEY, JSON.stringify(CARDIO_TYPED)); }catch(_){}
+  saveCardioDraft({km: v('cardioKm'), time: v('cardioTime'), note: v('cardioNote')});
   document.getElementById('cardioStatus').innerHTML = cardioStatusHtml();
 }
 function renderCardioCard(){
-  const key = 'cardio', f = freshOf(key), d = getCardioDraft();
+  const key = 'cardio', f = freshOf(key), d = getCardioDraft(), last = Plan.lastCardioForm(HISTORY);
   const open = TODAY_OPEN && TODAY_OPEN.key===key;
   const link = historyOf(key).length ? `<button class="tlink${open?' open':''}" onclick="toggleDrawer('${key}','history')"><span aria-hidden="true">↺</span> History</button>` : '';
   return `<div class="tblock">
@@ -1030,9 +1038,10 @@ function renderCardioCard(){
       <span class="tage f-${f.level}">${Plan.ageLabel(f.days)}</span>${link}
       <button class="tdel" title="Remove from plan" onclick="togglePlan('${key}')">✕</button></div>
     <div class="tarms">
-      <label>Distance <input id="cardioKm" type="text" inputmode="decimal" autocomplete="off" placeholder="5" value="${esc(d.km)}" oninput="cardioInput()"> km</label>
-      <label>Time <input id="cardioTime" type="text" inputmode="text" autocomplete="off" placeholder="27:30" value="${esc(d.time)}" oninput="cardioInput()"></label>
-      <label>Note <input id="cardioNote" class="tnote" type="text" maxlength="40" autocomplete="off" placeholder="run, bike, elliptical…" value="${esc(d.note)}" oninput="cardioInput()"></label>
+      <label>Distance <input id="cardioKm" type="text" inputmode="decimal" autocomplete="off" placeholder="${esc(last.km || '5')}" value="${esc(d.km)}" oninput="cardioInput()"> km</label>
+      <label>Time <input id="cardioTime" type="text" inputmode="text" autocomplete="off" placeholder="${esc(last.time || '27:30')}" value="${esc(d.time)}" oninput="cardioInput()"></label>
+      <label>Note <input id="cardioNote" class="tnote" type="text" maxlength="40" autocomplete="off" placeholder="${esc(last.note || 'run, bike, elliptical…')}" value="${esc(d.note)}" oninput="cardioInput()"></label>
+      ${last.km ? '<button class="pbtn" onclick="sameCardioAsLast()">Same as last</button>' : ''}
     </div>
     <div id="cardioStatus" class="tm">${cardioStatusHtml()}</div>
     ${open ? `<div class="tdrawer">${drawerHtml(key, 'history')}</div>` : ''}
