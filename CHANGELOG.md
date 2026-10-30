@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Every single arm or single leg movement now adds 1.25 kg on progression instead of 2.5 kg (Dumbbell Row, Bicep Curl, Tricep Extension and Lunge / Split Squat changed).
 - H2 tracker: **unilateral option for Front Squat**. Front Squat gets a Both legs / Single leg switch on
   Program and Today Plan. Single leg is **Lunge / Split Squat**, with its own working set, progression,
   log name and undo; sets and reps are per leg. It starts at half the current front squat load, 10 reps,

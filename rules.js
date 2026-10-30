@@ -53,6 +53,9 @@ const DEFAULT_RULES = {
 /* an arm variant starts with its movement's rule */
 for(const [key, m] of Object.entries(Movements.MOVEMENTS))
   if(m.variantOf && DEFAULT_RULES[m.variantOf]) DEFAULT_RULES[key] = {...DEFAULT_RULES[m.variantOf]};
+/* single arm or single leg work always adds 1.25 kg, whatever the two-limb variant adds */
+for(const [key, m] of Object.entries(Movements.MOVEMENTS))
+  if(m.arms === 'single' && DEFAULT_RULES[key]) DEFAULT_RULES[key].inc = 1.25;
 
 /* ---------- shape and validation ---------- */
 /* every field present, the ones this rule's scheme / progression don't use set to null */

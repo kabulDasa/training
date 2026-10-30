@@ -17,9 +17,13 @@ test('every current movement and arm variant has a usable default rule', () => {
   }
 });
 
-test('an arm variant starts with its movement\'s rule, as its own copy', () => {
-  for(const v of Object.values(ARM_VARIANTS)) assert.deepEqual(D[v.single], D[v.both]);
+test('an arm variant starts with its movement\'s rule, as its own copy, but single limb adds 1.25 kg', () => {
+  for(const v of Object.values(ARM_VARIANTS)){
+    assert.equal(D[v.single].inc, 1.25);
+    assert.deepEqual({...D[v.single], inc: 0}, {...D[v.both], inc: 0});
+  }
   assert.notEqual(D.shoulderfly, D.shoulderflysingle);
+  for(const key of ['invertedrowboth', 'bicepcurlboth', 'tricepext', 'frontsquat']) assert.equal(D[key].inc, 2.5, key);
 });
 
 /* the progression hard-coded in H2-2026.html before rules were editable */
@@ -40,8 +44,8 @@ test('defaults: double progression caps and resets', () => {
     // key, reps below the cap -> +1; at the cap -> +kg, reset
     ['ohp', 7, 2.5, 3],
     ['latpulldown', 20, 1.25, 10], ['facepull', 20, 1.25, 10], ['shoulderfly', 20, 1.25, 10],
-    ['bicepcurl', 20, 2.5, 10], ['tricepext', 20, 2.5, 10],
-    ['chestfly', 20, 1.25, 8], ['invertedrow', 15, 2.5, 5],
+    ['bicepcurl', 20, 1.25, 10], ['tricepext', 20, 2.5, 10],
+    ['chestfly', 20, 1.25, 8], ['invertedrow', 15, 1.25, 5],
     ['shoulderflysingle', 20, 1.25, 10], ['invertedrowboth', 15, 2.5, 5],
   ];
   for(const [key, cap, inc, floor] of cases){
