@@ -144,7 +144,7 @@ MOVEMENTS = {
 - While there is only one, Add exercise doesn't offer the Cardio type, and the Program tab drops the
   empty per-day Cardio group.
 
-## 10. Unilateral option for Front Squat — `feat/front-squat-unilateral`
+## 10. ✅ Unilateral option for Front Squat — `feat/front-squat-unilateral` (done, #21)
 
 - Front Squat gets a **Both legs / Single leg** switch like the arm variants. Single leg is **Lunge /
   Split Squat**: its own working set, rule, log name and undo stack; sets and reps are per leg.
