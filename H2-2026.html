@@ -180,6 +180,14 @@ main{max-width:1100px;margin:0 auto;padding:24px}
 .csub{font-size:13px;color:var(--muted);margin-bottom:18px}
 .cleg{display:flex;gap:18px;margin-top:14px;font-size:13px;flex-wrap:wrap}
 .ldot{width:12px;height:12px;border-radius:50%;display:inline-block;vertical-align:middle;margin-right:5px}
+.ldot.ldash{background:none!important;border:2px dashed}
+/* a legend whose labels pick the lines to show */
+.cleg.lsel{gap:6px 8px;align-items:center}
+.lchip{background:none;border:1px solid transparent;border-radius:6px;color:var(--text);font:inherit;padding:5px 8px;cursor:pointer;text-align:left}
+.lchip.on{border-color:var(--gold);background:var(--gold-dim)}
+.lchip.off{opacity:.45}
+.lreset{padding:5px 10px;font-size:13px}
+.lreset:disabled{opacity:.4;cursor:default}
 .emptychart{font-size:13px;color:var(--muted);text-align:center;padding:30px 0}
 .pgrid{display:flex}
 .pgrid svg{display:block;flex-shrink:0}
@@ -292,31 +300,13 @@ fieldset.cxfs{border:none;min-width:0}
     <div class="ctitle">Top Set — Max Weight</div>
     <div class="csub">Pull-up / Dip: added belt weight only (bodyweight fluctuates, so it's excluded) · Squat: top-set bar weight · plotted from your logged sessions</div>
     <div id="chartHolderTop"></div>
-    <div class="cleg">
-      <span><span class="ldot" style="background:var(--pull)"></span>Pull-up (added weight)</span>
-      <span><span class="ldot" style="background:var(--push)"></span>Dip (added weight)</span>
-      <span><span class="ldot" style="background:var(--legs)"></span>Squat (bar weight)</span>
-    </div>
+    <div class="cleg lsel" id="legendTop"></div>
   </div>
   <div class="cc">
     <div class="ctitle">Volume — Backoff + Accessories</div>
     <div class="csub">Main lifts: backoff load × reps × backoff sets completed. Accessories: working load × reps × sets completed. One number for how much work each movement did that session</div>
     <div id="chartHolderVol"></div>
-    <div class="cleg">
-      <span><span class="ldot" style="background:var(--pull)"></span>Pull-up backoff (kg)</span>
-      <span><span class="ldot" style="background:var(--push)"></span>Dip backoff (kg)</span>
-      <span><span class="ldot" style="background:var(--legs)"></span>Squat backoff (kg)</span>
-      <span><span class="ldot" style="background:#22c55e"></span>Front squat, both legs (kg)</span>
-      <span><span class="ldot" style="background:#8b5cf6"></span>Lat pulldown, single arm (kg)</span>
-      <span><span class="ldot" style="background:#ec4899"></span>Dumbbell row, single arm (kg)</span>
-      <span><span class="ldot" style="background:#06b6d4"></span>Bicep curl, single arm (kg)</span>
-      <span><span class="ldot" style="background:#facc15"></span>Shoulder fly, both arms (kg)</span>
-      <span><span class="ldot" style="background:#f43f5e"></span>Tricep extension, both arms (kg)</span>
-      <span><span class="ldot" style="background:#a3e635"></span>Face pull (kg)</span>
-      <span><span class="ldot" style="background:#fb923c"></span>Chest fly, single arm (kg)</span>
-      <span id="volLegendCustom" style="display:contents"></span>
-      <span class="tm">Dashed line, same colour: the other variant (e.g. shoulder fly single arm, or lunge / split squat for the front squat)</span>
-    </div>
+    <div class="cleg lsel" id="legendVol"></div>
   </div>
   <div class="cc">
     <div class="ctitle">Cardio</div>
@@ -391,6 +381,7 @@ fieldset.cxfs{border:none;min-width:0}
 <script src="rules.js"></script>
 <script src="plan.js"></script>
 <script src="volume.js"></script>
+<script src="chart-select.js"></script>
 <script>
 /* name of the one-time Apple Shortcut (created manually in Shortcuts.app) that
    replaces the "Q2 2026 Training" note's body with whatever text we pass it */
@@ -1726,40 +1717,74 @@ function renderCardioChart(){
     <td class="tm">${w.sessions.map(c=>esc(`${fmt(c.km)} km${c.note ? ` ${c.note}` : ''}`)).join(', ')}</td></tr>`).join('');
 }
 
+/* the Top Set and Volume cards: every line with something to plot, each with its own legend label.
+   Clicking labels picks the lines to show (chart-select.js); the pick lasts until the page reloads. */
+const CHART_VIEWS = {
+  top: {holder: 'chartHolderTop', legend: 'legendTop', yLabel: 'kg'},
+  vol: {holder: 'chartHolderVol', legend: 'legendVol', yLabel: 'kg × reps'},
+};
+let CHART_SERIES = {top: [], vol: []};
+const CHART_PICKED = {top: new Set(), vol: new Set()};
+
+function chartSeries(){
+  const logsOf = key => HISTORY.filter(h=>keyOf(h.exercise)===key);
+  const line = (key, label, color, valueFn, dash) => ({...seriesFrom(logsOf(key), color, valueFn), id: key, label, dash: !!dash});
+  const weight = h=>h.weight, volume = h=>h.volume;
+  /* one line per arm variant: the variant that existed first solid, the other dashed in the same colour */
+  const ARM_COLORS = {latpulldown:'#8b5cf6', invertedrow:'#ec4899', bicepcurl:'#06b6d4', shoulderfly:'#facc15', tricepext:'#f43f5e', chestfly:'#fb923c', frontsquat:'#22c55e'};
+  const armSeries = Object.entries(ARM_COLORS).flatMap(([base, color])=>[base, Movements.siblingOf(base)].map(key=>
+    line(key, `${Movements.familyName(key)}, ${Movements.limbLabel(key)} (kg)`, color, volume, key!==base)));
+  /* one line per exercise added from Settings (retired ones too: their stats are kept), coloured in turn */
+  const CUSTOM_COLORS = ['#14b8a6','#e879f9','#fde047','#93c5fd','#fca5a5','#c4b5fd','#5eead4','#fdba74'];
+  const customSeries = Movements.customKeys().map((key,i)=>
+    line(key, `${Movements.MOVEMENTS[key].name}${Movements.MOVEMENTS[key].retired ? ' (retired)' : ''} (kg)`, CUSTOM_COLORS[i % CUSTOM_COLORS.length], volume));
+  const drawn = list => list.filter(s=>s.pts.length);
+  return {
+    top: drawn([
+      line('pullup', 'Pull-up (added weight)', '#3b82f6', weight),
+      line('dip',    'Dip (added weight)',     '#f97316', weight),
+      line('squat',  'Squat (bar weight)',     '#10b981', weight),
+    ]),
+    vol: drawn([
+      line('pullup', 'Pull-up backoff (kg)', '#3b82f6', volume),
+      line('dip',    'Dip backoff (kg)',     '#f97316', volume),
+      line('squat',  'Squat backoff (kg)',   '#10b981', volume),
+      ...armSeries,
+      line('facepull', 'Face Pull (kg)', '#a3e635', volume),
+      ...customSeries,
+    ]),
+  };
+}
+/* one card's chart (its y-axis refits to the lines shown) and its legend */
+function drawLineCard(view){
+  const cfg = CHART_VIEWS[view], series = CHART_SERIES[view], picked = CHART_PICKED[view];
+  const shown = ChartSelect.visible(series, picked);
+  renderLineChart(document.getElementById(cfg.holder), shown, cfg.yLabel);
+  const anyPicked = shown.length < series.length;
+  document.getElementById(cfg.legend).innerHTML = series.map(s=>{
+    const on = anyPicked && shown.includes(s);
+    const swatch = s.dash ? `class="ldot ldash" style="border-color:${s.color}"` : `class="ldot" style="background:${s.color}"`;
+    return `<button class="lchip${on ? ' on' : anyPicked ? ' off' : ''}" aria-pressed="${on}" onclick="pickSeries('${view}','${s.id}')"><span ${swatch}></span>${esc(s.label)}</button>`;
+  }).join('') + (series.length > 1
+    ? `<button class="pbtn lreset" onclick="resetChartView('${view}')"${anyPicked ? '' : ' disabled'}>Reset view</button>
+       <span class="tm">Tap a label to show only that line, and more to add theirs.</span>` : '');
+}
+function pickSeries(view, id){
+  /* a pick whose line has gone (its only log was undone) doesn't count */
+  const live = new Set(CHART_SERIES[view].filter(s=>CHART_PICKED[view].has(s.id)).map(s=>s.id));
+  CHART_PICKED[view] = ChartSelect.toggle(live, id);
+  drawLineCard(view);
+}
+function resetChartView(view){
+  CHART_PICKED[view] = new Set();
+  drawLineCard(view);
+}
+
 function renderChart(){
   renderPatternGrid();
   renderCardioChart();
-  const pull = HISTORY.filter(h=>h.exercise==='Pull-up');
-  const dip  = HISTORY.filter(h=>h.exercise==='Dip');
-  const sq   = HISTORY.filter(h=>h.exercise==='Squat');
-  const fp   = HISTORY.filter(h=>h.exercise==='Face Pull');
-  /* one line per arm variant: the variant that existed first solid, the other dashed in the same colour */
-  const ARM_COLORS = {latpulldown:'#8b5cf6', invertedrow:'#ec4899', bicepcurl:'#06b6d4', shoulderfly:'#facc15', tricepext:'#f43f5e', chestfly:'#fb923c', frontsquat:'#22c55e'};
-  const armSeries = Object.entries(ARM_COLORS).flatMap(([base, color])=>[base, Movements.siblingOf(base)].map(key=>({
-    ...seriesFrom(HISTORY.filter(h=>keyOf(h.exercise)===key), color, h=>h.volume), dash: key!==base,
-  })));
-
-  /* one line per exercise added from Settings (retired ones too: their stats are kept), coloured in turn */
-  const CUSTOM_COLORS = ['#14b8a6','#e879f9','#fde047','#93c5fd','#fca5a5','#c4b5fd','#5eead4','#fdba74'];
-  const customKeys = Movements.customKeys();
-  const customSeries = customKeys.map((key,i)=>seriesFrom(HISTORY.filter(h=>keyOf(h.exercise)===key), CUSTOM_COLORS[i % CUSTOM_COLORS.length], h=>h.volume));
-  document.getElementById('volLegendCustom').innerHTML = customKeys.map((key,i)=>
-    `<span><span class="ldot" style="background:${CUSTOM_COLORS[i % CUSTOM_COLORS.length]}"></span>${esc(Movements.MOVEMENTS[key].name)}${Movements.MOVEMENTS[key].retired ? ' (retired)' : ''} (kg)</span>`).join('');
-
-  renderLineChart(document.getElementById('chartHolderTop'), [
-    seriesFrom(pull, '#3b82f6', h=>h.weight),
-    seriesFrom(dip,  '#f97316', h=>h.weight),
-    seriesFrom(sq,   '#10b981', h=>h.weight),
-  ], 'kg');
-
-  renderLineChart(document.getElementById('chartHolderVol'), [
-    seriesFrom(pull, '#3b82f6', h=>h.volume),
-    seriesFrom(dip,  '#f97316', h=>h.volume),
-    seriesFrom(sq,   '#10b981', h=>h.volume),
-    ...armSeries,
-    seriesFrom(fp,   '#a3e635', h=>h.volume),
-    ...customSeries,
-  ], 'kg × reps');
+  CHART_SERIES = chartSeries();
+  Object.keys(CHART_VIEWS).forEach(drawLineCard);
 
   const tbody = document.getElementById('logtbody');
   const empty = document.getElementById('logempty');

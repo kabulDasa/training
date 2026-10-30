@@ -152,3 +152,9 @@ MOVEMENTS = {
   Split Squat**: its own working set, rule, log name and undo stack; sets and reps are per leg.
 - Starts at half the current front squat load (15 kg), 10 reps, 2 sets, with the front squat's rule
   (editable in Settings) and dumbbell/cable warm-ups. Existing Front Squat rows stay on both legs.
+
+## 11. ✅ Chart labels pick the lines — `feat/chart-legend-select` (done, #PR)
+
+- Top Set and Volume charts: all lines on by default. Clicking a label shows only that line, clicking more
+  adds theirs, and **Reset view** shows all again. Per chart, and it lasts until the page reloads.
+- Every line gets its own label (dashed variants too); nothing logged, no label.

@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Dips and Chest Fly now count as horizontal push in the weekly volume grid, including past weeks.
+- H2 tracker: **chart labels pick the lines**. On the Top Set and Volume charts every line shows at first; tap a label to show only that line, tap more to add theirs, and **Reset view** brings them all back. Each line has its own label, including the dashed variants, and movements with nothing logged no longer get one.
 - Every single arm or single leg movement now adds 1.25 kg on progression instead of 2.5 kg (Dumbbell Row, Bicep Curl, Tricep Extension and Lunge / Split Squat changed).
 - H2 tracker: **unilateral option for Front Squat**. Front Squat gets a Both legs / Single leg switch on
   Program and Today Plan. Single leg is **Lunge / Split Squat**, with its own working set, progression,
