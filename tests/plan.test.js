@@ -128,7 +128,14 @@ test('seedVariant copies the working set instead of sharing it', () => {
 
 test('arm variants are prescribed like their movement', () => {
   for(const [base, v] of Object.entries(require('../movements.js').ARM_VARIANTS))
-    assert.equal(P.KIND[v.single], P.KIND[v.both], base);
+    if(base !== 'frontsquat') assert.equal(P.KIND[v.single], P.KIND[v.both], base);
+});
+
+test('the lunge / split squat seeds at half the front squat with its own reps, and one feeler warm-up', () => {
+  assert.deepEqual(P.seedVariant({weight:30, reps:20, sets:2}, 'single', undefined, 10), {weight:15, reps:10, sets:2});
+  assert.deepEqual(P.seedVariant({weight:30, reps:20, sets:2}, 'single'), {weight:15, reps:20, sets:2});
+  assert.deepEqual(P.warmups('frontsquatsingle', {weight:15}), [{load:7.5, reps:10}]);
+  assert.equal(P.resultText('frontsquatsingle', {weight:15, reps:10, sets:2}, null, 2), '2 × 10 @ 15 kg');
 });
 
 /* ---------- working sets under an edited rule ---------- */

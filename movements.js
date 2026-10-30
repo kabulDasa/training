@@ -10,7 +10,8 @@
    Cardio: one movement for all cardio, logged as distance and time with the activity as a note
    (plan.js). It isn't on any day (so movementsFor() of a day, the presets and Settings skip it) and
    has no pattern, muscles, working set, rule or load kind; the Today Plan picker lists it on its own.
-   Arm variants: six accessories can be done single arm or both arms. Each variant is its own movement
+   Arm variants: six accessories can be done single arm or both arms, and the front squat both legs or
+   single leg (a lunge / split squat). Each variant is its own movement
    (own working set, progression, session-log name and undo stack). The entry that existed first keeps
    its key and log name; the other variant is a sibling key with variantOf = that key, so movementsFor()
    lists the movement once and the page picks the variant (ARM_VARIANTS). arms says which variant an
@@ -65,7 +66,7 @@ const MOVEMENTS = {
   squat:       {name: 'Competition Squat',       day: 'legs', category: 'compound',  pattern: 'squat',
                 muscles: {quads: 1, glutes: 0.5, adductors: 0.5}},
   frontsquat:  {name: 'Front Squat',             day: 'legs', category: 'isolation', pattern: 'squat',
-                muscles: {quads: 1, glutes: 0.5}},
+                muscles: {quads: 1, glutes: 0.5}, arms: 'both'},
   muscleup:    {name: 'Muscle-Up',               day: 'pull', category: 'skill',     pattern: 'vertical_pull',
                 muscles: {lats: 1, triceps: 0.5, chest: 0.5}, retired: true},
   frontlever:  {name: 'Tuck Front Lever',        day: 'pull', category: 'skill',     pattern: 'horizontal_pull',
@@ -78,6 +79,7 @@ const MOVEMENTS = {
 /* the other arm variant of each two-variant accessory: same day, category, pattern and muscles as
    the movement it varies (a set with one arm per side counts like a set with both) */
 const ARMS = {single: 'single arm', both: 'both arms'};
+const LEGS = {single: 'single leg', both: 'both legs'};
 const VARIANT_NAMES = {
   invertedrowboth:   'Dumbbell Row (both arms)',
   latpulldownboth:   'Lat Pulldown (both arms)',
@@ -85,6 +87,7 @@ const VARIANT_NAMES = {
   shoulderflysingle: 'Shoulder Fly (single arm)',
   chestflyboth:      'Chest Fly (both arms)',
   tricepextsingle:   'Tricep Extension (single arm)',
+  frontsquatsingle:  'Lunge / Split Squat',
 };
 for(const [key, name] of Object.entries(VARIANT_NAMES)){
   const base = key.replace(/(single|both)$/, '');
@@ -111,12 +114,20 @@ function siblingOf(key){
   return v ? (v.single === key ? v.both : v.single) : null;
 }
 
-/* a movement's name without its arm variant, e.g. 'Shoulder Fly' for both shoulder fly keys (a
-   custom movement's name is shown as it was typed) */
-function familyName(key){
+/* a variant's own name without the arm suffix, e.g. 'Shoulder Fly' for both shoulder fly keys but
+   'Lunge / Split Squat' for the front squat's single-leg key (a custom movement's name is shown as it
+   was typed) */
+function variantName(key){
   const m = MOVEMENTS[key];
   return m.custom ? m.name : m.name.replace(/ \((single arm|both arms)\)$/, '');
 }
+/* the name of the movement a key belongs to, e.g. 'Front Squat' for both front squat keys */
+function familyName(key){ return variantName(baseOf(key)); }
+
+/* what the variants of key's movement are called: {single, both}, in arms or legs */
+function limbLabels(key){ return baseOf(key) === 'frontsquat' ? LEGS : ARMS; }
+/* the variant key is, e.g. 'single arm' or 'both legs' */
+function limbLabel(key){ return limbLabels(key)[MOVEMENTS[key].arms]; }
 
 /* session-log exercise name -> key; Dumbbell Row replaced Inverted Row and shares its key. The arm
    variants that existed first keep their plain names, so their log rows didn't move. */
@@ -126,6 +137,7 @@ const EXERCISE_KEY = {
   'Squat': 'squat', 'Front Squat': 'frontsquat',
   'Dumbbell Row (both arms)': 'invertedrowboth', 'Lat Pulldown (both arms)': 'latpulldownboth', 'Bicep Curl (both arms)': 'bicepcurlboth',
   'Shoulder Fly (single arm)': 'shoulderflysingle', 'Chest Fly (both arms)': 'chestflyboth', 'Tricep Extension (single arm)': 'tricepextsingle',
+  'Lunge / Split Squat': 'frontsquatsingle',
   'Muscle-up': 'muscleup', 'Tuck Front Lever': 'frontlever', 'Hanging Knee Raise': 'kneeraise',
   'Cardio': 'cardio',
 };
@@ -218,7 +230,7 @@ function setCustom(list){
 }
 
 const api = {DAYS, CATEGORIES, PATTERNS, MUSCLES, MOVEMENTS, EXERCISE_KEY, ARMS, ARM_VARIANTS, KINDS,
-  movementsFor, baseOf, variantsOf, siblingOf, familyName, isCardio,
+  movementsFor, baseOf, variantsOf, siblingOf, variantName, familyName, limbLabels, limbLabel, isCardio,
   isCustom, customKeys, cleanName, namesTaken, customKey, customProblems, setCustom};
 if(typeof module !== 'undefined' && module.exports) module.exports = api;
 else root.Movements = api;
