@@ -18,8 +18,15 @@ pull the `data` branch first; the page will ask to reload if it was open.
 | shoulderfly | 12.5 | 10 | 2 |
 | chestfly | 5 | 9 | 2 |
 | tricepext | 12.5 | 18 | 2 |
-| squat | 110 |  |  |
+| squat | 110 | 3 |  |
 | frontsquat | 30 | 20 | 2 |
+| invertedrowboth | 45 | 6 | 2 |
+| latpulldownboth | 25 | 19 | 2 |
+| bicepcurlboth | 25 | 16 | 2 |
+| shoulderflysingle | 6.25 | 10 | 2 |
+| chestflyboth | 10 | 9 | 2 |
+| tricepextsingle | 6.25 | 18 | 2 |
+| frontsquatsingle | 16.25 | 10 | 2 |
 
 ## Session log
 
@@ -195,6 +202,7 @@ pull the `data` branch first; the page will ask to reload if it was open.
 | 2026-10-29T09:54:31.293Z | Face Pull | 2 × 16 @ 15 kg | normal |  | 480 | 15 kg, 16 reps, 2 sets |
 | 2026-10-29T09:54:31.293Z | Shoulder Fly | 2 × 24 @ 10 kg | normal |  | 480 | 10 kg, 24 reps, 2 sets |
 | 2026-10-29T09:54:31.293Z | Chest Fly | 2 × 8 @ 5 kg | normal |  | 80 | 5 kg, 8 reps, 2 sets |
+| 2026-10-30T09:06:56.907Z | Lunge / Split Squat | 2 × 10 @ 15 kg | normal |  | 300 | 15 kg, 10 reps, 2 sets |
 
 ## Bodyweight
 
