@@ -3,13 +3,15 @@
    ("3 reps top @ +25 kg, 2×5 backoff @ +20 kg" = 3), skill work with a band is the top set plus the
    backoffs ("Green band × 3, 3 backoff" = 4), everything else is "<sets> × <reps>" (the prescribed sets:
    a hold still logs them all, since the sets were done, just short of the target reps). Each working set
-   counts once, to its movement's pattern (movements.js); retired skill movements still count.
+   counts once, to its movement's pattern (movements.js); retired skill movements still count. Cardio has
+   no sets: weeklyCardio() totals its distance and time instead.
    Weeks are ISO weeks (Monday to Sunday) in local time, so a session counts in the week it was trained.
    Loaded as a plain <script> in the page and with require() in the node tests. */
 (function(root){
 'use strict';
 
 const Movements = root.Movements || require('./movements.js');
+const Plan = root.Plan || require('./plan.js');
 
 /* working sets in one logged result, or 0 when the text isn't in a known shape */
 function setsOf(result){
@@ -43,6 +45,7 @@ function weeklyByPattern(history, now = new Date()){
   let skipped = 0;
   for(const h of history){
     const key = Movements.EXERCISE_KEY[h.exercise];
+    if(Movements.isCardio(key)) continue;
     const sets = setsOf(h.result);
     const time = new Date(h.date);
     if(!key || !sets || isNaN(time)){ skipped++; continue; }
@@ -58,6 +61,27 @@ function weeklyByPattern(history, now = new Date()){
   return {weeks, skipped};
 }
 
+/* [{week, km, seconds, sessions: [{date, km, seconds, note}]}] from the oldest cardio session's week
+   through the week of `now`, with no gaps. A row that can't be read (a hand edit) isn't counted. */
+function weeklyCardio(history, now = new Date()){
+  const byWeek = {};
+  for(const h of history){
+    if(!Movements.isCardio(Movements.EXERCISE_KEY[h.exercise])) continue;
+    const c = Plan.parseCardioResult(h.result), time = new Date(h.date);
+    if(!c || isNaN(time)) continue;
+    const w = byWeek[weekStart(time)] = byWeek[weekStart(time)] || {km: 0, seconds: 0, sessions: []};
+    w.km = Math.round((w.km + c.km)*100)/100;
+    w.seconds += c.seconds;
+    w.sessions.push({date: h.date, ...c});
+  }
+  const logged = Object.keys(byWeek).sort();
+  if(logged.length === 0) return [];
+  const last = [logged[logged.length - 1], weekStart(now)].sort()[1];
+  const weeks = [];
+  for(let w = logged[0]; w <= last; w = nextWeek(w)) weeks.push({week: w, ...(byWeek[w] || {km: 0, seconds: 0, sessions: []})});
+  return weeks;
+}
+
 /* mean sets per week for each pattern over the last `n` weeks before the current one */
 function recentAverage(weeks, n = 4){
   const done = weeks.slice(0, -1).slice(-n);
@@ -67,7 +91,7 @@ function recentAverage(weeks, n = 4){
   return avg;
 }
 
-const api = {setsOf, weekStart, weeklyByPattern, recentAverage};
+const api = {setsOf, weekStart, weeklyByPattern, recentAverage, weeklyCardio};
 if(typeof module !== 'undefined' && module.exports) module.exports = api;
 else root.Volume = api;
 })(typeof window !== 'undefined' ? window : globalThis);

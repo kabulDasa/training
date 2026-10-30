@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- H2 tracker: **cardio in Today Plan**. Pick Cardio from its own group in the picker (all cardio is one
+  movement; no day preset adds it). Its card takes distance (km), time (mm:ss or h:mm:ss) and an
+  optional note for the type (run, bike, elliptical…), with the last session one tap away (Same as last), and shows the
+  pace. Finish logs it as one session-log row like `5 km in 27:30 (5:30/km) · run` when distance and
+  time are filled in, skips it when both are empty, and stops with a message on a half-filled card.
+  It has no working set or progression, doesn't count in the weekly set grid, and its latest row can
+  be undone from the log. The Chart tab gets a Cardio card with weekly distance and time. Add exercise
+  no longer offers the Cardio type, and the Program tab no longer shows an empty Cardio group per day.
+
 - H2 tracker: **add your own exercises** from Settings (Your exercises → Add exercise). The form
   needs the name (also its session-log name, which can't match an existing movement or log name),
   the **day** (push / pull / legs), **type** (big compound / isolation / skill work / cardio),

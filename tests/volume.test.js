@@ -89,3 +89,31 @@ test('both arm variants of a movement count, each to the movement pattern', () =
   assert.equal(skipped, 0);
   assert.deepEqual(weeks, [{week: '2026-10-26', sets: {isolation: 4, vertical_pull: 2, horizontal_pull: 2}}]);
 });
+
+test('cardio rows are neither counted nor reported as skipped', () => {
+  const {weeks, skipped} = V.weeklyByPattern([
+    {date: '2026-10-26T10:00:00', exercise: 'Dip', result: '3 reps top @ +25 kg, 2×5 backoff @ +20 kg'},
+    {date: '2026-10-26T11:00:00', exercise: 'Cardio', result: '5 km in 27:30 (5:30/km) · run'},
+    {date: '2026-10-27T11:00:00', exercise: 'Cardio', result: 'by hand'},
+  ], new Date(2026, 9, 28));
+  assert.equal(skipped, 0);
+  assert.deepEqual(weeks, [{week: '2026-10-26', sets: {vertical_push: 3}}]);
+});
+
+test('weeklyCardio totals distance and time per week, with no gaps', () => {
+  const row = (date, result) => ({date, exercise: 'Cardio', result});
+  const weeks = V.weeklyCardio([
+    row('2026-10-05T10:00:00', '5 km in 27:30 (5:30/km) · run'),
+    {date: '2026-10-06T10:00:00', exercise: 'Dip', result: '3 × 5 @ 10 kg'},
+    row('2026-10-07T10:00:00', '10.25 km in 1:00:00 (5:51/km) · bike'),
+    row('2026-10-08T10:00:00', 'by hand'),
+    row('2026-10-19T10:00:00', '3 km in 15:00 (5:00/km)'),
+  ], new Date(2026, 9, 28));
+  assert.deepEqual(weeks.map(w => w.week), ['2026-10-05', '2026-10-12', '2026-10-19', '2026-10-26']);
+  assert.equal(weeks[0].km, 15.25);
+  assert.equal(weeks[0].seconds, 1650 + 3600);
+  assert.deepEqual(weeks[0].sessions.map(s => s.note), ['run', 'bike']);
+  assert.deepEqual({km: weeks[1].km, seconds: weeks[1].seconds, sessions: weeks[1].sessions}, {km: 0, seconds: 0, sessions: []});
+  assert.equal(weeks[2].sessions[0].note, '');
+  assert.deepEqual(V.weeklyCardio([], new Date()), []);
+});

@@ -5,8 +5,11 @@
    isolation. pattern is the movement pattern (single-joint work is 'isolation'). Muscle keys are
    individual muscles so the volume chart can group them any way. The skill movements are retired:
    they are only in the July-August session log, have no working set and don't show on the Program
-   tab, which shows skill work and cardio as empty groups for now. EXERCISE_KEY maps the exercise
-   names used in the session log to keys.
+   tab, which shows skill work as an empty group for now. EXERCISE_KEY maps the exercise names used
+   in the session log to keys.
+   Cardio: one movement for all cardio, logged as distance and time with the activity as a note
+   (plan.js). It isn't on any day (so movementsFor() of a day, the presets and Settings skip it) and
+   has no pattern, muscles, working set, rule or load kind; the Today Plan picker lists it on its own.
    Arm variants: six accessories can be done single arm or both arms. Each variant is its own movement
    (own working set, progression, session-log name and undo stack). The entry that existed first keeps
    its key and log name; the other variant is a sibling key with variantOf = that key, so movementsFor()
@@ -69,6 +72,7 @@ const MOVEMENTS = {
                 muscles: {lats: 1, core: 1}, retired: true},
   kneeraise:   {name: 'Hanging Knee Raise',      day: 'pull', category: 'skill',     pattern: 'isolation',
                 muscles: {core: 1}, retired: true},
+  cardio:      {name: 'Cardio',                  day: 'cardio', category: 'cardio',  pattern: null, muscles: {}},
 };
 
 /* the other arm variant of each two-variant accessory: same day, category, pattern and muscles as
@@ -123,7 +127,10 @@ const EXERCISE_KEY = {
   'Dumbbell Row (both arms)': 'invertedrowboth', 'Lat Pulldown (both arms)': 'latpulldownboth', 'Bicep Curl (both arms)': 'bicepcurlboth',
   'Shoulder Fly (single arm)': 'shoulderflysingle', 'Chest Fly (both arms)': 'chestflyboth', 'Tricep Extension (single arm)': 'tricepextsingle',
   'Muscle-up': 'muscleup', 'Tuck Front Lever': 'frontlever', 'Hanging Knee Raise': 'kneeraise',
+  'Cardio': 'cardio',
 };
+/* the distance-and-time movement, which has no working set or rule */
+function isCardio(key){ return key === 'cardio'; }
 
 /* keys of the current (not retired) movements in one day, optionally one category, in MOVEMENTS order.
    A movement with arm variants is listed once, by its base key. */
@@ -211,7 +218,7 @@ function setCustom(list){
 }
 
 const api = {DAYS, CATEGORIES, PATTERNS, MUSCLES, MOVEMENTS, EXERCISE_KEY, ARMS, ARM_VARIANTS, KINDS,
-  movementsFor, baseOf, variantsOf, siblingOf, familyName,
+  movementsFor, baseOf, variantsOf, siblingOf, familyName, isCardio,
   isCustom, customKeys, cleanName, namesTaken, customKey, customProblems, setCustom};
 if(typeof module !== 'undefined' && module.exports) module.exports = api;
 else root.Movements = api;

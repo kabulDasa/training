@@ -124,6 +124,63 @@ function seedVariant(sibling, arms, startWeight){
   return {...sibling, weight};
 }
 
+/* ---------- cardio ---------- */
+/* a cardio session is a session-log row whose Result holds everything: "5 km in 27:30 (5:30/km) · run"
+   (distance, time, pace, and the optional note saying what it was). Pace is always min/km. */
+const NOTE_MAX = 40;
+/* mm:ss or h:mm:ss -> seconds; null when it is neither or is zero */
+function parseDuration(text){
+  const m = /^(?:(\d{1,2}):([0-5]\d)|(\d{1,3})):([0-5]\d)$/.exec(String(text == null ? '' : text).trim());
+  if(!m) return null;
+  const seconds = (Number(m[1] || 0)*60 + Number(m[2] || m[3]))*60 + Number(m[4]);
+  return seconds > 0 ? seconds : null;
+}
+function pad2(n){ return String(n).padStart(2, '0'); }
+/* seconds -> "27:30", or "1:05:00" from an hour up */
+function formatDuration(seconds){
+  const h = Math.floor(seconds/3600), m = Math.floor(seconds%3600/60), s = seconds%60;
+  return h ? `${h}:${pad2(m)}:${pad2(s)}` : `${m}:${pad2(s)}`;
+}
+/* a note as stored: no | or control characters (it goes in a table cell), single spaces, at most 40 characters */
+function cleanNote(note){
+  return String(note == null ? '' : note).replace(/[|\u0000-\u001f\u007f-\u009f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, NOTE_MAX).trim();
+}
+function cardioResult(km, seconds, note){
+  const pace = Math.round(seconds/km);
+  const text = `${km} km in ${formatDuration(seconds)} (${Math.floor(pace/60)}:${pad2(pace%60)}/km)`;
+  const n = cleanNote(note);
+  return n ? `${text} · ${n}` : text;
+}
+/* {km, seconds, note} from a Result cell, or null when it isn't in that shape (a hand edit) */
+function parseCardioResult(text){
+  const m = /^(\d+(?:\.\d+)?) km in (\d+(?::\d\d){1,2}) \(\d+:\d\d\/km\)(?: · (.*))?$/.exec(String(text == null ? '' : text).trim());
+  if(!m) return null;
+  const km = Number(m[1]), seconds = parseDuration(m[2]);
+  return km > 0 && seconds ? {km, seconds, note: m[3] || ''} : null;
+}
+/* what the card's inputs ({km, time, note}, as typed) amount to: {empty: true} when distance and
+   time are both blank (not done today, whatever the note says), {error} when they can't be logged,
+   else {km, seconds, note, result} */
+function readCardio(form){
+  const kmText = String(form.km == null ? '' : form.km).trim(), timeText = String(form.time == null ? '' : form.time).trim();
+  if(!kmText && !timeText) return {empty: true};
+  if(!kmText || !timeText) return {error: 'Enter both distance and time, or clear both to skip cardio today.'};
+  const km = /^(\d+([.,]\d*)?|[.,]\d+)$/.test(kmText) ? round2(Number(kmText.replace(',', '.'))) : NaN;
+  if(!(km > 0 && km <= 1000)) return {error: 'Distance must be a number of km above 0, at most 1000.'};
+  const seconds = parseDuration(timeText);
+  if(!seconds) return {error: 'Time must be mm:ss or h:mm:ss, for example 27:30 or 1:05:00.'};
+  const note = cleanNote(form.note);
+  return {km, seconds, note, result: cardioResult(km, seconds, note)};
+}
+/* the inputs to start from: the newest cardio session that can be read, as the card shows it */
+function lastCardioForm(history){
+  for(let i=history.length-1;i>=0;i--){
+    const c = history[i].exercise === 'Cardio' ? parseCardioResult(history[i].result) : null;
+    if(c) return {km: String(c.km), time: formatDuration(c.seconds), note: c.note};
+  }
+  return {km: '', time: '', note: ''};
+}
+
 /* ---------- freshness ---------- */
 /* ISO date of the newest log for key, or null. keyOf maps an exercise name to its key. */
 function lastTrained(history, key, keyOf){
@@ -169,7 +226,7 @@ function splitFinish(plan, ticked){
 const api = {
   DAYS, KIND, kindOf, FRESH_DAYS, DUE_DAYS, backoffOf, calWarmups, squatWarmups, barbellWarmups, accessoryWarmups,
   warmups, workingSets, resultText, isAdded, lastTrained, freshness, ageLabel, suggestDay, checklistLength, splitFinish,
-  seedVariant,
+  seedVariant, parseDuration, formatDuration, cleanNote, cardioResult, parseCardioResult, readCardio, lastCardioForm,
 };
 if(typeof module !== 'undefined' && module.exports) module.exports = api;
 else root.Plan = api;

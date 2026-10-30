@@ -329,3 +329,13 @@ test('a save without a rules key keeps the rules it loaded (older pages); an exp
   assert.doesNotMatch(gh.text, /Progression rules/);
   assert.equal(JSON.parse(gh.calls[gh.calls.length - 1].opts.body).message, 'Reset progression rule: Shoulder Fly');
 });
+
+test('a cardio row round-trips, with no load, volume or before', () => {
+  const data = P.parse(fs.readFileSync(path.join(__dirname, 'fixtures', 'progress.md'), 'utf8'));
+  const row = {date: '2026-10-30T10:00:00.000Z', exercise: 'Cardio', result: '5 km in 27:30 (5:30/km) · run \\ easy', outcome: 'normal', weight: null, volume: null, before: null};
+  data.history.push(row);
+  P.validate(data);
+  const back = P.parse(P.serialize(data));
+  assert.deepEqual(back.history[back.history.length - 1], row);
+  P.validate(back);
+});

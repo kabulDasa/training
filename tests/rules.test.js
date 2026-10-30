@@ -9,7 +9,7 @@ const D = R.DEFAULT_RULES;
 const step = (key, outcome, s) => { const n = {...s}; R.advance(D[key], outcome, n); return n; };
 
 test('every current movement and arm variant has a usable default rule', () => {
-  const current = Object.keys(MOVEMENTS).filter(k => !MOVEMENTS[k].retired);
+  const current = Object.keys(MOVEMENTS).filter(k => !MOVEMENTS[k].retired && k !== 'cardio');
   assert.deepEqual(Object.keys(D).sort(), current.sort());
   for(const [key, rule] of Object.entries(D)){
     assert.equal(R.problem(rule), null, key);
