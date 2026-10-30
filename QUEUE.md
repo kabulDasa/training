@@ -129,3 +129,22 @@ MOVEMENTS = {
   weekly pattern grid, Notes sync.
 - Custom movements can be edited (details and rule) and **retired** (hidden from the program, history
   kept), not hard-deleted while they have log rows.
+
+## 9. Cardio in Today Plan: distance and time — `feat/cardio`
+
+- One built-in **Cardio** movement (not per day), picked from its own group in the Today Plan picker;
+  presets don't add it. Skill-work logging is a later item.
+- Its card takes **distance (km)** and **time (mm:ss or h:mm:ss)**, prefilled from the last session;
+  pace is calculated. No working set and no progression. Finish logs it when both are filled in.
+- Stored as a Session log row, e.g. `5 km in 27:30 (5:30/km)`, so there is no new table. HR zones can
+  be added to that text later. The row can be undone from the log.
+- Not counted in the weekly set grid or as a "not counted" log. Chart tab shows weekly distance and time.
+- While there is only one, Add exercise doesn't offer the Cardio type, and the Program tab drops the
+  empty per-day Cardio group.
+
+## 10. Unilateral option for Front Squat — `feat/front-squat-unilateral`
+
+- Front Squat gets a **Both legs / Single leg** switch like the arm variants. Single leg is **Lunge /
+  Split Squat**: its own working set, rule, log name and undo stack; sets and reps are per leg.
+- Starts at half the current front squat load (15 kg), 10 reps, 2 sets, with the front squat's rule
+  (editable in Settings) and dumbbell/cable warm-ups. Existing Front Squat rows stay on both legs.
