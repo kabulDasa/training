@@ -76,6 +76,7 @@ MOVEMENTS = {
 - ✅ Face Pull on Day 1 (Pull), its sessions since August backfilled from the Intensity app, and
   `intensity-app-analysis/` (#11).
 - ✅ Unilateral Chest Fly on Day 2 (Push); Shoulder Fly capped at 20 reps (+1.25 kg, back to 10) (#12).
+- ✅ Single arm and single leg variants all progress by +1.25 kg.
 
 ## 5. ✅ Today Plan is the primary tab — `feat/today-first` (done, #14)
 
