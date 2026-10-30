@@ -173,10 +173,11 @@ test('movement patterns', () => {
   const byPattern = p => Object.keys(M.MOVEMENTS).filter(k => M.MOVEMENTS[k].pattern === p);
   assert.deepEqual(byPattern('vertical_pull'), ['pullup', 'latpulldown', 'muscleup', 'latpulldownboth']);
   assert.deepEqual(byPattern('horizontal_pull'), ['invertedrow', 'frontlever', 'invertedrowboth']);
-  assert.deepEqual(byPattern('vertical_push'), ['dip', 'ohp']);
+  assert.deepEqual(byPattern('vertical_push'), ['ohp']);
+  assert.deepEqual(byPattern('horizontal_push'), ['dip', 'chestfly', 'chestflyboth']);
   assert.deepEqual(byPattern('squat'), ['squat', 'frontsquat', 'frontsquatsingle']);
-  assert.deepEqual(byPattern('isolation'), ['bicepcurl', 'facepull', 'shoulderfly', 'chestfly', 'tricepext', 'kneeraise',
-    'bicepcurlboth', 'shoulderflysingle', 'chestflyboth', 'tricepextsingle']);
+  assert.deepEqual(byPattern('isolation'), ['bicepcurl', 'facepull', 'shoulderfly', 'tricepext', 'kneeraise',
+    'bicepcurlboth', 'shoulderflysingle', 'tricepextsingle']);
 });
 
 test('cardio is one movement on no day, in the cardio category', () => {

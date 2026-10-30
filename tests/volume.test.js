@@ -42,7 +42,7 @@ test('weeklyByPattern credits each set to its pattern, fills gap weeks, runs to 
   ], new Date(at('2026-10-28')));
   assert.equal(skipped, 0);
   assert.deepEqual(weeks.map(w => w.week), ['2026-10-05', '2026-10-12', '2026-10-19', '2026-10-26']);
-  assert.deepEqual(weeks[0].sets, {vertical_pull: 5, horizontal_pull: 2, isolation: 2, vertical_push: 6});
+  assert.deepEqual(weeks[0].sets, {vertical_pull: 5, horizontal_pull: 2, isolation: 2, horizontal_push: 3, vertical_push: 3});
   assert.deepEqual(weeks[1].sets, {});
   assert.deepEqual(weeks[2].sets, {squat: 2});
   assert.deepEqual(weeks[3].sets, {});
@@ -97,7 +97,7 @@ test('cardio rows are neither counted nor reported as skipped', () => {
     {date: '2026-10-27T11:00:00', exercise: 'Cardio', result: 'by hand'},
   ], new Date(2026, 9, 28));
   assert.equal(skipped, 0);
-  assert.deepEqual(weeks, [{week: '2026-10-26', sets: {vertical_push: 3}}]);
+  assert.deepEqual(weeks, [{week: '2026-10-26', sets: {horizontal_push: 3}}]);
 });
 
 test('weeklyCardio totals distance and time per week, with no gaps', () => {

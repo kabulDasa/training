@@ -77,6 +77,7 @@ MOVEMENTS = {
   `intensity-app-analysis/` (#11).
 - ✅ Unilateral Chest Fly on Day 2 (Push); Shoulder Fly capped at 20 reps (+1.25 kg, back to 10) (#12).
 - ✅ Single arm and single leg variants all progress by +1.25 kg.
+- ✅ Dip and Chest Fly count as horizontal push.
 
 ## 5. ✅ Today Plan is the primary tab — `feat/today-first` (done, #14)
 
