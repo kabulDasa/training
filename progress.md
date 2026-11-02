@@ -213,6 +213,7 @@ pull the `data` branch first; the page will ask to reload if it was open.
 | 2026-11-02T09:34:56.643Z | Shoulder Fly | 2 × 10 @ 12.5 kg | normal |  | 250 | 12.5 kg, 10 reps, 2 sets |
 | 2026-11-02T09:34:56.643Z | Chest Fly | 2 × 9 @ 5 kg | normal |  | 90 | 5 kg, 9 reps, 2 sets |
 | 2026-11-02T09:34:56.643Z | Tricep Extension | 2 × 18 @ 12.5 kg | hold |  | 450 | 12.5 kg, 18 reps, 2 sets |
+| 2026-11-02T09:38:34.493Z | Cardio | 0.37 km in 4:00 (10:49/km) · Run | normal |  |  |  |
 
 ## Bodyweight
 
