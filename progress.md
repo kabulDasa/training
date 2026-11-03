@@ -220,3 +220,4 @@ pull the `data` branch first; the page will ask to reload if it was open.
 | Date | Bodyweight (kg) |
 |---|---|
 | 2026-10-28 | 76 |
+| 2026-11-03 | 75 |
