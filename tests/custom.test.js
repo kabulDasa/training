@@ -13,7 +13,7 @@ const V = require('../volume.js');
 
 const FIXTURE = fs.readFileSync(path.join(__dirname, 'fixtures', 'progress.md'), 'utf8');
 
-const CRUNCH = {key: 'cablecrunch', name: 'Cable Crunch', day: 'push', category: 'isolation', pattern: 'isolation',
+const CRUNCH = {key: 'cablecrunch', name: 'Cable Crunch', day: 'hyp', category: 'isolation', pattern: 'isolation',
   kind: 'accessory', muscles: {core: 1}, retired: false};
 const RDL = {key: 'romaniandeadlift', name: 'Romanian Deadlift', day: 'legs', category: 'compound', pattern: 'hinge',
   kind: 'barbell', muscles: {hamstrings: 1, glutes: 0.5, erectors: 0.5}, retired: false};
@@ -36,7 +36,7 @@ const WITH = {...BASE, rules: {cablecrunch: CRUNCH_RULE, romaniandeadlift: RDL_R
 test('custom movements round-trip as their own table after Progression rules', () => {
   const text = P.serialize(WITH);
   assert.match(text, /## Progression rules[\s\S]*\n## Custom movements\n\n\| Key \| Name \| Day \| Type \| Pattern \| Load \| Muscles \| Retired \|\n\|---\|---\|---\|---\|---\|---\|---\|---\|\n/);
-  assert.match(text, /\| cablecrunch \| Cable Crunch \| push \| isolation \| isolation \| accessory \| core 1 \|  \|\n/);
+  assert.match(text, /\| cablecrunch \| Cable Crunch \| hyp \| isolation \| isolation \| accessory \| core 1 \|  \|\n/);
   assert.match(text, /\| romaniandeadlift \| Romanian Deadlift \| legs \| compound \| hinge \| barbell \| hamstrings 1, glutes 0\.5, erectors 0\.5 \|  \|\n/);
   assert.match(text, /\| sissysquat \| Sissy Squat \| legs \| isolation \| squat \| accessory \|  \| yes \|\n$/);
   assert.deepEqual(P.parse(text), WITH);
@@ -52,8 +52,18 @@ test('files without a Custom movements section load without one and are written 
   assert.equal(P.serialize(P.parse(FIXTURE)), FIXTURE);
 });
 
+test('a custom movement saved under the old Pull / Push days moves to the strength or hypertrophy day', () => {
+  const text = P.serialize(WITH).replace('| hyp | isolation |', '| push | isolation |')
+    .replace('| legs | compound |', '| pull | compound |');
+  const custom = P.parse(text).custom;
+  assert.equal(custom[0].day, 'hyp');
+  assert.equal(custom[1].day, 'upper');
+  assert.equal(custom[2].day, 'legs');
+  assert.doesNotThrow(() => P.validate(P.parse(text)));
+});
+
 test('hand-edited custom movement words are read case-insensitively; names keep their case and escapes', () => {
-  const text = P.serialize(WITH).replace('| push | isolation | isolation | accessory |', '| Push | Isolation | ISOLATION | Accessory |')
+  const text = P.serialize(WITH).replace('| hyp | isolation | isolation | accessory |', '| Hyp | Isolation | ISOLATION | Accessory |')
     .replace('| yes |', '| Yes |');
   const data = P.parse(text);
   assert.deepEqual(data.custom, WITH.custom);
@@ -170,8 +180,8 @@ test('setCustom registers added exercises everywhere movements.js is read, and r
     assert.equal(M.variantsOf('cablecrunch'), null);
     assert.equal(M.familyName('cablecrunch'), 'Cable Crunch');
     // after the program's movements in their day and category; retired ones aren't listed
-    assert.deepEqual(M.movementsFor('push'), ['dip', 'ohp', 'shoulderfly', 'chestfly', 'tricepext', 'cablecrunch']);
-    assert.deepEqual(M.movementsFor('legs', 'compound'), ['squat', 'romaniandeadlift']);
+    assert.deepEqual(M.movementsFor('hyp'), ['latpulldown', 'bicepcurl', 'shoulderfly', 'chestfly', 'tricepext', 'cablecrunch']);
+    assert.deepEqual(M.movementsFor('legs', 'compound'), ['invertedrow', 'ohp', 'romaniandeadlift']);
     assert.deepEqual(M.movementsFor('legs', 'isolation'), ['frontsquat']);
     // re-registering (an edit / retire / delete) replaces the earlier set, built-ins untouched
     M.setCustom([{...CRUNCH, name: 'Cable Crunch Kneeling', retired: true}]);
@@ -179,7 +189,7 @@ test('setCustom registers added exercises everywhere movements.js is read, and r
     assert.equal(M.EXERCISE_KEY['Cable Crunch'], undefined);
     assert.equal(M.EXERCISE_KEY['Cable Crunch Kneeling'], 'cablecrunch');
     assert.equal(M.MOVEMENTS.romaniandeadlift, undefined);
-    assert.deepEqual(M.movementsFor('push'), ['dip', 'ohp', 'shoulderfly', 'chestfly', 'tricepext']);
+    assert.deepEqual(M.movementsFor('hyp'), ['latpulldown', 'bicepcurl', 'shoulderfly', 'chestfly', 'tricepext']);
     assert.equal(M.EXERCISE_KEY['Shoulder Fly'], 'shoulderfly');
   } finally { M.setCustom([]); }
   assert.deepEqual(M.customKeys(), []);

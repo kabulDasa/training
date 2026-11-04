@@ -147,10 +147,15 @@ test('valid day, category, pattern, name and muscle weights', () => {
   }
 });
 
-test('big compounds are dip and OHP, dumbbell row and pull-up, squat', () => {
-  assert.deepEqual(M.movementsFor('push', 'compound'), ['dip', 'ohp']);
-  assert.deepEqual(M.movementsFor('pull', 'compound'), ['pullup', 'invertedrow']);
-  assert.deepEqual(M.movementsFor('legs', 'compound'), ['squat']);
+test('big compounds are pull-up and dip, squat, dumbbell row and OHP', () => {
+  assert.deepEqual(M.movementsFor('upper', 'compound'), ['pullup', 'dip']);
+  assert.deepEqual(M.movementsFor('lower', 'compound'), ['squat']);
+  assert.deepEqual(M.movementsFor('hyp', 'compound'), []);
+  assert.deepEqual(M.movementsFor('legs', 'compound'), ['invertedrow', 'ohp']);
+});
+
+test('the four days are upper strength, lower strength, upper hypertrophy, legs + compound', () => {
+  assert.deepEqual(Object.keys(M.DAYS), ['upper', 'lower', 'hyp', 'legs']);
 });
 
 test('skill work and cardio have no current movements', () => {
@@ -161,12 +166,13 @@ test('skill work and cardio have no current movements', () => {
 });
 
 test('movementsFor without a category lists the whole day', () => {
-  assert.deepEqual(M.movementsFor('legs'), ['squat', 'frontsquat']);
+  assert.deepEqual(M.movementsFor('lower'), ['squat']);
+  assert.deepEqual(M.movementsFor('legs'), ['invertedrow', 'ohp', 'frontsquat']);
 });
 
 test('movementsFor lists a movement with arm variants once, by its base key', () => {
-  assert.deepEqual(M.movementsFor('pull'), ['pullup', 'invertedrow', 'latpulldown', 'bicepcurl', 'facepull']);
-  assert.deepEqual(M.movementsFor('push'), ['dip', 'ohp', 'shoulderfly', 'chestfly', 'tricepext']);
+  assert.deepEqual(M.movementsFor('upper'), ['pullup', 'facepull', 'dip']);
+  assert.deepEqual(M.movementsFor('hyp'), ['latpulldown', 'bicepcurl', 'shoulderfly', 'chestfly', 'tricepext']);
 });
 
 test('movement patterns', () => {

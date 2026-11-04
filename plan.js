@@ -9,7 +9,7 @@ const DAY_MS = 86400000;
 /* trained within FRESH_DAYS = green, within DUE_DAYS = amber, older (or never) = red */
 const FRESH_DAYS = 7, DUE_DAYS = 14;
 const BAR = 20;
-const DAYS = ['pull', 'push', 'legs'];
+const DAYS = ['upper', 'lower', 'hyp', 'legs'];
 
 const Rules = root.Rules || require('./rules.js');
 const Movements = root.Movements || require('./movements.js');

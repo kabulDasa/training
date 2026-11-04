@@ -26,7 +26,9 @@
 (function(root){
 'use strict';
 
-const DAYS = {pull: 'Pull', push: 'Push', legs: 'Legs'};
+/* the four-day split, in program order: dip and pull-up share a day (a push and a pull, so the
+   shoulders and elbows get the rest of the week off), and OHP and dumbbell row go with the legs */
+const DAYS = {upper: 'Upper Strength', lower: 'Lower Strength', hyp: 'Upper Hypertrophy', legs: 'Legs + Compound'};
 const CATEGORIES = {compound: 'Big compound', isolation: 'Isolation', skill: 'Skill work', cardio: 'Cardio'};
 const PATTERNS = {
   vertical_pull: 'Vertical pull', horizontal_pull: 'Horizontal pull',
@@ -41,35 +43,35 @@ const MUSCLES = {
 
 /* within a day, movements are listed in this order */
 const MOVEMENTS = {
-  pullup:      {name: 'Weighted Pull-Up',        day: 'pull', category: 'compound',  pattern: 'vertical_pull',
+  pullup:      {name: 'Weighted Pull-Up',        day: 'upper', category: 'compound',  pattern: 'vertical_pull',
                 muscles: {lats: 1, biceps: 0.5, rear_delts: 0.5}},
-  invertedrow: {name: 'Dumbbell Row (single arm)', day: 'pull', category: 'compound', pattern: 'horizontal_pull',
+  invertedrow: {name: 'Dumbbell Row (single arm)', day: 'legs', category: 'compound', pattern: 'horizontal_pull',
                 muscles: {lats: 1, traps: 0.5, rear_delts: 0.5, biceps: 0.5}, arms: 'single'},
-  latpulldown: {name: 'Lat Pulldown (single arm)', day: 'pull', category: 'isolation', pattern: 'vertical_pull',
+  latpulldown: {name: 'Lat Pulldown (single arm)', day: 'hyp', category: 'isolation', pattern: 'vertical_pull',
                 muscles: {lats: 1, biceps: 0.5}, arms: 'single'},
-  bicepcurl:   {name: 'Bicep Curl (single arm)', day: 'pull', category: 'isolation', pattern: 'isolation',
+  bicepcurl:   {name: 'Bicep Curl (single arm)', day: 'hyp', category: 'isolation', pattern: 'isolation',
                 muscles: {biceps: 1}, arms: 'single'},
-  facepull:    {name: 'Face Pull',               day: 'pull', category: 'isolation', pattern: 'isolation',
+  facepull:    {name: 'Face Pull',               day: 'upper', category: 'isolation', pattern: 'isolation',
                 muscles: {rear_delts: 1, traps: 0.5}},
-  dip:         {name: 'Weighted Dip',            day: 'push', category: 'compound',  pattern: 'horizontal_push',
+  dip:         {name: 'Weighted Dip',            day: 'upper', category: 'compound',  pattern: 'horizontal_push',
                 muscles: {chest: 1, triceps: 1, front_delts: 0.5}},
-  ohp:         {name: 'Overhead Press',          day: 'push', category: 'compound',  pattern: 'vertical_push',
+  ohp:         {name: 'Overhead Press',          day: 'legs', category: 'compound',  pattern: 'vertical_push',
                 muscles: {front_delts: 1, triceps: 0.5, side_delts: 0.5}},
-  shoulderfly: {name: 'Shoulder Fly (both arms)', day: 'push', category: 'isolation', pattern: 'isolation',
+  shoulderfly: {name: 'Shoulder Fly (both arms)', day: 'hyp', category: 'isolation', pattern: 'isolation',
                 muscles: {side_delts: 1}, arms: 'both'},
-  chestfly:    {name: 'Chest Fly (single arm)',  day: 'push', category: 'isolation', pattern: 'horizontal_push',
+  chestfly:    {name: 'Chest Fly (single arm)',  day: 'hyp', category: 'isolation', pattern: 'horizontal_push',
                 muscles: {chest: 1, front_delts: 0.5}, arms: 'single'},
-  tricepext:   {name: 'Tricep Extension (both arms)', day: 'push', category: 'isolation', pattern: 'isolation',
+  tricepext:   {name: 'Tricep Extension (both arms)', day: 'hyp', category: 'isolation', pattern: 'isolation',
                 muscles: {triceps: 1}, arms: 'both'},
-  squat:       {name: 'Competition Squat',       day: 'legs', category: 'compound',  pattern: 'squat',
+  squat:       {name: 'Competition Squat',       day: 'lower', category: 'compound',  pattern: 'squat',
                 muscles: {quads: 1, glutes: 0.5, adductors: 0.5}},
   frontsquat:  {name: 'Front Squat',             day: 'legs', category: 'isolation', pattern: 'squat',
                 muscles: {quads: 1, glutes: 0.5}, arms: 'both'},
-  muscleup:    {name: 'Muscle-Up',               day: 'pull', category: 'skill',     pattern: 'vertical_pull',
+  muscleup:    {name: 'Muscle-Up',               day: 'upper', category: 'skill',     pattern: 'vertical_pull',
                 muscles: {lats: 1, triceps: 0.5, chest: 0.5}, retired: true},
-  frontlever:  {name: 'Tuck Front Lever',        day: 'pull', category: 'skill',     pattern: 'horizontal_pull',
+  frontlever:  {name: 'Tuck Front Lever',        day: 'upper', category: 'skill',     pattern: 'horizontal_pull',
                 muscles: {lats: 1, core: 1}, retired: true},
-  kneeraise:   {name: 'Hanging Knee Raise',      day: 'pull', category: 'skill',     pattern: 'isolation',
+  kneeraise:   {name: 'Hanging Knee Raise',      day: 'upper', category: 'skill',     pattern: 'isolation',
                 muscles: {core: 1}, retired: true},
   cardio:      {name: 'Cardio',                  day: 'cardio', category: 'cardio',  pattern: null, muscles: {}},
 };

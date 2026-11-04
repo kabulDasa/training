@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const P = require('../plan.js');
 const {MOVEMENTS, movementsFor} = require('../movements.js');
 
-const KEY = {'Pull-up':'pullup', 'Dip':'dip', 'Squat':'squat', 'Dumbbell Row':'invertedrow', 'Inverted Row':'invertedrow'};
+const KEY = {'Pull-up':'pullup', 'Dip':'dip', 'Squat':'squat', 'Lat Pulldown':'latpulldown', 'OHP':'ohp', 'Dumbbell Row':'invertedrow', 'Inverted Row':'invertedrow'};
 const keyOf = e => KEY[e] || null;
 const DAY = 86400000;
 const NOW = Date.parse('2026-10-28T12:00:00Z');
@@ -90,9 +90,11 @@ test('lastTrained finds the newest row for a key, across shared names', () => {
 });
 
 test('suggestDay picks the day trained longest ago', () => {
-  assert.equal(P.suggestDay(movementsFor, HIST, keyOf), 'legs');
-  assert.equal(P.suggestDay(movementsFor, [], keyOf), 'pull');
-  assert.equal(P.suggestDay(movementsFor, [...HIST, {date: ago(1), exercise:'Squat'}], keyOf), 'pull');
+  assert.equal(P.suggestDay(movementsFor, HIST, keyOf), 'hyp');
+  assert.equal(P.suggestDay(movementsFor, [], keyOf), 'upper');
+  const withHyp = [...HIST, {date: ago(2), exercise:'Lat Pulldown'}];
+  assert.equal(P.suggestDay(movementsFor, withHyp, keyOf), 'legs');
+  assert.equal(P.suggestDay(movementsFor, [...withHyp, {date: ago(1), exercise:'OHP'}], keyOf), 'lower');
 });
 
 test('checklist chips: warm-ups plus the top set when there is one', () => {
