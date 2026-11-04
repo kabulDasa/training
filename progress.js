@@ -31,11 +31,14 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 /* Custom movements columns after Key and Name: [field, header, allowed words]. Muscles is
    "lats 1, biceps 0.5" (blank = none), Retired is "yes" or blank. The words match movements.js. */
 const CUSTOM_COLUMNS = [
-  ['day', 'Day', ['pull', 'push', 'legs']],
+  ['day', 'Day', ['upper', 'lower', 'hyp', 'legs']],
   ['category', 'Type', ['compound', 'isolation', 'skill', 'cardio']],
   ['pattern', 'Pattern', ['vertical_pull', 'horizontal_pull', 'vertical_push', 'horizontal_push', 'squat', 'hinge', 'isolation']],
   ['kind', 'Load', ['belt', 'barbell', 'accessory']],
 ];
+/* a custom movement saved under the old Pull / Push days moves to the strength day if it is a big
+   compound, else to the hypertrophy day (legs is still a day); the next save writes the new word */
+const OLD_DAYS = {pull: 1, push: 1};
 const CUSTOM_FIELDS = ['key', 'name', ...CUSTOM_COLUMNS.map(c => c[0]), 'muscles', 'retired'];
 const MUSCLE_RE = /^[a-z][a-z_]*$/;
 function fmtMuscles(m){ return Object.entries(m || {}).map(([k, w]) => `${k} ${w}`).join(', '); }
@@ -167,6 +170,7 @@ function parse(text){
       if(!KEY_RE.test(key)) throw new Error(`bad custom movement key: ${JSON.stringify(key)}`);
       const c = {key, name: (row[1] || '').trim()};
       CUSTOM_COLUMNS.forEach(([f], i) => { c[f] = (row[i + 2] || '').trim().toLowerCase(); });
+      if(Object.hasOwn(OLD_DAYS, c.day)) c.day = c.category === 'compound' ? 'upper' : 'hyp';
       c.muscles = parseMuscles(row[CUSTOM_COLUMNS.length + 2] || '');
       const retired = (row[CUSTOM_COLUMNS.length + 3] || '').trim().toLowerCase();
       if(retired && retired !== 'yes') throw new Error(`custom movement ${key}: Retired must be yes or blank`);

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- H2 tracker: **4-day split**. The Program tab and the Today Plan presets now group the existing movements into
+  Upper Strength (Pull-Up, Dip, Face Pull), Lower Strength (Squat), Upper Hypertrophy (Lat Pulldown, Bicep Curl,
+  Shoulder Fly, Chest Fly, Tricep Extension) and Legs + Compound (Dumbbell Row, OHP, Front Squat). No exercises,
+  working sets or logs changed. A custom movement saved under the old Pull or Push day moves to Upper Strength if
+  it is a big compound, otherwise to Upper Hypertrophy.
 - H2 tracker: the **Session Log** on the Chart tab is hidden until you press Expand; Hide collapses it again.
 - Dips and Chest Fly now count as horizontal push in the weekly volume grid, including past weeks.
 - H2 tracker: **chart labels pick the lines**. On the Top Set and Volume charts every line shows at first; tap a label to show only that line, tap more to add theirs, and **Reset view** brings them all back. Each line has its own label, including the dashed variants, and movements with nothing logged no longer get one.

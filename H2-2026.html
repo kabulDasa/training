@@ -54,13 +54,15 @@ main{max-width:1100px;margin:0 auto;padding:24px}
 .daynote{margin-bottom:16px;font-size:13px;color:var(--muted);text-align:center}
 
 /* SESSIONS */
-.sgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.sgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+@media(max-width:1200px){.sgrid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:840px){.sgrid{grid-template-columns:1fr}}
 .sc{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
 .sch{padding:11px 15px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border)}
 .sdot{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;flex-shrink:0}
-.dot-pull{background:var(--pull-dim);color:var(--pull)}
-.dot-push{background:var(--push-dim);color:var(--push)}
+.dot-upper{background:var(--pull-dim);color:var(--pull)}
+.dot-lower{background:var(--purple-dim);color:var(--purple)}
+.dot-hyp{background:var(--push-dim);color:var(--push)}
 .dot-legs{background:var(--legs-dim);color:var(--legs)}
 .stitle{font-weight:700;font-size:14px}
 .ssub{font-size:12px;color:var(--muted)}
@@ -255,7 +257,7 @@ fieldset.cxfs{border:none;min-width:0}
   <div class="hi">
     <div>
       <h1>Streetlifting · H2 2026</h1>
-      <div class="sub">3-day split · autoregulated top set + backoff · double progression on accessories</div>
+      <div class="sub">4-day split · autoregulated top set + backoff · double progression on accessories</div>
     </div>
     <div class="hstats" id="hstats"></div>
   </div>
@@ -591,7 +593,7 @@ function writeGhConfig(cfg){
   location.reload();
 }
 
-/* ---------- sync current Day 1/2/3 state to the Notes app via Shortcuts ---------- */
+/* ---------- sync current Day 1-4 state to the Notes app via Shortcuts ---------- */
 /* one variant's prescription under its rule: "top set +25 kg x 3 | backoff +20 kg x 5 (target 2 sets)"
    or "12.5 kg x 15 x 2 sets" */
 function noteText(key){
@@ -1826,7 +1828,7 @@ function renderChart(){
 function render(){
   renderHeaderStats();
   renderBwNudge();
-  document.getElementById('sgrid').innerHTML = renderDay('pull',1) + renderDay('push',2) + renderDay('legs',3);
+  document.getElementById('sgrid').innerHTML = Plan.DAYS.map((day,i)=>renderDay(day,i+1)).join('');
   renderToday();
   applyReadonly();
 }
