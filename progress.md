@@ -19,7 +19,7 @@ pull the `data` branch first; the page will ask to reload if it was open.
 | chestfly | 5 | 10 | 2 |
 | tricepext | 12.5 | 18 | 2 |
 | squat | 110 | 3 |  |
-| frontsquat | 30 | 20 | 2 |
+| frontsquat | 32.5 | 20 | 2 |
 | invertedrowboth | 45 | 6 | 2 |
 | latpulldownboth | 25 | 19 | 2 |
 | bicepcurlboth | 25 | 16 | 2 |
@@ -214,6 +214,9 @@ pull the `data` branch first; the page will ask to reload if it was open.
 | 2026-11-02T09:34:56.643Z | Chest Fly | 2 × 9 @ 5 kg | normal |  | 90 | 5 kg, 9 reps, 2 sets |
 | 2026-11-02T09:34:56.643Z | Tricep Extension | 2 × 18 @ 12.5 kg | hold |  | 450 | 12.5 kg, 18 reps, 2 sets |
 | 2026-11-02T09:38:34.493Z | Cardio | 0.37 km in 4:00 (10:49/km) · Run | normal |  |  |  |
+| 2026-11-04T08:37:27.076Z | Front Squat | 2 × 20 @ 30 kg | normal | 30 | 1200 | 30 kg, 20 reps, 2 sets |
+| 2026-11-04T08:37:27.077Z | Lat Pulldown | 2 × 19 @ 12.5 kg | hold |  | 475 | 12.5 kg, 19 reps, 2 sets |
+| 2026-11-04T08:37:27.077Z | Cardio | 0.48 km in 10:00 (20:50/km) · Elliptical | normal |  |  |  |
 
 ## Bodyweight
 
