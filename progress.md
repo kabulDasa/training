@@ -14,16 +14,16 @@ pull the `data` branch first; the page will ask to reload if it was open.
 | bicepcurl | 10 | 16 | 2 |
 | facepull | 15 | 17 | 2 |
 | dip | 28.75 | 3 |  |
-| ohp | 55 | 4 | 3 |
+| ohp | 55 | 5 | 3 |
 | shoulderfly | 12.5 | 11 | 2 |
-| chestfly | 5 | 10 | 2 |
-| tricepext | 12.5 | 18 | 2 |
+| chestfly | 5 | 11 | 2 |
+| tricepext | 12.5 | 19 | 2 |
 | squat | 110 | 3 |  |
 | frontsquat | 32.5 | 20 | 2 |
 | invertedrowboth | 45 | 6 | 2 |
 | latpulldownboth | 25 | 19 | 2 |
 | bicepcurlboth | 25 | 16 | 2 |
-| shoulderflysingle | 6.25 | 10 | 2 |
+| shoulderflysingle | 6.25 | 11 | 2 |
 | chestflyboth | 10 | 9 | 2 |
 | tricepextsingle | 6.25 | 18 | 2 |
 | frontsquatsingle | 16.25 | 10 | 2 |
@@ -217,6 +217,11 @@ pull the `data` branch first; the page will ask to reload if it was open.
 | 2026-11-04T08:37:27.076Z | Front Squat | 2 × 20 @ 30 kg | normal | 30 | 1200 | 30 kg, 20 reps, 2 sets |
 | 2026-11-04T08:37:27.077Z | Lat Pulldown | 2 × 19 @ 12.5 kg | hold |  | 475 | 12.5 kg, 19 reps, 2 sets |
 | 2026-11-04T08:37:27.077Z | Cardio | 0.48 km in 10:00 (20:50/km) · Elliptical | normal |  |  |  |
+| 2026-11-06T09:47:29.119Z | Dip | 3 reps top @ +28.75 kg, 0×5 backoff @ +22.5 kg | hold | 28.75 | 0 | 28.75 kg, 3 reps |
+| 2026-11-06T09:47:29.119Z | OHP | 3 × 4 @ 55 kg | normal | 55 | 660 | 55 kg, 4 reps, 3 sets |
+| 2026-11-06T09:47:29.120Z | Shoulder Fly (single arm) | 2 × 10 @ 6.25 kg | normal |  | 125 | 6.25 kg, 10 reps, 2 sets |
+| 2026-11-06T09:47:29.120Z | Chest Fly | 2 × 10 @ 5 kg | normal |  | 100 | 5 kg, 10 reps, 2 sets |
+| 2026-11-06T09:47:29.120Z | Tricep Extension | 2 × 18 @ 12.5 kg | normal |  | 450 | 12.5 kg, 18 reps, 2 sets |
 
 ## Bodyweight
 
