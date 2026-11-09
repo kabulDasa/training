@@ -1,6 +1,6 @@
-# Q2 2026 progress
+# Training progress
 
-Written by `Q2-2026.html` through the GitHub API whenever a session is logged; each change is a commit
+Written by `H2-2026.html` through the GitHub API whenever a session is logged; each change is a commit
 to this `data` branch (the site's code is on `main`). Hand edits are fine (keep the table layout):
 pull the `data` branch first; the page will ask to reload if it was open.
 

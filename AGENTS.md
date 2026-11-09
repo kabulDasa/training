@@ -1,19 +1,23 @@
 # Training Agent Instructions
 
-This file links the agent to the athlete's full training context in `powerlifting_summary.md` and `streetlifting.md`.
+This file links the agent to the athlete's full training context in `notes/powerlifting_summary.md` and `notes/streetlifting.md` (plus `notes/main-lifts.md` for each main lift's open issue and fix, and `notes/running.md` and
+`notes/swimming.md` for cardio).
 
 ## Who This Athlete Is
 
-- **75 kg lifter, u74 class** — powerlifter transitioning to include streetlifting
-- **Deadlift focus:** 210 kg competition PR (Jan 2026, 3 white lights); 220 kg historical PR at 76 kg BW
-- **Powerlifting status:** Just added full meet prep (squat + bench) after 6-week deadlift-only block
-- **Streetlifting status:** Beginner explorer — transitioning from powerlifting strength base
+- **75 kg lifter, u74 class** — former powerlifter, now training streetlifting (H2 2026)
+- **Deadlift history:** 210 kg competition PR (Jan 2026, 3 white lights); 220 kg historical PR at 76 kg BW.
+  No deadlift in the current program
+- **Current program (H2 2026, as of 2026-11-09):** 3-day split, push / pull / legs + accessories, tracked in
+  `H2-2026.html`; live numbers are in `progress.md` on the `data` branch (`git show origin/data:progress.md`).
+  Main lifts: weighted pull-up, weighted dip, competition squat, OHP; top set + backoff sets
+- **Cardio:** easy runs scheduled away from leg day (`notes/running.md`); learning to swim (`notes/swimming.md`)
 
 ---
 
 ## How to Use the Summary Files
 
-### powerlifting_summary.md
+### notes/powerlifting_summary.md
 
 | Section | When to Reference |
 |---------|-----------------|
@@ -26,7 +30,7 @@ This file links the agent to the athlete's full training context in `powerliftin
 | Recovery & Warning Signs | Fatigue monitoring, deload timing |
 | Programming Principles | Periodization phase selection |
 
-### streetlifting.md
+### notes/streetlifting.md
 
 | Section | When to Reference |
 |---------|-----------------|
@@ -58,5 +62,5 @@ This file links the agent to the athlete's full training context in `powerliftin
 ## Response Style
 - Reference actual numbers from the athlete's profile (75 kg BW, 210 kg deadlift, etc.)
 - Flag any recommendation that conflicts with current recovery markers
-- When recommending streetlifting progressions, check `streetlifting.md` — Athlete's Current Level section — for their actual AMRAP numbers before prescribing weights
+- When recommending streetlifting progressions, check `notes/streetlifting.md` — Athlete's Current Level section — for their actual AMRAP numbers before prescribing weights
 - Keep responses specific and actionable; avoid generic advice

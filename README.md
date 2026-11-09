@@ -6,7 +6,7 @@ Streetlifting / powerlifting training notes and the Q2 2026 program tracker.
 
 **https://kabuldasa.github.io/training/** (GitHub Pages, served from `main`)
 
-`H2-2026.html` is the program page (the site's front page; `Q2-2026.html` is the earlier version on the same data): current working sets, tap-to-log backoff sets, progression,
+`H2-2026.html` is the program page (the site's front page): current working sets, tap-to-log backoff sets, progression,
 charts and a session log. Progress lives in **`progress.md`** (plain Markdown tables) on the
 **`data` branch** of this repo, not on `main`. The page reads it and commits every log, undo or reset
 to `data` through the GitHub API, so it works the same from any device and every change is in the git
@@ -58,14 +58,17 @@ and set the load under Current working sets by hand.
 ## Other files
 
 - `AGENTS.md`: training-coach instructions for AI agents
-- `powerlifting_summary.md`, `streetlifting.md`: athlete profile and reference notes
-- `streetlifting_tests.feature`: acceptance scenarios for the program pages
+- `notes/`: athlete profile and reference notes (`powerlifting_summary.md`, `streetlifting.md`) and the cardio
+  progressions (`running.md`, `swimming.md`: current stage, targets, drills), and `main-lifts.md`
+  (each main lift's open issue and how it's being fixed)
 - `H2-2026.html`: H2 2026 tracker, in progress (same `progress.md`); planned features in `QUEUE.md`.
   `plan.js` holds its Today Plan maths (warm-ups, working sets, freshness), `movements.js` the movement grouping,
   `rules.js` the progression rules (defaults, validation, advancing a working set; editable in Settings and
   stored in progress.md's optional `## Progression rules` table when they differ from the default)
-- `Q2-2026.md`: original program notes
-- `Q2-2026-alt.html`, `streetlifting_program.html`: older pages (static)
+- `intensity-app-analysis/`: compares an Intensity app export with the H2 movements
+- `archive/`: retired Q1–Q2 2026 material, kept for reference and not maintained (`Q2-2026.md` program notes,
+  the static `Q2-2026-alt.html` and `streetlifting_program.html` pages, and `streetlifting_tests.feature`,
+  the Q2 program's spec). The old `Q2-2026.html` tracker was deleted (it's in git history); H2 replaced it
 
 ## Development
 

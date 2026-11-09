@@ -166,14 +166,20 @@ Your biggest edge: you already have the pulling muscle mass. You'll add weight t
 
 ## Athlete's Current Level
 
-*(Fill in after assessment — this section is referenced by the agent when prescribing progressions)*
+*(Referenced by the agent when prescribing progressions. Live numbers: `progress.md` on the `data` branch;
+open issues per lift: `notes/main-lifts.md`.)*
 
-| Movement | Confirmed | Notes |
-|----------|-----------|-------|
-| Chin-Up (supinated, dead hang) | 5×5 comfortable — est. ~12–15 AMRAP | Primary pull history; competition uses pronated grip |
-| Pull-Up (pronated, competition grip) | Untested — likely 2–4 reps below chin-up | Priority: train this alongside chin-ups now |
-| Dip (competition depth confirmed) | 5×5 comfortable — est. ~12–18 AMRAP | Shoulders below elbows verified; ready to load |
-| Muscle-Up | Not yet | Next major skill target; skill work 2×/week |
+**As of 2026-11-09 (H2 2026 program):**
+
+| Movement | Current | Notes |
+|----------|---------|-------|
+| Weighted pull-up (pronated) | Top set 3 @ +26.25 kg (stalled) → reset to +23.75 kg | Weak at the top; paused BW pull-ups in warm-up |
+| Weighted dip | Top set 3 @ +28.75 kg (stalled) → reset to +26.25 kg | Light-headed on heavy sets; top set → hold → backoffs |
+| Competition squat | Top set 3 @ 110 kg | |
+| Muscle-up, front lever, knee raise | Dropped from the H2 program | Were Q2 skill work (green-band muscle-up, tuck front lever 3 s) |
+
+**May 2026 baseline (start of streetlifting):** chin-up and dip 5×5 comfortable at bodyweight; pronated
+pull-up untested; no muscle-up.
 
 **Equipment:**
 - Dip belt: Yes
@@ -181,7 +187,7 @@ Your biggest edge: you already have the pulling muscle mass. You'll add weight t
 - Parallel bars: Yes (dip attachment on rack)
 
 **Training context:**
-- Full streetlifting focus, 3 days/week
+- Streetlifting focus, 3-day split (push / pull / legs + accessories)
 - First streetlifting competition: TBD
 
 ---
