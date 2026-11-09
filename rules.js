@@ -8,6 +8,9 @@
                                bonusInc instead)
                   'double'   = success adds 1 rep (top-set reps for a top-set lift) up to repCap; a
                                success at the cap adds inc kg and resets reps to repFloor
+   A top-set lift also has an effort gate: when the top set is logged with an RPE above TOP_RPE_MAX
+   (8, about 2 reps left), the session is a hold whatever the backoff sets did (outcome()). No RPE
+   logged = the backoff sets decide, as before.
    Fields a rule doesn't use are null. DEFAULT_RULES are the program's rules; progress.md can override
    any of them in its optional Progression rules table (progress.js), and only rules that differ from
    the default are stored there. Loaded as a plain <script> in the page and with require() in the node
@@ -29,20 +32,21 @@ function round2(x){ return Math.round(x*100)/100; }
 function fmt(v){ return round2(v).toFixed(2).replace(/\.?0+$/, ''); }
 
 /* ---------- defaults (the program as it was hard-coded before rules were editable) ---------- */
-function topset(inc, bonusInc, backoffRound){
+function topset(inc, bonusInc, backoffRound, backoffPct = 80, backoffReps = 5){
   return normalize({scheme: 'topset', progression: 'linear', inc, bonusInc,
-    backoffPct: 80, backoffReps: 5, backoffSets: 2, backoffMax: 5, backoffRound});
+    backoffPct, backoffReps, backoffSets: 2, backoffMax: 5, backoffRound});
 }
 function straightDouble(inc, repFloor, repCap){ return normalize({scheme: 'straight', progression: 'double', inc, repFloor, repCap}); }
 function straightLinear(inc){ return normalize({scheme: 'straight', progression: 'linear', inc}); }
 
 const DEFAULT_RULES = {
-  pullup:      topset(1.25, 2.5, 1.25),
+  /* pull-up and dip backoffs: 3 reps at 85% (heavier and fewer, toward singles), from 2026-11-09 */
+  pullup:      topset(1.25, 2.5, 1.25, 85, 3),
   latpulldown: straightDouble(1.25, 10, 20),
   invertedrow: straightDouble(2.5, 5, 15),
   bicepcurl:   straightDouble(2.5, 10, 20),
   facepull:    straightDouble(1.25, 10, 20),
-  dip:         topset(1.25, 2.5, 1.25),
+  dip:         topset(1.25, 2.5, 1.25, 85, 3),
   ohp:         straightDouble(2.5, 3, 7),
   shoulderfly: straightDouble(1.25, 10, 20),
   chestfly:    straightDouble(1.25, 8, 20),
@@ -136,6 +140,16 @@ function outcomeFromCount(n, target){
   return 'double';
 }
 
+/* top-set RPEs that can be logged; above TOP_RPE_MAX the top set was too hard to add weight */
+const RPES = [6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10];
+const TOP_RPE_MAX = 8;
+/* the outcome of a session: n backoff (or straight) sets done against the target, held back to a
+   hold when a top-set lift's top set was logged above TOP_RPE_MAX (rpe null = not logged) */
+function outcome(rule, n, target, rpe){
+  const o = outcomeFromCount(n, target);
+  return rule.scheme === 'topset' && rpe != null && rpe > TOP_RPE_MAX ? 'hold' : o;
+}
+
 /* move working set s (in place) after a session with this outcome */
 function advance(rule, outcome, s){
   if(outcome !== 'normal' && outcome !== 'double') return;
@@ -161,17 +175,18 @@ function fitState(rule, s){
 /* ---------- text ---------- */
 /* how the rule progresses, as Settings and the Program card cues show it */
 function describe(rule){
-  const t = rule.backoffSets;
-  if(rule.scheme === 'topset'){
-    if(rule.progression === 'double')
-      return `Under ${t} backoff sets: hold. ${t} or more: add 1 top-set rep until ${rule.repCap}; then add ${fmt(rule.inc)} kg and reset to ${rule.repFloor} reps.`;
-    if(rule.bonusInc === rule.inc)
-      return `Under ${t} backoff sets: hold. ${t} or more: add ${fmt(rule.inc)} kg.`;
-    return `Under ${t} backoff sets: hold. Exactly ${t}: add ${fmt(rule.inc)} kg. More than ${t}: add ${fmt(rule.bonusInc)} kg.`;
-  }
+  if(rule.scheme === 'topset') return `${describeTopset(rule)} Top set above RPE ${TOP_RPE_MAX}: hold.`;
   if(rule.progression === 'double')
     return `On success, add 1 rep until ${rule.repCap}; then add ${fmt(rule.inc)} kg and reset to ${rule.repFloor} reps.`;
   return `Complete all sets at target to add ${fmt(rule.inc)} kg; otherwise hold.`;
+}
+function describeTopset(rule){
+  const t = rule.backoffSets;
+  if(rule.progression === 'double')
+    return `Under ${t} backoff sets: hold. ${t} or more: add 1 top-set rep until ${rule.repCap}; then add ${fmt(rule.inc)} kg and reset to ${rule.repFloor} reps.`;
+  if(rule.bonusInc === rule.inc)
+    return `Under ${t} backoff sets: hold. ${t} or more: add ${fmt(rule.inc)} kg.`;
+  return `Under ${t} backoff sets: hold. Exactly ${t}: add ${fmt(rule.inc)} kg. More than ${t}: add ${fmt(rule.bonusInc)} kg.`;
 }
 /* the backoff part of a top-set rule, e.g. "Backoff: 2 sets of 5 @ 80% of the top set (up to 5)" */
 function backoffText(rule){
@@ -203,7 +218,7 @@ function nextText(rule, outcome, s, loadText){
 
 const api = {
   SCHEMES, PROGRESSIONS, FIELDS, DEFAULT_RULES, CUSTOM_FALLBACK, normalize, problems, problem, sameRule, isDefault, effective,
-  outcomeFromCount, advance, fitState, describe, backoffText, summary, nextText,
+  RPES, TOP_RPE_MAX, outcomeFromCount, outcome, advance, fitState, describe, backoffText, summary, nextText,
 };
 if(typeof module !== 'undefined' && module.exports) module.exports = api;
 else root.Rules = api;

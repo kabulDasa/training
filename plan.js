@@ -9,7 +9,7 @@ const DAY_MS = 86400000;
 /* trained within FRESH_DAYS = green, within DUE_DAYS = amber, older (or never) = red */
 const FRESH_DAYS = 7, DUE_DAYS = 14;
 const BAR = 20;
-const DAYS = ['upper', 'lower', 'hyp', 'legs'];
+const DAYS = ['push', 'pull', 'legs'];
 
 const Rules = root.Rules || require('./rules.js');
 const Movements = root.Movements || require('./movements.js');
@@ -67,13 +67,20 @@ function barbellWarmups(working){
 function accessoryWarmups(working){
   return working >= 5 ? [roundTo(working*0.5, 1.25)] : [];
 }
+/* a cue on a movement's bodyweight warm-up set: pull-ups pause at the top (weak lockout, 2026-11-09) */
+const WARMUP_CUES = {pullup: 'pause 2–3 s at the top'};
+/* a lockout hold at the top-set weight between the top set and the backoff sets, for a top-set lift
+   (dips: getting used to heavy loads, 2026-11-09). A checklist chip only, like the top set. */
+const HOLDS = {dip: '10–15 s'};
+
 /* fewer reps as the ramp gets heavier: 5, 3, 2, then singles */
 function rampReps(i){ return [5, 3, 2][i] || 1; }
 
-/* [{load, reps}] for a movement's warm-up; load is added belt weight for belt lifts (0 = BW) */
+/* [{load, reps, cue?}] for a movement's warm-up; load is added belt weight for belt lifts (0 = BW,
+   which carries the movement's WARMUP_CUES cue) */
 function warmups(key, s){
   switch(kindOf(key)){
-    case 'belt':    return calWarmups(s.weight).map((load,i)=>({load, reps: rampReps(i)}));
+    case 'belt':    return calWarmups(s.weight).map((load,i)=>({load, reps: rampReps(i), ...(load===0 && WARMUP_CUES[key] ? {cue: WARMUP_CUES[key]} : {})}));
     case 'squat':   return squatWarmups(s.weight).map((load,i)=>({load, reps: rampReps(i)}));
     case 'barbell': return barbellWarmups(s.weight).map((load,i)=>({load, reps: rampReps(i)}));
     case 'accessory': return accessoryWarmups(s.weight).map(load=>({load, reps: 10}));
@@ -81,7 +88,8 @@ function warmups(key, s){
   }
 }
 
-/* the working part of a movement under its rule: an optional top set (working weight × reps), then
+/* the working part of a movement under its rule: an optional top set (working weight × reps, with
+   hold = how long to hold the lockout at that weight afterwards, when the movement has one), then
    the tappable sets. target is how many tapped sets count as success; sets past it are bonus sets
    (a top-set lift's backoffs past its target). */
 function workingSets(key, s, rule){
@@ -89,7 +97,7 @@ function workingSets(key, s, rule){
   if(rule.scheme==='topset'){
     const load = backoffOf(s.weight, rule.backoffRound, rule.backoffPct);
     return {
-      top: {load: s.weight, reps: s.reps},
+      top: {load: s.weight, reps: s.reps, ...(HOLDS[key] ? {hold: HOLDS[key]} : {})},
       sets: Array.from({length: rule.backoffMax}, (_,i)=>({load, reps: rule.backoffReps, bonus: i>=rule.backoffSets})),
       target: rule.backoffSets,
     };
@@ -103,14 +111,15 @@ function workingSets(key, s, rule){
 function isAdded(key){ return kindOf(key)==='belt'; }
 
 /* a session log's Result cell with n working sets ticked, in a shape volume.js counts:
-   "3 reps top @ +25 kg, 2×5 backoff @ +20 kg", or "2 × 15 @ 12.5 kg" for straight sets (which log
-   all the prescribed sets: a hold still did them, short of the target reps) */
-function resultText(key, s, rule, n){
+   "3 reps top @ +25 kg, 2×5 backoff @ +20 kg" ("3 reps top @ +25 kg RPE 8, …" when the top set's RPE
+   was logged), or "2 × 15 @ 12.5 kg" for straight sets (which log all the prescribed sets: a hold
+   still did them, short of the target reps) */
+function resultText(key, s, rule, n, rpe){
   const ws = workingSets(key, s, rule);
   const plus = isAdded(key) ? '+' : '';
   if(ws.top){
     const r = ws.top.reps;
-    return `${r} ${r===1?'rep':'reps'} top @ ${plus}${s.weight} kg, ${n}×${ws.sets[0].reps} backoff @ ${plus}${ws.sets[0].load} kg`;
+    return `${r} ${r===1?'rep':'reps'} top @ ${plus}${s.weight} kg${rpe!=null ? ` RPE ${rpe}` : ''}, ${n}×${ws.sets[0].reps} backoff @ ${plus}${ws.sets[0].load} kg`;
   }
   return `${s.sets} × ${s.reps} @ ${plus}${s.weight} kg`;
 }
@@ -214,8 +223,11 @@ function suggestDay(dayKeys, history, keyOf){
   return best;
 }
 
-/* chips before the working sets (warm-ups, then the top set), which are a checklist only */
-function checklistLength(key, s, rule){ return warmups(key, s).length + (workingSets(key, s, rule).top ? 1 : 0); }
+/* chips before the working sets (warm-ups, then the top set and its hold), which are a checklist only */
+function checklistLength(key, s, rule){
+  const top = workingSets(key, s, rule).top;
+  return warmups(key, s).length + (top ? 1 + (top.hold ? 1 : 0) : 0);
+}
 /* Finish logs only planned movements with at least one chip ticked; the rest are skipped, so
    their working set and freshness stay as they were. ticked(key) = number of ticked chips. */
 function splitFinish(plan, ticked){
@@ -225,7 +237,7 @@ function splitFinish(plan, ticked){
 }
 
 const api = {
-  DAYS, KIND, kindOf, FRESH_DAYS, DUE_DAYS, backoffOf, calWarmups, squatWarmups, barbellWarmups, accessoryWarmups,
+  DAYS, KIND, WARMUP_CUES, HOLDS, kindOf, FRESH_DAYS, DUE_DAYS, backoffOf, calWarmups, squatWarmups, barbellWarmups, accessoryWarmups,
   warmups, workingSets, resultText, isAdded, lastTrained, freshness, ageLabel, suggestDay, checklistLength, splitFinish,
   seedVariant, parseDuration, formatDuration, cleanNote, cardioResult, parseCardioResult, readCardio, lastCardioForm,
 };

@@ -19,6 +19,13 @@ test('backoff is 80% rounded to the increment', () => {
   assert.equal(P.backoffOf(107.5, 2.5), 85);
 });
 
+test('pull-up and dip backoffs are 3 reps at 85%; squat stays 5 at 80%', () => {
+  const pu = P.workingSets('pullup', {weight:23.75, reps:3});
+  assert.deepEqual([pu.sets[0].load, pu.sets[0].reps, pu.target], [20, 3, 2]);
+  const sq = P.workingSets('squat', {weight:110, reps:3});
+  assert.deepEqual([sq.sets[0].load, sq.sets[0].reps], [87.5, 5]);
+});
+
 test('belt warm-ups start at bodyweight and stay below the top set', () => {
   const w = P.warmups('pullup', {weight:22.5, reps:3});
   assert.equal(w[0].load, 0);
@@ -90,16 +97,32 @@ test('lastTrained finds the newest row for a key, across shared names', () => {
 });
 
 test('suggestDay picks the day trained longest ago', () => {
-  assert.equal(P.suggestDay(movementsFor, HIST, keyOf), 'hyp');
-  assert.equal(P.suggestDay(movementsFor, [], keyOf), 'upper');
-  const withHyp = [...HIST, {date: ago(2), exercise:'Lat Pulldown'}];
-  assert.equal(P.suggestDay(movementsFor, withHyp, keyOf), 'legs');
-  assert.equal(P.suggestDay(movementsFor, [...withHyp, {date: ago(1), exercise:'OHP'}], keyOf), 'lower');
+  // pull: pull-up 5 d ago; push: dip 3 d ago; legs: squat 10 d ago
+  assert.equal(P.suggestDay(movementsFor, HIST, keyOf), 'legs');
+  assert.equal(P.suggestDay(movementsFor, [], keyOf), 'push');
+  const withLegs = [...HIST, {date: ago(2), exercise:'Lat Pulldown'}];
+  assert.equal(P.suggestDay(movementsFor, withLegs, keyOf), 'pull');
+  assert.equal(P.suggestDay(movementsFor, [...withLegs, {date: ago(1), exercise:'Pull-up'}], keyOf), 'push');
 });
 
 test('checklist chips: warm-ups plus the top set when there is one', () => {
   assert.equal(P.checklistLength('squat', {weight:107.5}), P.warmups('squat', {weight:107.5}).length + 1);
   assert.equal(P.checklistLength('bicepcurl', {weight:10, reps:17, sets:2}), 1);
+  // the dip's top set is followed by a lockout hold chip
+  assert.equal(P.checklistLength('dip', {weight:26.25, reps:3}), P.warmups('dip', {weight:26.25}).length + 2);
+});
+
+test('dip top set carries a hold at the same weight; other top sets do not', () => {
+  assert.deepEqual(P.workingSets('dip', {weight:26.25, reps:3}).top, {load:26.25, reps:3, hold:'10–15 s'});
+  assert.equal(P.workingSets('pullup', {weight:23.75, reps:3}).top.hold, undefined);
+});
+
+test('pull-up bodyweight warm-up carries the pause cue, and only that set', () => {
+  const w = P.warmups('pullup', {weight:23.75, reps:3});
+  assert.equal(w[0].load, 0);
+  assert.equal(w[0].cue, 'pause 2–3 s at the top');
+  assert.ok(w.slice(1).every(x=>x.cue === undefined));
+  assert.ok(P.warmups('dip', {weight:26.25}).every(x=>x.cue === undefined));
 });
 
 test('splitFinish logs movements with anything ticked and skips the rest, in plan order', () => {
@@ -169,8 +192,11 @@ test('backoff % defaults to 80', () => {
 
 test('result text keeps a shape volume.js counts, for either scheme', () => {
   const top = P.resultText('pullup', {weight:25, reps:3}, undefined, 4);
-  assert.equal(top, '3 reps top @ +25 kg, 4×5 backoff @ +20 kg');
+  assert.equal(top, '3 reps top @ +25 kg, 4×3 backoff @ +21.25 kg');
   assert.equal(V.setsOf(top), 5);
+  const rpe = P.resultText('dip', {weight:26.25, reps:3}, undefined, 2, 8.5);
+  assert.equal(rpe, '3 reps top @ +26.25 kg RPE 8.5, 2×3 backoff @ +22.5 kg');
+  assert.equal(V.setsOf(rpe), 3);
   assert.equal(P.resultText('squat', {weight:110, reps:1}, undefined, 2), '1 rep top @ 110 kg, 2×5 backoff @ 87.5 kg');
   const straight = P.resultText('dip', {weight:20, reps:6, sets:3},
     R.normalize({scheme:'straight', progression:'double', inc:1.25, repFloor:5, repCap:8}), 1);

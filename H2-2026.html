@@ -54,15 +54,13 @@ main{max-width:1100px;margin:0 auto;padding:24px}
 .daynote{margin-bottom:16px;font-size:13px;color:var(--muted);text-align:center}
 
 /* SESSIONS */
-.sgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
-@media(max-width:1200px){.sgrid{grid-template-columns:repeat(2,1fr)}}
+.sgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
 @media(max-width:840px){.sgrid{grid-template-columns:1fr}}
 .sc{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
 .sch{padding:11px 15px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border)}
 .sdot{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;flex-shrink:0}
-.dot-upper{background:var(--pull-dim);color:var(--pull)}
-.dot-lower{background:var(--purple-dim);color:var(--purple)}
-.dot-hyp{background:var(--push-dim);color:var(--push)}
+.dot-push{background:var(--push-dim);color:var(--push)}
+.dot-pull{background:var(--pull-dim);color:var(--pull)}
 .dot-legs{background:var(--legs-dim);color:var(--legs)}
 .stitle{font-weight:700;font-size:14px}
 .ssub{font-size:12px;color:var(--muted)}
@@ -130,6 +128,9 @@ main{max-width:1100px;margin:0 auto;padding:24px}
 .tpicker{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
 .tpgroup-title{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin-bottom:6px}
 .tchips{display:flex;flex-direction:column;gap:5px}
+.trpe{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:12px;color:var(--muted)}
+.trpe select{background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:6px;font:inherit;padding:3px 6px}
+.trpe .terr{color:var(--push)}
 .tchip{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;text-align:left;background:var(--surface2);border:1px solid var(--border);border-left:4px solid var(--fresh-c);border-radius:6px;padding:6px 10px;color:var(--text);font-size:13px;cursor:pointer}
 .tchip:hover{border-color:var(--gold);border-left-color:var(--fresh-c)}
 .tchip.on{background:var(--gold-dim);border-color:rgba(245,158,11,.5);border-left-color:var(--fresh-c)}
@@ -257,7 +258,7 @@ fieldset.cxfs{border:none;min-width:0}
   <div class="hi">
     <div>
       <h1>Streetlifting · H2 2026</h1>
-      <div class="sub">4-day split · autoregulated top set + backoff · double progression on accessories</div>
+      <div class="sub">3-day split · top set (RPE ≤ 8 to progress) + backoff · double progression on accessories</div>
     </div>
     <div class="hstats" id="hstats"></div>
   </div>
@@ -593,7 +594,7 @@ function writeGhConfig(cfg){
   location.reload();
 }
 
-/* ---------- sync current Day 1-4 state to the Notes app via Shortcuts ---------- */
+/* ---------- sync current Day 1-3 state to the Notes app via Shortcuts ---------- */
 /* one variant's prescription under its rule: "top set +25 kg x 3 | backoff +20 kg x 5 (target 2 sets)"
    or "12.5 kg x 15 x 2 sets" */
 function noteText(key){
@@ -640,7 +641,7 @@ function togglePending(e, uid, idx, len){
 }
 function countDone(uid, len){ return getPending(uid, len).filter(Boolean).length; }
 
-/* ---------- outcome badge (the outcome is Rules.outcomeFromCount of the ticked sets) ---------- */
+/* ---------- outcome badge (the outcome is Rules.outcome of the ticked sets and the top-set RPE) ---------- */
 function outcomeBadge(outcome, holdLabel, normalLabel, doubleLabel){
   if(outcome==='hold')   return `<span class="eout eout-miss">↺ ${holdLabel}</span>`;
   if(outcome==='double') return `<span class="eout eout-bonus">⚡ ${doubleLabel}</span>`;
@@ -802,15 +803,17 @@ function effState(key){
 function renderMovement(base){
   const key = activeKey(base), s = effState(key), rule = ruleOf(key), c = cardOf(base);
   const ws = Plan.workingSets(key, s, rule);
-  const outcome = Rules.outcomeFromCount(countDone(key, ws.sets.length), ws.target);
+  const outcome = Rules.outcome(rule, countDone(key, ws.sets.length), ws.target, getRpe(key));
   const edited = s.weight!==STATE[key].weight;
   const load = kg=>loadText(key, kg);
   const wus = Plan.warmups(key, s);
   const top = ws.top ? `<div class="loadrow">
       <div class="loadbox loadbox-top"><div class="loadlabel">Top set${edited?' · today':''}</div><div class="loadval">${load(s.weight)} × ${ws.top.reps}</div></div>
+      ${ws.top.hold ? `<div class="loadbox loadbox-top"><div class="loadlabel">Then hold</div><div class="loadval">${load(s.weight)} · ${ws.top.hold}</div></div>` : ''}
       <div class="loadbox loadbox-backoff"><div class="loadlabel">Backoff · ${fmt(rule.backoffPct)}%</div><div class="loadval">${load(ws.sets[0].load)} × ${ws.sets[0].reps}</div></div>
     </div>
-    ${wus.length ? `<div class="ewu"><span class="ewu-label">Warm-up</span>${wus.map(w=>`<span class="ewu-set">${load(w.load)}</span>`).join('<span class="ewu-arr"> → </span>')}</div>` : ''}` : '';
+    ${wus.length ? `<div class="ewu"><span class="ewu-label">Warm-up</span>${wus.map(w=>`<span class="ewu-set">${load(w.load)}${w.cue ? ` · ${w.cue}` : ''}</span>`).join('<span class="ewu-arr"> → </span>')}</div>` : ''}
+    ${rpeHtml(key)}` : '';
   const scheme = ws.top ? '' : `<div class="eload"><div class="escheme">${s.sets} × ${s.reps}</div><div class="eweight">${load(s.weight)}${edited?' today':''}</div></div>`;
   const single = getArms(base)==='single' && Movements.variantsOf(base), limb = Movements.limbLabels(base)===Movements.ARMS ? 'arm' : 'leg';
   const cues = (single ? [`One ${limb} at a time; sets and reps are per ${limb}`] : []).concat(single && c.singleCues || c.cues);
@@ -843,10 +846,11 @@ function recordMovement(key){
   const s = STATE[key], rule = ruleOf(key), done = effState(key);
   const ws = Plan.workingSets(key, done, rule);
   const n = countDone(key, ws.sets.length);
-  const outcome = Rules.outcomeFromCount(n, ws.target);
+  const rpe = ws.top ? getRpe(key) : null;
+  const outcome = Rules.outcome(rule, n, ws.target, rpe);
   const volume = ws.top ? round2(ws.sets[0].load * ws.sets[0].reps * n) : round2(done.weight * done.reps * done.sets);
   const weight = ws.top || Plan.kindOf(key)!=='accessory' ? done.weight : null;
-  pushHistory(histName(key), Plan.resultText(key, done, rule, n), outcome, weight, volume);
+  pushHistory(histName(key), Plan.resultText(key, done, rule, n, rpe), outcome, weight, volume);
   s.weight = done.weight;
   advance(key, outcome, s);
   clearPending(key);
@@ -962,7 +966,29 @@ function addSet(key){
   render();
 }
 function clearTodayExtras(key){
-  try{ localStorage.removeItem('h2_tick_'+key); localStorage.removeItem('h2_extra_'+key); localStorage.removeItem('h2_wt_'+key); }catch(_){}
+  try{ localStorage.removeItem('h2_tick_'+key); localStorage.removeItem('h2_extra_'+key); localStorage.removeItem('h2_wt_'+key); localStorage.removeItem('h2_rpe_'+key); }catch(_){}
+}
+/* today's top-set RPE for a top-set lift (null = not picked), kept per device as {v, date} like
+   today's weight; above Rules.TOP_RPE_MAX the session holds whatever the backoff sets did */
+function getRpe(key){
+  let v = null;
+  try{ v = JSON.parse(localStorage.getItem('h2_rpe_'+key)); }catch(_){}
+  return v && v.date===localDate() && Rules.RPES.includes(v.v) ? v.v : null;
+}
+function setRpe(key, value){
+  const n = Number(value);
+  try{
+    if(Rules.RPES.includes(n)) localStorage.setItem('h2_rpe_'+key, JSON.stringify({v:n, date:localDate()}));
+    else localStorage.removeItem('h2_rpe_'+key);
+  }catch(_){}
+  render();
+}
+function rpeHtml(key){
+  const r = getRpe(key);
+  const opts = ['<option value="">–</option>'].concat(Rules.RPES.map(v=>`<option value="${v}"${v===r?' selected':''}>${v}</option>`)).join('');
+  const note = r==null ? `RPE ${Rules.TOP_RPE_MAX} or easier (about 2 reps left) to add weight`
+    : r > Rules.TOP_RPE_MAX ? `<span class="terr">above ${Rules.TOP_RPE_MAX}: hold this weight next time</span>` : 'counts toward progressing';
+  return `<label class="trpe">Top set RPE <select onchange="setRpe('${key}', this.value)">${opts}</select> <span>${note}</span></label>`;
 }
 /* the backoff sets shown for a top-set lift: the target, plus any added, plus any already ticked
    (the Program tab can tick bonus sets), up to the 5 the progression counts */
@@ -1058,9 +1084,10 @@ function renderTodayCard(key){
   const s = effState(key), m = Movements.MOVEMENTS[key], f = freshOf(key);
   const ws = Plan.workingSets(key, s, ruleOf(key));
   const wus = Plan.warmups(key, s);
-  /* checklist chips: warm-ups, then the top set */
-  const pre = wus.map(w=>({text:`${w.reps} x ${loadText(key,w.load)}`}));
-  if(ws.top) pre.push({text:`${ws.top.reps} x ${loadText(key,ws.top.load)}`});
+  /* checklist chips: warm-ups, then the top set and its hold */
+  const pre = wus.map(w=>({text:`${w.reps} x ${loadText(key,w.load)}${w.cue ? ` · ${w.cue}` : ''}`}));
+  if(ws.top) pre.push({text:`${ws.top.reps} x ${loadText(key,ws.top.load)} · top set`});
+  if(ws.top && ws.top.hold) pre.push({text:`Hold ${loadText(key,ws.top.load)} at lockout · ${ws.top.hold}`});
   const ticks = getTicks(key, pre.length);
   const done = getPending(key, ws.sets.length);
   const n = shownSets(key, ws);
@@ -1084,6 +1111,7 @@ function renderTodayCard(key){
       <button class="tdel" title="Remove from plan" onclick="togglePlan('${key}')">✕</button></div>
     ${todayArmsHtml(key)}
     <div class="tsets">${chips.join('')}${canAdd ? `<button class="taddset" onclick="addSet('${key}')">⊕ Add Sets</button>` : ''}</div>
+    ${ws.top ? rpeHtml(key) : ''}
     ${drawer}
     <div class="tprog"><div style="width:${pct}%"></div></div>
   </div>`;
@@ -1126,8 +1154,9 @@ async function finishWorkout(){
     if(Movements.isCardio(key)) return `${Movements.MOVEMENTS[key].name}: ${cardio.result}`;
     const ws = Plan.workingSets(key, effState(key), ruleOf(key));
     const n = countDone(key, ws.sets.length);
-    const outcome = Rules.outcomeFromCount(n, ws.target);
-    return `${Movements.MOVEMENTS[key].name}: ${n}/${ws.target} sets (${outcome==='hold'?'hold':outcome==='double'?'bonus':'progress'})`;
+    const rpe = ws.top ? getRpe(key) : null;
+    const outcome = Rules.outcome(ruleOf(key), n, ws.target, rpe);
+    return `${Movements.MOVEMENTS[key].name}: ${n}/${ws.target} sets${rpe!=null ? `, top set RPE ${rpe}` : ''} (${outcome==='hold'?'hold':outcome==='double'?'bonus':'progress'})`;
   }).concat(skip.map(key=>`${Movements.MOVEMENTS[key].name}: skipped (nothing ${Movements.isCardio(key) ? 'filled in' : 'ticked'}, not logged)`));
   if(!confirm(`Log today's workout?\n\n${lines.join('\n')}`)) return;
   /* recordXxx() clears each movement's taps; put them back until the save succeeds */

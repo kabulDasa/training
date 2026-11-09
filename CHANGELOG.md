@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- H2 tracker: back to a **3-day split**: Push (Dip, OHP, Chest Fly, Tricep Extension), Pull (Pull-Up, Dumbbell
+  Row, Bicep Curl, Face Pull) and Legs + Accessories (Squat, Front Squat, Lat Pulldown, Shoulder Fly). A custom
+  movement saved under a four-day-split day moves to Push or Pull by its pattern, or to Legs if it is lower body.
+- H2 tracker: **top set RPE**. Top-set lifts get an RPE picker; a top set above RPE 8 is a hold whatever the
+  backoff sets did, and the RPE goes in the session log ("3 reps top @ +25 kg RPE 8, …"). No RPE = as before.
+- Pull-Up and Dip backoff sets are now **3 reps at 85%** of the top set (were 5 at 80%). Squat is unchanged.
+- **Dip lockout hold**: after the top set, a 10–15 s hold at the same weight shows as its own checklist step.
+- **Pull-Up warm-up cue**: the bodyweight warm-up set says to pause 2–3 s at the top.
 - Repo tidy-up: the old **Q2-2026.html** tracker is gone (H2 is the only tracker). Older Q1–Q2 pages and notes
   moved to `archive/`, the athlete profiles to `notes/`. New notes: `notes/main-lifts.md` (each main lift's
   open issue and fix), `notes/running.md` and `notes/swimming.md` (current stage, targets, drills).
