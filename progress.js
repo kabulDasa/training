@@ -1,4 +1,4 @@
-/* progress.md format + GitHub storage for Q2-2026.html.
+/* progress.md format + GitHub storage for H2-2026.html.
    progress.md holds two Markdown tables: "Current working sets" (Key | Weight | Reps | Sets) and
    "Session log" (oldest first, one row per logged session; Before is the working set the log
    replaced, which undo restores, and is blank on rows logged before the column existed), plus an
@@ -54,9 +54,9 @@ function parseMuscles(text){
   return out;
 }
 
-const HEADER = `# Q2 2026 progress
+const HEADER = `# Training progress
 
-Written by \`Q2-2026.html\` through the GitHub API whenever a session is logged; each change is a commit
+Written by \`H2-2026.html\` through the GitHub API whenever a session is logged; each change is a commit
 to this \`data\` branch (the site's code is on \`main\`). Hand edits are fine (keep the table layout):
 pull the \`data\` branch first; the page will ask to reload if it was open.
 `;
@@ -312,11 +312,11 @@ const TIMEOUT_MS = 20000;
 const STALE_SHA_RE = /does not match|is at [0-9a-f]+ but expected|sha/i;
 
 /* bodyweight last loaded per file URL. A save without a bodyweight key (a page that predates
-   bodyweight logging, e.g. Q2-2026.html) keeps these rows instead of dropping the section. That
+   bodyweight logging, e.g. the retired Q2-2026.html) keeps these rows instead of dropping the section. That
    is safe because the save is made against the loaded sha: if the file changed since, GitHub
    refuses it as a conflict. */
 const LOADED_BODYWEIGHT = new Map();
-/* the same for the Progression rules table (pages that predate editable rules: Q2-2026.html, a
+/* the same for the Progression rules table (pages that predate editable rules: the retired Q2-2026.html, a
    cached older H2-2026.html) */
 const LOADED_RULES = new Map();
 /* and for the Custom movements table */

@@ -1,7 +1,7 @@
 # Queue — H2 2026 tracker
 
 Features for `H2-2026.html` (a copy of `Q2-2026.html`; same `progress.md` on the `data` branch).
-`Q2-2026.html` stays untouched. ✅ `index.html` opens H2 since #10.
+`Q2-2026.html` was retired and deleted (2026-11-09). ✅ `index.html` opens H2 since #10.
 Ordered by priority. Each item is one branch + PR into `main`; merges happen one at a time, in this order.
 Flow: the queue is updated here first, an agent builds each item on its branch and opens the PR, and
 it is merged once the tests and reviews pass. Done items stay with their PR for reference.

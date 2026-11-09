@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Repo tidy-up: the old **Q2-2026.html** tracker is gone (H2 is the only tracker). Older Q1–Q2 pages and notes
+  moved to `archive/`, the athlete profiles to `notes/`. New notes: `notes/main-lifts.md` (each main lift's
+  open issue and fix), `notes/running.md` and `notes/swimming.md` (current stage, targets, drills).
+  progress.md's heading now reads "Training progress" and names H2-2026.html.
 - H2 tracker: **4-day split**. The Program tab and the Today Plan presets now group the existing movements into
   Upper Strength (Pull-Up, Dip, Face Pull), Lower Strength (Squat), Upper Hypertrophy (Lat Pulldown, Bicep Curl,
   Shoulder Fly, Chest Fly, Tricep Extension) and Legs + Compound (Dumbbell Row, OHP, Front Squat). No exercises,
