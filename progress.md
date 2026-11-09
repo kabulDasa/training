@@ -8,12 +8,12 @@ pull the `data` branch first; the page will ask to reload if it was open.
 
 | Key | Weight (kg) | Reps | Sets |
 |---|---|---|---|
-| pullup | 26.25 | 3 |  |
+| pullup | 23.75 | 3 |  |
 | latpulldown | 12.5 | 20 | 2 |
 | invertedrow | 22.5 | 8 | 2 |
 | bicepcurl | 10 | 17 | 2 |
 | facepull | 15 | 18 | 2 |
-| dip | 28.75 | 3 |  |
+| dip | 26.25 | 3 |  |
 | ohp | 55 | 5 | 3 |
 | shoulderfly | 12.5 | 11 | 2 |
 | chestfly | 5 | 11 | 2 |
