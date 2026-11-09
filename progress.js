@@ -6,7 +6,8 @@
    "Progression rules" table (one row per movement key whose rule differs from the H2 page's default;
    rules.js says what the columns mean and checks the values make sense), plus an optional "Custom
    movements" table (exercises added from the H2 Settings tab: Key | Name | Day | Type | Pattern |
-   Load | Muscles | Retired; movements.js registers them). The page
+   Load | Muscles | Retired; movements.js registers them), plus an optional "Competitions" table
+   (Date | Name, one row per competition, oldest first; peak.js plans toward the next one). The page
    reads and writes it through the GitHub contents API on the repo's `data` branch, so every save is
    a commit there and never touches `main`, which GitHub Pages serves the site from. Loaded as a plain
    <script> in the page and with require() in the node tests. */
@@ -185,6 +186,13 @@ function parse(text){
       return c;
     });
   }
+  /* optional: competition dates for the peak planner */
+  if('Competitions' in t)
+    data.competitions = t['Competitions'].map(row => {
+      const date = (row[0] || '').trim();
+      if(!DATE_RE.test(date)) throw new Error(`bad competition date: ${JSON.stringify(date)}`);
+      return {date, name: (row[1] || '').trim()};
+    });
   return data;
 }
 
@@ -219,6 +227,12 @@ function serialize(data){
       '|' + '---|'.repeat(CUSTOM_COLUMNS.length + 4));
     for(const c of data.custom)
       lines.push('| ' + [c.key, cell(c.name), ...CUSTOM_COLUMNS.map(([f]) => c[f]), fmtMuscles(c.muscles), c.retired ? 'yes' : ''].join(' | ') + ' |');
+  }
+  /* and only once a competition is entered */
+  if(data.competitions && data.competitions.length){
+    lines.push('', '## Competitions', '', '| Date | Name |', '|---|---|');
+    for(const c of [...data.competitions].sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
+      lines.push(`| ${c.date} | ${cell(c.name)} |`);
   }
   return lines.join('\n') + '\n';
 }
@@ -278,6 +292,16 @@ function validate(data){
         if(!RULE_COLUMNS.some(c => c[0] === f)) throw new Error(`bad progression rule field ${key}.${f}`);
     }
   }
+  if(data.competitions !== undefined){
+    if(!Array.isArray(data.competitions)) throw new Error('competitions must be a list');
+    const seen = new Set();
+    for(const c of data.competitions){
+      if(!c || typeof c.date !== 'string' || !isRealDate(c.date)) throw new Error('bad competition date');
+      if(typeof c.name !== 'string' || c.name.length > 60 || /[\r\n]/.test(c.name)) throw new Error(`bad competition name on ${c.date}`);
+      if(seen.has(c.date)) throw new Error(`two competitions on ${c.date}`);
+      seen.add(c.date);
+    }
+  }
   /* the shape only; whether a name clashes with another movement is movements.js's call */
   if(data.custom !== undefined){
     if(!Array.isArray(data.custom)) throw new Error('custom movements must be a list');
@@ -328,6 +352,8 @@ const LOADED_BODYWEIGHT = new Map();
 const LOADED_RULES = new Map();
 /* and for the Custom movements table */
 const LOADED_CUSTOM = new Map();
+/* and for the Competitions table */
+const LOADED_COMPETITIONS = new Map();
 
 /* cfg: {owner, repo, branch, path, token}. token may be empty for reads of a public repo. */
 function makeStore(cfg, fetchImpl){
@@ -367,6 +393,7 @@ function makeStore(cfg, fetchImpl){
       LOADED_BODYWEIGHT.set(url, data.bodyweight);
       LOADED_RULES.set(url, data.rules);
       LOADED_CUSTOM.set(url, data.custom);
+      LOADED_COMPETITIONS.set(url, data.competitions);
       return {data, sha: body.sha};
     },
     /* commit data as progress.md on top of sha -> new sha. Throws ConflictError if sha is stale. */
@@ -377,6 +404,8 @@ function makeStore(cfg, fetchImpl){
         data = {...data, rules: LOADED_RULES.get(url)};
       if(data && data.custom === undefined && LOADED_CUSTOM.get(url))
         data = {...data, custom: LOADED_CUSTOM.get(url)};
+      if(data && data.competitions === undefined && LOADED_COMPETITIONS.get(url))
+        data = {...data, competitions: LOADED_COMPETITIONS.get(url)};
       validate(data);
       const r = await f(url, {
         method: 'PUT', headers: {...headers(), 'Content-Type': 'application/json'},
@@ -392,6 +421,7 @@ function makeStore(cfg, fetchImpl){
       LOADED_BODYWEIGHT.set(url, data.bodyweight);
       LOADED_RULES.set(url, data.rules);
       LOADED_CUSTOM.set(url, data.custom);
+      LOADED_COMPETITIONS.set(url, data.competitions);
       return (await r.json()).content.sha;
     },
   };

@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- H2 tracker: **Peak tab**. Add a competition date and each main lift (Pull-Up, Dip, Squat) gets an estimated 1RM
+  from its newest top set and RPE, a week-by-week taper (triples → doubles → top singles → meet simulation) and
+  three attempts for the day. Competitions are saved in progress.md's new optional `## Competitions` table.
 - H2 tracker: back to a **3-day split**: Push (Dip, OHP, Chest Fly, Tricep Extension), Pull (Pull-Up, Dumbbell
   Row, Bicep Curl, Face Pull) and Legs + Accessories (Squat, Front Squat, Lat Pulldown, Shoulder Fly). A custom
   movement saved under a four-day-split day moves to Push or Pull by its pattern, or to Legs if it is lower body.

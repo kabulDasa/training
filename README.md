@@ -63,6 +63,7 @@ and set the load under Current working sets by hand.
   (each main lift's open issue and how it's being fixed)
 - `H2-2026.html`: H2 2026 tracker, in progress (same `progress.md`); planned features in `QUEUE.md`.
   `plan.js` holds its Today Plan maths (warm-ups, working sets, freshness), `movements.js` the movement grouping,
+  `peak.js` the Peak tab's competition taper (1RM estimate, weekly top sets, attempts),
   `rules.js` the progression rules (defaults, validation, advancing a working set; editable in Settings and
   stored in progress.md's optional `## Progression rules` table when they differ from the default)
 - `intensity-app-analysis/`: compares an Intensity app export with the H2 movements

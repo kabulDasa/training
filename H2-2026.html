@@ -128,6 +128,8 @@ main{max-width:1100px;margin:0 auto;padding:24px}
 .tpicker{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
 .tpgroup-title{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin-bottom:6px}
 .tchips{display:flex;flex-direction:column;gap:5px}
+.pk td{vertical-align:top}
+.pk tr.pk-now td{background:var(--gold-dim)}
 .trpe{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:12px;color:var(--muted)}
 .trpe select{background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:6px;font:inherit;padding:3px 6px}
 .trpe .terr{color:var(--push)}
@@ -268,6 +270,7 @@ fieldset.cxfs{border:none;min-width:0}
   <button class="tb active" onclick="showTab('today',this)">Today Plan</button>
   <button class="tb" onclick="showTab('program',this)">Program</button>
   <button class="tb" data-tab="chart" onclick="showTab('chart',this)">Chart</button>
+  <button class="tb" onclick="showTab('peak',this)">Peak</button>
   <button class="tb" onclick="showTab('settings',this)">Settings</button>
 </div>
 
@@ -290,6 +293,16 @@ fieldset.cxfs{border:none;min-width:0}
     <div id="todayPicker" class="tpicker"></div>
   </div>
   <div id="todayPlan"></div>
+</div>
+
+<!-- PEAK -->
+<div id="tab-peak" class="tp">
+  <div class="cc">
+    <div class="ctitle">Competition peak</div>
+    <div class="csub">Plans each main lift from its newest logged top set toward the next competition: triples, then doubles, then top singles, a meet simulation the week before, and three attempts. A top set logged without an RPE is read as RPE 9. Pull-up and dip are estimated on bodyweight + belt (your latest bodyweight). Loads further out are projections (+0.5% a week until the last two weeks); they update every time you log.</div>
+    <div id="peakComp"></div>
+  </div>
+  <div id="peakLifts"></div>
 </div>
 
 <!-- CHART -->
@@ -389,6 +402,7 @@ fieldset.cxfs{border:none;min-width:0}
 <script src="plan.js"></script>
 <script src="volume.js"></script>
 <script src="chart-select.js"></script>
+<script src="peak.js"></script>
 <script>
 /* name of the one-time Apple Shortcut (created manually in Shortcuts.app) that
    replaces the "Q2 2026 Training" note's body with whatever text we pass it */
@@ -508,6 +522,7 @@ let MISSING_STATE = new Set();
 let STATE = mergeState({});
 let HISTORY = [];
 let BODYWEIGHT = [];  /* [{date:'YYYY-MM-DD', kg}], oldest first */
+let COMPETITIONS = [];  /* [{date:'YYYY-MM-DD', name}], progress.md's Competitions table */
 
 function showStatus(msg, isError){
   const el = document.getElementById('savestatus');
@@ -526,6 +541,7 @@ async function loadProgress(){
     STATE = mergeState(data.state);
     HISTORY = data.history;
     BODYWEIGHT = data.bodyweight || [];
+    COMPETITIONS = data.competitions || [];
     PROGRESS_SHA = sha;
     showStatus(readonlyNote(), READONLY);
   }catch(e){
@@ -542,7 +558,7 @@ function saveState(message){
     message = h ? `Log ${h.exercise}: ${h.result}` : 'Update progress';
   }
   /* snapshot now: later logs may change STATE before this save runs */
-  const snap = JSON.parse(JSON.stringify({state:STATE, history:HISTORY, bodyweight:BODYWEIGHT, rules:RULES_STORED, custom:CUSTOM}));
+  const snap = JSON.parse(JSON.stringify({state:STATE, history:HISTORY, bodyweight:BODYWEIGHT, rules:RULES_STORED, custom:CUSTOM, competitions:COMPETITIONS}));
   SAVE_CHAIN = SAVE_CHAIN.then(async ()=>{
     if(READONLY) throw new Error('no GitHub token (Settings)');
     if(PROGRESS_SHA===null) throw new Error('progress not loaded');
@@ -568,7 +584,7 @@ function saveState(message){
 }
 /* log/undo/reset buttons only work with a token */
 function applyReadonly(){
-  document.querySelectorAll('#sgrid .logbtn, #todayFinish, #logtbody .delbtn, .resetbtn, .bwbtn, #bwtbody .delbtn, .rulebtn, fieldset.cxfs').forEach(b=>{ b.disabled = READONLY; });
+  document.querySelectorAll('#sgrid .logbtn, #todayFinish, #logtbody .delbtn, .resetbtn, .bwbtn, #bwtbody .delbtn, .rulebtn, fieldset.cxfs, #peakComp button').forEach(b=>{ b.disabled = READONLY; });
 }
 
 /* ---------- GitHub settings panel ---------- */
@@ -1854,11 +1870,64 @@ function renderChart(){
   applyReadonly();
 }
 
+/* ================= PEAK =================
+   Peak.plan per main lift (peak.js), toward the next competition in COMPETITIONS. Adding or removing a
+   competition is a commit like any log. */
+function addCompetition(){
+  const date = document.getElementById('compDate').value;
+  const name = document.getElementById('compName').value.replace(/[\r\n|]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 60);
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(date)){ alert('Pick the competition date.'); return; }
+  if(date < localDate()){ alert('That date has passed.'); return; }
+  COMPETITIONS = COMPETITIONS.filter(c=>c.date!==date).concat({date, name}).sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
+  saveState(`Add competition ${date}${name ? ` (${name})` : ''}`);
+  render();
+}
+function removeCompetition(date){
+  if(!confirm(`Remove the competition on ${date}?`)) return;
+  COMPETITIONS = COMPETITIONS.filter(c=>c.date!==date);
+  saveState(`Remove competition ${date}`);
+  render();
+}
+function renderPeakComp(comp){
+  const list = COMPETITIONS.filter(c=>c.date>=localDate()).map(c=>`<li>${esc(c.date)}${c.name ? ` · ${esc(c.name)}` : ''}${c===comp ? ' <span class="tm">(planning toward this)</span>' : ''}
+    <button class="tdel" title="Remove" onclick="removeCompetition('${c.date}')">✕</button></li>`).join('');
+  return `${list ? `<ul class="cl">${list}</ul>` : '<div class="tm">No competition set: showing estimates only.</div>'}
+    <div class="tarms" style="margin-top:10px">
+      <label>Date <input id="compDate" type="date" min="${localDate()}"></label>
+      <label>Name <input id="compName" class="tnote" type="text" maxlength="60" autocomplete="off" placeholder="optional"></label>
+      <button class="pbtn" onclick="addCompetition()">Add competition</button>
+    </div>`;
+}
+function renderPeakLift(key, comp, bw){
+  const belt = Plan.isAdded(key), rule = ruleOf(key), inc = rule.backoffRound || (belt ? 1.25 : 2.5);
+  const r = Peak.plan({history: HISTORY, keyOf, key, bw, belt, inc, today: localDate(), comp});
+  const name = esc(Movements.MOVEMENTS[key].name);
+  if(r.error) return `<div class="cc"><div class="ctitle">${name}</div><div class="tm">${esc(r.error)}</div></div>`;
+  const load = kg=>loadText(key, kg);
+  const t = r.top;
+  const head = `<div class="tdrow">Newest top set: <b>${load(t.load)} × ${t.reps}</b> ${t.rpe!=null ? `@ RPE ${t.rpe}` : `<span class="tm">(no RPE logged: read as RPE ${Peak.ASSUMED_RPE})</span>`} <span class="tm">· ${new Date(t.date).toLocaleDateString()}</span></div>
+    <div class="tdrow">Estimated 1RM today: <b>${load(r.maxNow)}</b>${belt ? ` <span class="tm">(${fmt(Math.round(r.e1rmNow*10)/10)} kg with bodyweight)</span>` : ''}</div>`;
+  if(!comp) return `<div class="cc"><div class="ctitle">${name}</div>${head}</div>`;
+  const rows = r.weeks.map(w=>`<tr${w.weeksOut===Peak.weeksOut(localDate(), comp.date) ? ' class="pk-now"' : ''}><td>${w.weeksOut ? `${w.weeksOut} wk out` : 'Comp week'}<div class="tm">${esc(w.start)}</div></td><td>${esc(w.phase)}<div class="tm">${esc(w.note)}</div></td>
+    <td>${w.top ? `${load(w.top.load)} × ${w.top.reps} @ RPE ${w.top.rpe}` : r.attempts.map(a=>`${a.label}: <b>${load(a.load)}</b>`).join('<br>')}</td>
+    <td>${w.top && w.backoff ? `${w.backoff.sets} × ${w.backoff.reps} @ ${load(w.backoffLoad)}` : '–'}</td></tr>`).join('');
+  return `<div class="cc"><div class="ctitle">${name}</div>${head}
+    <div class="tdrow">Projected 1RM on ${esc(comp.date)}: <b>${load(Peak.loadFor(r.e1rmComp, 1, bw, belt, inc))}</b> · attempts ${r.attempts.map(a=>`<b>${load(a.load)}</b>`).join(' → ')}</div>
+    <div class="settings-wrap"><table class="dt pk"><thead><tr><th>Week</th><th>Phase</th><th>Top set</th><th>Backoff</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+}
+function renderPeak(){
+  const comp = Peak.nextComp(COMPETITIONS, localDate());
+  const bw = latestBw() ? latestBw().kg : null;
+  document.getElementById('peakComp').innerHTML = renderPeakComp(comp);
+  document.getElementById('peakLifts').innerHTML = Peak.LIFTS.map(k=>renderPeakLift(k, comp, bw)).join('');
+}
+
 function render(){
   renderHeaderStats();
   renderBwNudge();
   document.getElementById('sgrid').innerHTML = Plan.DAYS.map((day,i)=>renderDay(day,i+1)).join('');
   renderToday();
+  renderPeak();
   applyReadonly();
 }
 
