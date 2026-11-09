@@ -36,13 +36,15 @@ const CUSTOM_COLUMNS = [
   ['pattern', 'Pattern', ['vertical_pull', 'horizontal_pull', 'vertical_push', 'horizontal_push', 'squat', 'hinge', 'isolation']],
   ['kind', 'Load', ['belt', 'barbell', 'accessory']],
 ];
-/* a custom movement saved under a day of the old four-day split moves to the push day if it is a push,
-   to legs if it is lower body (or was on the lower day), else to the pull day (legs is still a day);
-   the next save writes the new word */
+/* a custom movement saved under a day of the old four-day split moves by its pattern: a push to the
+   push day, a pull to the pull day, a squat or hinge to legs; an isolation movement goes to legs if it
+   was on the lower day, else to pull (legs is still a day). The next save writes the new word. */
 const OLD_DAYS = {upper: 1, lower: 1, hyp: 1};
 function newDay(c){
-  if(c.day === 'lower' || c.pattern === 'squat' || c.pattern === 'hinge') return 'legs';
-  return /_push$/.test(c.pattern) ? 'push' : 'pull';
+  if(/_push$/.test(c.pattern)) return 'push';
+  if(/_pull$/.test(c.pattern)) return 'pull';
+  if(c.pattern === 'squat' || c.pattern === 'hinge' || c.day === 'lower') return 'legs';
+  return 'pull';
 }
 const CUSTOM_FIELDS = ['key', 'name', ...CUSTOM_COLUMNS.map(c => c[0]), 'muscles', 'retired'];
 const MUSCLE_RE = /^[a-z][a-z_]*$/;

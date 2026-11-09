@@ -61,6 +61,9 @@ test('a custom movement saved under a four-day-split day moves to push, pull or 
   assert.equal(custom[2].day, 'legs');   // lower
   const push = P.parse(P.serialize({...WITH, custom: [{...CRUNCH, pattern: 'horizontal_push'}]}).replace('| pull |', '| upper |')).custom;
   assert.equal(push[0].day, 'push');
+  // the pattern wins over the old lower day for an upper-body movement
+  const lowerPush = P.parse(P.serialize({...WITH, custom: [{...CRUNCH, pattern: 'vertical_push'}]}).replace('| pull |', '| lower |')).custom;
+  assert.equal(lowerPush[0].day, 'push');
   assert.doesNotThrow(() => P.validate(P.parse(text)));
 });
 
