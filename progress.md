@@ -9,10 +9,10 @@ pull the `data` branch first; the page will ask to reload if it was open.
 | Key | Weight (kg) | Reps | Sets |
 |---|---|---|---|
 | pullup | 26.25 | 3 |  |
-| latpulldown | 12.5 | 19 | 2 |
-| invertedrow | 22.5 | 7 | 2 |
-| bicepcurl | 10 | 16 | 2 |
-| facepull | 15 | 17 | 2 |
+| latpulldown | 12.5 | 20 | 2 |
+| invertedrow | 22.5 | 8 | 2 |
+| bicepcurl | 10 | 17 | 2 |
+| facepull | 15 | 18 | 2 |
 | dip | 28.75 | 3 |  |
 | ohp | 55 | 5 | 3 |
 | shoulderfly | 12.5 | 11 | 2 |
@@ -222,6 +222,11 @@ pull the `data` branch first; the page will ask to reload if it was open.
 | 2026-11-06T09:47:29.120Z | Shoulder Fly (single arm) | 2 × 10 @ 6.25 kg | normal |  | 125 | 6.25 kg, 10 reps, 2 sets |
 | 2026-11-06T09:47:29.120Z | Chest Fly | 2 × 10 @ 5 kg | normal |  | 100 | 5 kg, 10 reps, 2 sets |
 | 2026-11-06T09:47:29.120Z | Tricep Extension | 2 × 18 @ 12.5 kg | normal |  | 450 | 12.5 kg, 18 reps, 2 sets |
+| 2026-11-09T07:33:59.623Z | Pull-up | 3 reps top @ +26.25 kg, 1×5 backoff @ +21.25 kg | hold | 26.25 | 106.25 | 26.25 kg, 3 reps |
+| 2026-11-09T07:33:59.623Z | Dumbbell Row | 2 × 7 @ 22.5 kg | normal |  | 315 | 22.5 kg, 7 reps, 2 sets |
+| 2026-11-09T07:33:59.623Z | Face Pull | 2 × 17 @ 15 kg | normal |  | 510 | 15 kg, 17 reps, 2 sets |
+| 2026-11-09T07:33:59.623Z | Bicep Curl | 2 × 16 @ 10 kg | normal |  | 320 | 10 kg, 16 reps, 2 sets |
+| 2026-11-09T07:33:59.623Z | Lat Pulldown | 2 × 19 @ 12.5 kg | normal |  | 475 | 12.5 kg, 19 reps, 2 sets |
 
 ## Bodyweight
 
