@@ -96,7 +96,7 @@ function plan(opts){
   if(!top) return {error: 'No top set logged yet.'};
   if(belt && !(bw > 0)) return {error: 'Log your bodyweight (Chart tab) to estimate a weighted lift.'};
   const now = e1rm(top, bw, belt);
-  if(!now) return {error: `Can't estimate from ${top.reps} reps.`};
+  if(!now) return {error: `Can't estimate from ${top.reps} reps${top.rpe != null ? ` @ RPE ${top.rpe}` : ''} (the chart covers 1–10 reps at RPE 6–10).`};
   const out = {top, assumedRpe: top.rpe == null, e1rmNow: now, maxNow: loadFor(now, 1, bw, belt, inc), weeks: [], e1rmComp: null, attempts: []};
   if(!comp) return out;
   const total = weeksOut(today, comp.date);
