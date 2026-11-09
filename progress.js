@@ -31,14 +31,21 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 /* Custom movements columns after Key and Name: [field, header, allowed words]. Muscles is
    "lats 1, biceps 0.5" (blank = none), Retired is "yes" or blank. The words match movements.js. */
 const CUSTOM_COLUMNS = [
-  ['day', 'Day', ['upper', 'lower', 'hyp', 'legs']],
+  ['day', 'Day', ['push', 'pull', 'legs']],
   ['category', 'Type', ['compound', 'isolation', 'skill', 'cardio']],
   ['pattern', 'Pattern', ['vertical_pull', 'horizontal_pull', 'vertical_push', 'horizontal_push', 'squat', 'hinge', 'isolation']],
   ['kind', 'Load', ['belt', 'barbell', 'accessory']],
 ];
-/* a custom movement saved under the old Pull / Push days moves to the strength day if it is a big
-   compound, else to the hypertrophy day (legs is still a day); the next save writes the new word */
-const OLD_DAYS = {pull: 1, push: 1};
+/* a custom movement saved under a day of the old four-day split moves by its pattern: a push to the
+   push day, a pull to the pull day, a squat or hinge to legs; an isolation movement goes to legs if it
+   was on the lower day, else to pull (legs is still a day). The next save writes the new word. */
+const OLD_DAYS = {upper: 1, lower: 1, hyp: 1};
+function newDay(c){
+  if(/_push$/.test(c.pattern)) return 'push';
+  if(/_pull$/.test(c.pattern)) return 'pull';
+  if(c.pattern === 'squat' || c.pattern === 'hinge' || c.day === 'lower') return 'legs';
+  return 'pull';
+}
 const CUSTOM_FIELDS = ['key', 'name', ...CUSTOM_COLUMNS.map(c => c[0]), 'muscles', 'retired'];
 const MUSCLE_RE = /^[a-z][a-z_]*$/;
 function fmtMuscles(m){ return Object.entries(m || {}).map(([k, w]) => `${k} ${w}`).join(', '); }
@@ -170,7 +177,7 @@ function parse(text){
       if(!KEY_RE.test(key)) throw new Error(`bad custom movement key: ${JSON.stringify(key)}`);
       const c = {key, name: (row[1] || '').trim()};
       CUSTOM_COLUMNS.forEach(([f], i) => { c[f] = (row[i + 2] || '').trim().toLowerCase(); });
-      if(Object.hasOwn(OLD_DAYS, c.day)) c.day = c.category === 'compound' ? 'upper' : 'hyp';
+      if(Object.hasOwn(OLD_DAYS, c.day)) c.day = newDay(c);
       c.muscles = parseMuscles(row[CUSTOM_COLUMNS.length + 2] || '');
       const retired = (row[CUSTOM_COLUMNS.length + 3] || '').trim().toLowerCase();
       if(retired && retired !== 'yes') throw new Error(`custom movement ${key}: Retired must be yes or blank`);

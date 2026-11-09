@@ -155,20 +155,31 @@ test('fitState fills what a scheme needs and keeps what is there', () => {
 });
 
 test('rule text: the Settings wording for the defaults', () => {
-  assert.equal(R.describe(D.pullup), 'Under 2 backoff sets: hold. Exactly 2: add 1.25 kg. More than 2: add 2.5 kg.');
-  assert.equal(R.describe(D.squat), 'Under 2 backoff sets: hold. Exactly 2: add 2.5 kg. More than 2: add 5 kg.');
+  assert.equal(R.describe(D.pullup), 'Under 2 backoff sets: hold. Exactly 2: add 1.25 kg. More than 2: add 2.5 kg. Top set above RPE 8: hold.');
+  assert.equal(R.describe(D.squat), 'Under 2 backoff sets: hold. Exactly 2: add 2.5 kg. More than 2: add 5 kg. Top set above RPE 8: hold.');
   assert.equal(R.describe(D.ohp), 'On success, add 1 rep until 7; then add 2.5 kg and reset to 3 reps.');
   assert.equal(R.describe(D.chestfly), 'On success, add 1 rep until 20; then add 1.25 kg and reset to 8 reps.');
   assert.equal(R.describe(D.frontsquat), 'Complete all sets at target to add 2.5 kg; otherwise hold.');
-  assert.equal(R.backoffText(D.pullup), 'Backoff: 2 sets of 5 @ 80% of the top set, rounded to 1.25 kg (up to 5)');
+  assert.equal(R.backoffText(D.pullup), 'Backoff: 2 sets of 3 @ 85% of the top set, rounded to 1.25 kg (up to 5)');
+  assert.equal(R.backoffText(D.squat), 'Backoff: 2 sets of 5 @ 80% of the top set, rounded to 2.5 kg (up to 5)');
   assert.equal(R.backoffText(D.ohp), '');
   assert.match(R.describe(R.normalize({...D.dip, progression:'double', repFloor:3, repCap:5})), /add 1 top-set rep until 5; then add 1.25 kg and reset to 3 reps/);
-  assert.equal(R.describe({...D.dip, bonusInc:1.25}), 'Under 2 backoff sets: hold. 2 or more: add 1.25 kg.');
+  assert.equal(R.describe({...D.dip, bonusInc:1.25}), 'Under 2 backoff sets: hold. 2 or more: add 1.25 kg. Top set above RPE 8: hold.');
+});
+
+test('outcome: a top set above RPE 8 holds whatever the backoff sets did', () => {
+  assert.equal(R.outcome(D.pullup, 2, 2, null), 'normal');
+  assert.equal(R.outcome(D.pullup, 3, 2, 8), 'double');
+  assert.equal(R.outcome(D.pullup, 2, 2, 8.5), 'hold');
+  assert.equal(R.outcome(D.pullup, 4, 2, 9), 'hold');
+  assert.equal(R.outcome(D.pullup, 1, 2, 7), 'hold');
+  // straight sets ignore RPE
+  assert.equal(R.outcome(D.ohp, 3, 3, 9.5), 'normal');
 });
 
 test('summary for commit messages', () => {
   assert.equal(R.summary({...D.shoulderfly, repCap:15}), 'straight sets, double 10–15 reps, +1.25 kg');
-  assert.equal(R.summary(D.pullup), 'top set + 2×5 backoff @ 80%, linear +1.25 kg (+2.5 kg past 2 backoff sets)');
+  assert.equal(R.summary(D.pullup), 'top set + 2×3 backoff @ 85%, linear +1.25 kg (+2.5 kg past 2 backoff sets)');
   assert.equal(R.summary(D.frontsquat), 'straight sets, linear +2.5 kg');
 });
 
