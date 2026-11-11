@@ -1,6 +1,6 @@
-# Q2 2026 progress
+# Training progress
 
-Written by `Q2-2026.html` through the GitHub API whenever a session is logged; each change is a commit
+Written by `H2-2026.html` through the GitHub API whenever a session is logged; each change is a commit
 to this `data` branch (the site's code is on `main`). Hand edits are fine (keep the table layout):
 pull the `data` branch first; the page will ask to reload if it was open.
 
@@ -26,7 +26,7 @@ pull the `data` branch first; the page will ask to reload if it was open.
 | shoulderflysingle | 6.25 | 11 | 2 |
 | chestflyboth | 10 | 9 | 2 |
 | tricepextsingle | 6.25 | 18 | 2 |
-| frontsquatsingle | 16.25 | 10 | 2 |
+| frontsquatsingle | 17.5 | 10 | 2 |
 
 ## Session log
 
@@ -227,6 +227,7 @@ pull the `data` branch first; the page will ask to reload if it was open.
 | 2026-11-09T07:33:59.623Z | Face Pull | 2 × 17 @ 15 kg | normal |  | 510 | 15 kg, 17 reps, 2 sets |
 | 2026-11-09T07:33:59.623Z | Bicep Curl | 2 × 16 @ 10 kg | normal |  | 320 | 10 kg, 16 reps, 2 sets |
 | 2026-11-09T07:33:59.623Z | Lat Pulldown | 2 × 19 @ 12.5 kg | normal |  | 475 | 12.5 kg, 19 reps, 2 sets |
+| 2026-11-11T12:08:46.350Z | Lunge / Split Squat | 2 × 10 @ 16.25 kg | normal |  | 325 | 16.25 kg, 10 reps, 2 sets |
 
 ## Bodyweight
 
