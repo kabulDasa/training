@@ -13,17 +13,17 @@ pull the `data` branch first; the page will ask to reload if it was open.
 | invertedrow | 22.5 | 8 | 2 |
 | bicepcurl | 10 | 17 | 2 |
 | facepull | 15 | 18 | 2 |
-| dip | 26.25 | 3 |  |
+| dip | 27.5 | 3 |  |
 | ohp | 55 | 5 | 3 |
 | shoulderfly | 12.5 | 11 | 2 |
-| chestfly | 5 | 11 | 2 |
-| tricepext | 12.5 | 19 | 2 |
+| chestfly | 5 | 12 | 2 |
+| tricepext | 12.5 | 20 | 2 |
 | squat | 110 | 3 |  |
 | frontsquat | 32.5 | 20 | 2 |
 | invertedrowboth | 45 | 6 | 2 |
 | latpulldownboth | 25 | 19 | 2 |
 | bicepcurlboth | 25 | 16 | 2 |
-| shoulderflysingle | 6.25 | 11 | 2 |
+| shoulderflysingle | 6.25 | 12 | 2 |
 | chestflyboth | 10 | 9 | 2 |
 | tricepextsingle | 6.25 | 18 | 2 |
 | frontsquatsingle | 17.5 | 10 | 2 |
@@ -228,6 +228,11 @@ pull the `data` branch first; the page will ask to reload if it was open.
 | 2026-11-09T07:33:59.623Z | Bicep Curl | 2 × 16 @ 10 kg | normal |  | 320 | 10 kg, 16 reps, 2 sets |
 | 2026-11-09T07:33:59.623Z | Lat Pulldown | 2 × 19 @ 12.5 kg | normal |  | 475 | 12.5 kg, 19 reps, 2 sets |
 | 2026-11-11T12:08:46.350Z | Lunge / Split Squat | 2 × 10 @ 16.25 kg | normal |  | 325 | 16.25 kg, 10 reps, 2 sets |
+| 2026-11-12T09:52:20.041Z | Dip | 3 reps top @ +26.25 kg, 2×3 backoff @ +22.5 kg | normal | 26.25 | 135 | 26.25 kg, 3 reps |
+| 2026-11-12T09:52:20.041Z | Chest Fly | 2 × 11 @ 5 kg | normal |  | 110 | 5 kg, 11 reps, 2 sets |
+| 2026-11-12T09:52:20.041Z | Tricep Extension | 2 × 19 @ 12.5 kg | normal |  | 475 | 12.5 kg, 19 reps, 2 sets |
+| 2026-11-12T09:52:20.041Z | Shoulder Fly (single arm) | 2 × 11 @ 6.25 kg | normal |  | 137.5 | 6.25 kg, 11 reps, 2 sets |
+| 2026-11-12T09:52:20.041Z | Cardio | 0.48 km in 10:00 (20:50/km) · Elliptical | normal |  |  |  |
 
 ## Bodyweight
 
