@@ -240,3 +240,4 @@ pull the `data` branch first; the page will ask to reload if it was open.
 |---|---|
 | 2026-10-28 | 76 |
 | 2026-11-03 | 75 |
+| 2026-11-13 | 74.6 |
