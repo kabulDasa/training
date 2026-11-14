@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- H2 tracker: **Today Plan presets are a six-session rotation**: Push prime (Dip, Tricep Extension, Shoulder Fly,
+  Chest Fly), Pull prime (Pull-Up, Dumbbell Row, Bicep Curl, Face Pull), Legs prime (Squat), Push secondary (OHP,
+  Tricep Extension, Shoulder Fly, Chest Fly), Pull secondary (Pull-Up Hold, Lat Prayer, Bicep Curl, Face Pull) and
+  Legs secondary (Front Squat / single-leg). The suggested session is the one whose main lift was trained longest ago.
+- New movements: **Pull-Up Hold** (3 × 3 from bodyweight, +1.25 kg on success) and **Lat Prayer** (double
+  progression 10–20 reps). Shoulder Fly moves to the Push day on the Program tab.
+- **Isolation work progresses only after two successful sessions in a row** at the same weight and reps. The first
+  success is logged as "Success 1 of 2" (outcome `once`) and the working set stays.
+
 - H2 tracker: **Peak tab**. Add a competition date and each main lift (Pull-Up, Dip, Squat) gets an estimated 1RM
   from its newest top set and RPE, a week-by-week taper (triples → doubles → top singles → meet simulation) and
   three attempts for the day. Competitions are saved in progress.md's new optional `## Competitions` table.

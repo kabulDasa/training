@@ -260,7 +260,7 @@ fieldset.cxfs{border:none;min-width:0}
   <div class="hi">
     <div>
       <h1>Streetlifting · H2 2026</h1>
-      <div class="sub">3-day split · top set (RPE ≤ 8 to progress) + backoff · double progression on accessories</div>
+      <div class="sub">6-session rotation · top set (RPE ≤ 8 to progress) + backoff · isolation progresses after 2 successes in a row</div>
     </div>
     <div class="hstats" id="hstats"></div>
   </div>
@@ -422,6 +422,8 @@ const DEFAULT_STATE = {
   tricepext:    {weight:10, reps:17, sets:2},
   squat:        {weight:100, reps:3},
   frontsquat:   {weight:22.5, reps:20, sets:2},
+  pullhold:     {weight:0, reps:3, sets:3},
+  latprayer:    {weight:10, reps:10, sets:2},
   /* the other variant of six accessories and the front squat (movements.js ARM_VARIANTS). When progress.md has no
      row for one yet, mergeState() starts it from its sibling's live working set instead. */
   invertedrowboth:   {weight:40, reps:14, sets:2},
@@ -658,8 +660,9 @@ function togglePending(e, uid, idx, len){
 function countDone(uid, len){ return getPending(uid, len).filter(Boolean).length; }
 
 /* ---------- outcome badge (the outcome is Rules.outcome of the ticked sets and the top-set RPE) ---------- */
-function outcomeBadge(outcome, holdLabel, normalLabel, doubleLabel){
+function outcomeBadge(outcome, holdLabel, normalLabel, doubleLabel, onceLabel){
   if(outcome==='hold')   return `<span class="eout eout-miss">↺ ${holdLabel}</span>`;
+  if(outcome==='once')   return `<span class="eout eout-ok">½ ${onceLabel}</span>`;
   if(outcome==='double') return `<span class="eout eout-bonus">⚡ ${doubleLabel}</span>`;
   return `<span class="eout eout-ok">✓ ${normalLabel}</span>`;
 }
@@ -687,13 +690,25 @@ const EXERCISE_KEY = {
   'Pull-up':'pullup', 'Lat Pulldown':'latpulldown', 'Inverted Row':'invertedrow', 'Dumbbell Row':'invertedrow', 'Bicep Curl':'bicepcurl',
   'Face Pull':'facepull',
   'Dip':'dip', 'OHP':'ohp', 'Shoulder Fly':'shoulderfly', 'Chest Fly':'chestfly', 'Tricep Extension':'tricepext',
-  'Squat':'squat', 'Front Squat':'frontsquat', 'Cardio':'cardio',
+  'Squat':'squat', 'Front Squat':'frontsquat', 'Cardio':'cardio', 'Pull-Up Hold':'pullhold', 'Lat Prayer':'latprayer',
   'Dumbbell Row (both arms)':'invertedrowboth', 'Lat Pulldown (both arms)':'latpulldownboth', 'Bicep Curl (both arms)':'bicepcurlboth',
   'Shoulder Fly (single arm)':'shoulderflysingle', 'Chest Fly (both arms)':'chestflyboth', 'Tricep Extension (single arm)':'tricepextsingle',
   'Lunge / Split Squat':'frontsquatsingle',
 };
 /* each variant has its own working set s and its own rule (rules.js; Settings can change it) */
 function advance(key, outcome, s){ Rules.advance(ruleOf(key), outcome, s); }
+/* isolation movements (the program's and added ones) progress only after two successes in a row */
+function isIsolation(key){ return Movements.MOVEMENTS[Movements.baseOf(key)].category==='isolation'; }
+function lastLog(key){
+  for(let i=HISTORY.length-1;i>=0;i--) if(keyOf(HISTORY[i].exercise)===key) return HISTORY[i];
+  return null;
+}
+/* a session's outcome: the rule's (Rules.outcome), held to 'once' for isolation work that hasn't
+   succeeded twice in a row. done = the working set as done today (effState). */
+function outcomeOf(key, n, target, rpe, done){
+  const o = Rules.outcome(ruleOf(key), n, target, rpe);
+  return isIsolation(key) ? Rules.confirmTwice(o, lastLog(key), done) : o;
+}
 /* the program's log names, then the exercises added from Settings (movements.js registers their names) */
 function keyOf(exercise){
   if(Object.hasOwn(EXERCISE_KEY, exercise)) return EXERCISE_KEY[exercise];
@@ -749,6 +764,8 @@ const CARD = {
   shoulderfly: {badge:'acc', cues:['Slight elbow bend held constant, raise to shoulder height', 'Lead with elbows, controlled lowering — no swing']},
   chestfly: {badge:'acc', cues:['Soft elbow held constant through the arc', 'Stretch the chest at the back, squeeze across the body, square hips — no torso twist']},
   tricepext: {badge:'acc', cues:['Elbows fixed and tucked, full stretch at bottom', 'Full lockout at top without flaring elbows out']},
+  pullhold: {badge:'aux', cues:['Pull to chin over bar and hold the top, shoulders down — each rep is a hold', 'Start at bodyweight; add 1.25 kg when all 3 × 3 are solid']},
+  latprayer: {badge:'acc', cues:['Straight-ish arms, hinge forward and sweep the cable to your thighs', 'Feel the lats, not the triceps; control the stretch back up']},
   squat: {badge:'isf', cues:['ISF standard: hip crease below top of knee'], after:['If lower back fatigue ≥ 7/10 → reduce backoff volume or skip']},
   frontsquat: {badge:'acc', cues:['Keep elbows high, brace before each rep, and maintain an upright torso'],
     singleCues:['Torso upright, front knee tracking over the toes; lower the back knee under control']},
@@ -819,7 +836,7 @@ function effState(key){
 function renderMovement(base){
   const key = activeKey(base), s = effState(key), rule = ruleOf(key), c = cardOf(base);
   const ws = Plan.workingSets(key, s, rule);
-  const outcome = Rules.outcome(rule, countDone(key, ws.sets.length), ws.target, getRpe(key));
+  const outcome = outcomeOf(key, countDone(key, ws.sets.length), ws.target, getRpe(key), s);
   const edited = s.weight!==STATE[key].weight;
   const load = kg=>loadText(key, kg);
   const wus = Plan.warmups(key, s);
@@ -833,7 +850,8 @@ function renderMovement(base){
   const scheme = ws.top ? '' : `<div class="eload"><div class="escheme">${s.sets} × ${s.reps}</div><div class="eweight">${load(s.weight)}${edited?' today':''}</div></div>`;
   const single = getArms(base)==='single' && Movements.variantsOf(base), limb = Movements.limbLabels(base)===Movements.ARMS ? 'arm' : 'leg';
   const cues = (single ? [`One ${limb} at a time; sets and reps are per ${limb}`] : []).concat(single && c.singleCues || c.cues);
-  const ruleLines = [Rules.backoffText(rule), Rules.describe(rule)].filter(Boolean);
+  const ruleLines = [Rules.backoffText(rule), Rules.describe(rule),
+    isIsolation(key) ? 'Isolation: progress only after two successful sessions in a row at the same weight and reps.' : ''].filter(Boolean);
   return `<div class="er" id="er-${base}">
     <div class="etop" onclick="tx('cues-${base}')">
       <div class="ename">${esc(Movements.variantName(key))}${BADGES[c.badge]}</div>
@@ -844,7 +862,7 @@ function renderMovement(base){
     ${tapRow(key, ws.sets.length, ws.target, ws.top ? 'Backoff sets' : 'Sets')}
     <div class="logrow">
       <button class="logbtn" onclick="logOne('${key}')">Log &amp; advance</button>
-      <div class="eoutcome">${outcomeBadge(outcome, Rules.nextText(rule,'hold',s,load), Rules.nextText(rule,'normal',s,load), Rules.nextText(rule,'double',s,load))}</div>
+      <div class="eoutcome">${outcomeBadge(outcome, Rules.nextText(rule,'hold',s,load), Rules.nextText(rule,'normal',s,load), Rules.nextText(rule,'double',s,load), Rules.nextText(rule,'once',s,load))}</div>
     </div>
     <div class="ecues" id="cues-${base}"><ul class="cl">
       ${cues.map(t=>`<li><span>${t}</span></li>`).join('')}
@@ -863,7 +881,7 @@ function recordMovement(key){
   const ws = Plan.workingSets(key, done, rule);
   const n = countDone(key, ws.sets.length);
   const rpe = ws.top ? getRpe(key) : null;
-  const outcome = Rules.outcome(rule, n, ws.target, rpe);
+  const outcome = outcomeOf(key, n, ws.target, rpe, done);
   const volume = ws.top ? round2(ws.sets[0].load * ws.sets[0].reps * n) : round2(done.weight * done.reps * done.sets);
   const weight = ws.top || Plan.kindOf(key)!=='accessory' ? done.weight : null;
   pushHistory(histName(key), Plan.resultText(key, done, rule, n, rpe), outcome, weight, volume);
@@ -877,7 +895,7 @@ const RECORD = Object.fromEntries(Object.keys(Rules.DEFAULT_RULES).map(k=>[k, re
 const HISTORY_NAME = {
   pullup:'Pull-up', latpulldown:'Lat Pulldown', invertedrow:'Dumbbell Row', bicepcurl:'Bicep Curl', facepull:'Face Pull',
   dip:'Dip', ohp:'OHP', shoulderfly:'Shoulder Fly', chestfly:'Chest Fly', tricepext:'Tricep Extension',
-  squat:'Squat', frontsquat:'Front Squat',
+  squat:'Squat', frontsquat:'Front Squat', pullhold:'Pull-Up Hold', latprayer:'Lat Prayer',
   latpulldownboth:'Lat Pulldown (both arms)', invertedrowboth:'Dumbbell Row (both arms)', bicepcurlboth:'Bicep Curl (both arms)',
   shoulderflysingle:'Shoulder Fly (single arm)', chestflyboth:'Chest Fly (both arms)', tricepextsingle:'Tricep Extension (single arm)',
   frontsquatsingle:'Lunge / Split Squat',
@@ -922,7 +940,7 @@ function togglePlan(key){
     setPlan(plan.filter(k=>Movements.baseOf(k)!==base));
   } else setPlan([...plan, activeKey(base)]);
 }
-function presetPlan(day){ setPlan(Movements.movementsFor(day).map(activeKey)); }
+function presetPlan(id){ setPlan(Plan.presetKeys(id).map(activeKey)); }
 function clearPlan(){ setPlan([]); }
 
 /* freshness is per movement: either arm variant counts as having trained it */
@@ -936,8 +954,8 @@ function loadText(key, load){
 }
 
 function renderTodayPresets(plan){
-  const sug = Plan.suggestDay(Movements.movementsFor, HISTORY, baseKeyOf);
-  const btns = Plan.DAYS.map(day=>`<button class="pbtn tpreset${day===sug?' suggested':''}" onclick="presetPlan('${day}')">${Movements.DAYS[day]} day${day===sug?'<span class="tsug">suggested</span>':''}</button>`).join('');
+  const sug = Plan.suggestPreset(HISTORY, baseKeyOf);
+  const btns = Object.entries(Plan.PRESETS).map(([id,p])=>`<button class="pbtn tpreset${id===sug?' suggested':''}" onclick="presetPlan('${id}')" title="${esc(Plan.presetKeys(id).map(Movements.familyName).join(', '))}">${esc(p.name)}${id===sug?'<span class="tsug">suggested</span>':''}</button>`).join('');
   return btns + (plan.length ? '<button class="pbtn" onclick="clearPlan()">Clear plan</button>' : '');
 }
 function renderTodayPicker(plan){
@@ -1171,8 +1189,8 @@ async function finishWorkout(){
     const ws = Plan.workingSets(key, effState(key), ruleOf(key));
     const n = countDone(key, ws.sets.length);
     const rpe = ws.top ? getRpe(key) : null;
-    const outcome = Rules.outcome(ruleOf(key), n, ws.target, rpe);
-    return `${Movements.MOVEMENTS[key].name}: ${n}/${ws.target} sets${rpe!=null ? `, top set RPE ${rpe}` : ''} (${outcome==='hold'?'hold':outcome==='double'?'bonus':'progress'})`;
+    const outcome = outcomeOf(key, n, ws.target, rpe, effState(key));
+    return `${Movements.MOVEMENTS[key].name}: ${n}/${ws.target} sets${rpe!=null ? `, top set RPE ${rpe}` : ''} (${outcome==='hold'?'hold':outcome==='double'?'bonus':outcome==='once'?Rules.ONCE_TEXT:'progress'})`;
   }).concat(skip.map(key=>`${Movements.MOVEMENTS[key].name}: skipped (nothing ${Movements.isCardio(key) ? 'filled in' : 'ticked'}, not logged)`));
   if(!confirm(`Log today's workout?\n\n${lines.join('\n')}`)) return;
   /* recordXxx() clears each movement's taps; put them back until the save succeeds */
@@ -1856,7 +1874,7 @@ function renderChart(){
       const cls = h.outcome==='hold' ? 'tag-hold' : h.outcome==='double' ? 'tag-double' : 'tag-normal';
       const key = keyOf(h.exercise);
       const cardio = Movements.isCardio(key);
-      const label = cardio ? 'Done' : h.outcome==='hold' ? 'Hold' : h.outcome==='double' ? 'Double progression' : 'Progressed';
+      const label = cardio ? 'Done' : h.outcome==='hold' ? 'Hold' : h.outcome==='double' ? 'Double progression' : h.outcome==='once' ? 'Success 1 of 2' : 'Progressed';
       const action = !key || i !== latestIndexFor(key) ? ''
         : cardio
         ? `<button class="delbtn" onclick="popLatest(${i})" title="Remove this most recent ${esc(h.exercise)} log">✕</button>`

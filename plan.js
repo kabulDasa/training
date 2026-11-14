@@ -21,7 +21,7 @@ const KIND = {
   pullup:'belt', dip:'belt', squat:'squat', ohp:'barbell', frontsquat:'barbell',
   latpulldown:'accessory', invertedrow:'accessory', bicepcurl:'accessory', facepull:'accessory', shoulderfly:'accessory', chestfly:'accessory', tricepext:'accessory',
   latpulldownboth:'accessory', invertedrowboth:'accessory', bicepcurlboth:'accessory', shoulderflysingle:'accessory', chestflyboth:'accessory', tricepextsingle:'accessory',
-  frontsquatsingle:'accessory',
+  frontsquatsingle:'accessory', pullhold:'belt', latprayer:'accessory',
 };
 /* a movement's kind: the program's, or the load kind a custom movement was added with (movements.js) */
 function kindOf(key){
@@ -210,15 +210,30 @@ function ageLabel(days){
   return Math.floor(days/7) + ' wk ago';
 }
 
-/* the day whose newest log is oldest (never-trained days first); ties go to program order.
-   dayKeys(day) lists a day's current movements (Movements.movementsFor). */
-function suggestDay(dayKeys, history, keyOf){
+/* the Today Plan presets (2026-11-14): a six-session rotation, prime then secondary for push, pull
+   and legs. Accessories repeat across sessions, so each session's first key is its anchor, which the
+   suggestion goes by. day is the program day whose added (custom) exercises join the preset. */
+const PRESETS = {
+  pushprime: {name: 'Push prime',     day: 'push', keys: ['dip', 'tricepext', 'shoulderfly', 'chestfly']},
+  pullprime: {name: 'Pull prime',     day: 'pull', keys: ['pullup', 'invertedrow', 'bicepcurl', 'facepull']},
+  legsprime: {name: 'Legs prime',     day: 'legs', keys: ['squat']},
+  pushsec:   {name: 'Push secondary', day: 'push', keys: ['ohp', 'tricepext', 'shoulderfly', 'chestfly']},
+  pullsec:   {name: 'Pull secondary', day: 'pull', keys: ['pullhold', 'latprayer', 'bicepcurl', 'facepull']},
+  legssec:   {name: 'Legs secondary', day: 'legs', keys: ['frontsquat']},
+};
+/* a preset's movement keys (base keys): its own, then the current custom exercises on its day */
+function presetKeys(id){
+  const p = PRESETS[id];
+  if(!p) return [];
+  return [...p.keys, ...Movements.movementsFor(p.day).filter(k=>Movements.isCustom(k) && !p.keys.includes(k))];
+}
+/* the preset whose anchor was trained longest ago (never-trained first); ties go to preset order */
+function suggestPreset(history, keyOf){
   let best = null, bestT = Infinity;
-  for(const day of DAYS){
-    const keys = dayKeys(day);
-    if(!keys.length) continue;
-    const t = Math.max(...keys.map(k=>{ const d = lastTrained(history, k, keyOf); return d ? new Date(d).getTime() : -Infinity; }));
-    if(t < bestT){ best = day; bestT = t; }
+  for(const [id, p] of Object.entries(PRESETS)){
+    const d = lastTrained(history, p.keys[0], keyOf);
+    const t = d ? new Date(d).getTime() : -Infinity;
+    if(t < bestT){ best = id; bestT = t; }
   }
   return best;
 }
@@ -238,7 +253,7 @@ function splitFinish(plan, ticked){
 
 const api = {
   DAYS, KIND, WARMUP_CUES, HOLDS, kindOf, FRESH_DAYS, DUE_DAYS, backoffOf, calWarmups, squatWarmups, barbellWarmups, accessoryWarmups,
-  warmups, workingSets, resultText, isAdded, lastTrained, freshness, ageLabel, suggestDay, checklistLength, splitFinish,
+  warmups, workingSets, resultText, isAdded, lastTrained, freshness, ageLabel, PRESETS, presetKeys, suggestPreset, checklistLength, splitFinish,
   seedVariant, parseDuration, formatDuration, cleanNote, cardioResult, parseCardioResult, readCardio, lastCardioForm,
 };
 if(typeof module !== 'undefined' && module.exports) module.exports = api;

@@ -185,16 +185,16 @@ test('setCustom registers added exercises everywhere movements.js is read, and r
     assert.equal(M.variantsOf('cablecrunch'), null);
     assert.equal(M.familyName('cablecrunch'), 'Cable Crunch');
     // after the program's movements in their day and category; retired ones aren't listed
-    assert.deepEqual(M.movementsFor('pull'), ['pullup', 'invertedrow', 'bicepcurl', 'facepull', 'cablecrunch']);
+    assert.deepEqual(M.movementsFor('pull'), ['pullup', 'invertedrow', 'bicepcurl', 'facepull', 'pullhold', 'latprayer', 'cablecrunch']);
     assert.deepEqual(M.movementsFor('legs', 'compound'), ['squat', 'romaniandeadlift']);
-    assert.deepEqual(M.movementsFor('legs', 'isolation'), ['frontsquat', 'latpulldown', 'shoulderfly']);
+    assert.deepEqual(M.movementsFor('legs', 'isolation'), ['frontsquat', 'latpulldown']);
     // re-registering (an edit / retire / delete) replaces the earlier set, built-ins untouched
     M.setCustom([{...CRUNCH, name: 'Cable Crunch Kneeling', retired: true}]);
     assert.deepEqual(M.customKeys(), ['cablecrunch']);
     assert.equal(M.EXERCISE_KEY['Cable Crunch'], undefined);
     assert.equal(M.EXERCISE_KEY['Cable Crunch Kneeling'], 'cablecrunch');
     assert.equal(M.MOVEMENTS.romaniandeadlift, undefined);
-    assert.deepEqual(M.movementsFor('pull'), ['pullup', 'invertedrow', 'bicepcurl', 'facepull']);
+    assert.deepEqual(M.movementsFor('pull'), ['pullup', 'invertedrow', 'bicepcurl', 'facepull', 'pullhold', 'latprayer']);
     assert.equal(M.EXERCISE_KEY['Shoulder Fly'], 'shoulderfly');
   } finally { M.setCustom([]); }
   assert.deepEqual(M.customKeys(), []);

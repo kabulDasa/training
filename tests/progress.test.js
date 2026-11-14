@@ -339,3 +339,11 @@ test('a cardio row round-trips, with no load, volume or before', () => {
   assert.deepEqual(back.history[back.history.length - 1], row);
   P.validate(back);
 });
+
+test('an isolation first-success row (outcome once) validates and round-trips', () => {
+  const data = {state: {latprayer: {weight: 10, reps: 10, sets: 2}}, history: [
+    {date: '2026-11-14T10:00:00.000Z', exercise: 'Lat Prayer', result: '2 × 10 @ 10 kg', outcome: 'once', weight: null, volume: 200, before: {weight: 10, reps: 10, sets: 2}},
+  ]};
+  P.validate(data);
+  assert.deepEqual(P.parse(P.serialize(data)).history, data.history);
+});

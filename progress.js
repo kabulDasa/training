@@ -18,7 +18,8 @@ const STATE_FIELDS = ['weight', 'reps', 'sets'];
 const HISTORY_FIELDS = ['date', 'exercise', 'result', 'outcome', 'weight', 'volume', 'before'];
 /* Before cell units, e.g. "12.5 kg, 18 reps, 2 sets" */
 const UNITS = {weight: ['kg', 'kg'], reps: ['rep', 'reps'], sets: ['set', 'sets']};
-const OUTCOMES = ['hold', 'normal', 'double'];
+/* 'once' = an isolation movement's first of two successful sessions (rules.js confirmTwice) */
+const OUTCOMES = ['hold', 'normal', 'double', 'once'];
 const KEY_RE = /^[a-z][a-z0-9]*$/;
 /* Progression rules columns after Key: [field, header]. scheme and progression are words, the rest
    numbers; a blank cell is a field the rule doesn't use (null). */
