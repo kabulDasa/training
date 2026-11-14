@@ -26,8 +26,8 @@
 (function(root){
 'use strict';
 
-/* the three-day split, in program order. Each main lift has its own day; some pull and push
-   accessories (lat pulldown, shoulder fly) go on leg day so the push and pull days stay short */
+/* the program's days (where each movement is listed on the Program tab), in program order. The
+   Today Plan presets are a six-session rotation built from these movements (plan.js PRESETS). */
 const DAYS = {push: 'Push', pull: 'Pull', legs: 'Legs + Accessories'};
 const CATEGORIES = {compound: 'Big compound', isolation: 'Isolation', skill: 'Skill work', cardio: 'Cardio'};
 const PATTERNS = {
@@ -51,6 +51,10 @@ const MOVEMENTS = {
                 muscles: {biceps: 1}, arms: 'single'},
   facepull:    {name: 'Face Pull',               day: 'pull', category: 'isolation', pattern: 'isolation',
                 muscles: {rear_delts: 1, traps: 0.5}},
+  pullhold:    {name: 'Pull-Up Hold',            day: 'pull', category: 'compound',  pattern: 'vertical_pull',
+                muscles: {lats: 1, biceps: 0.5}},
+  latprayer:   {name: 'Lat Prayer',              day: 'pull', category: 'isolation', pattern: 'isolation',
+                muscles: {lats: 1}},
   dip:         {name: 'Weighted Dip',            day: 'push', category: 'compound',  pattern: 'horizontal_push',
                 muscles: {chest: 1, triceps: 1, front_delts: 0.5}},
   ohp:         {name: 'Overhead Press',          day: 'push', category: 'compound',  pattern: 'vertical_push',
@@ -59,14 +63,14 @@ const MOVEMENTS = {
                 muscles: {chest: 1, front_delts: 0.5}, arms: 'single'},
   tricepext:   {name: 'Tricep Extension (both arms)', day: 'push', category: 'isolation', pattern: 'isolation',
                 muscles: {triceps: 1}, arms: 'both'},
+  shoulderfly: {name: 'Shoulder Fly (both arms)', day: 'push', category: 'isolation', pattern: 'isolation',
+                muscles: {side_delts: 1}, arms: 'both'},
   squat:       {name: 'Competition Squat',       day: 'legs', category: 'compound',  pattern: 'squat',
                 muscles: {quads: 1, glutes: 0.5, adductors: 0.5}},
-  frontsquat:  {name: 'Front Squat',             day: 'legs', category: 'isolation', pattern: 'squat',
+  frontsquat:  {name: 'Front Squat',             day: 'legs', category: 'compound',  pattern: 'squat',
                 muscles: {quads: 1, glutes: 0.5}, arms: 'both'},
   latpulldown: {name: 'Lat Pulldown (single arm)', day: 'legs', category: 'isolation', pattern: 'vertical_pull',
                 muscles: {lats: 1, biceps: 0.5}, arms: 'single'},
-  shoulderfly: {name: 'Shoulder Fly (both arms)', day: 'legs', category: 'isolation', pattern: 'isolation',
-                muscles: {side_delts: 1}, arms: 'both'},
   muscleup:    {name: 'Muscle-Up',               day: 'pull', category: 'skill',     pattern: 'vertical_pull',
                 muscles: {lats: 1, triceps: 0.5, chest: 0.5}, retired: true},
   frontlever:  {name: 'Tuck Front Lever',        day: 'pull', category: 'skill',     pattern: 'horizontal_pull',
@@ -134,7 +138,7 @@ function limbLabel(key){ return limbLabels(key)[MOVEMENTS[key].arms]; }
 const EXERCISE_KEY = {
   'Pull-up': 'pullup', 'Lat Pulldown': 'latpulldown', 'Inverted Row': 'invertedrow', 'Dumbbell Row': 'invertedrow',
   'Bicep Curl': 'bicepcurl', 'Face Pull': 'facepull', 'Dip': 'dip', 'OHP': 'ohp', 'Shoulder Fly': 'shoulderfly', 'Chest Fly': 'chestfly', 'Tricep Extension': 'tricepext',
-  'Squat': 'squat', 'Front Squat': 'frontsquat',
+  'Squat': 'squat', 'Front Squat': 'frontsquat', 'Pull-Up Hold': 'pullhold', 'Lat Prayer': 'latprayer',
   'Dumbbell Row (both arms)': 'invertedrowboth', 'Lat Pulldown (both arms)': 'latpulldownboth', 'Bicep Curl (both arms)': 'bicepcurlboth',
   'Shoulder Fly (single arm)': 'shoulderflysingle', 'Chest Fly (both arms)': 'chestflyboth', 'Tricep Extension (single arm)': 'tricepextsingle',
   'Lunge / Split Squat': 'frontsquatsingle',

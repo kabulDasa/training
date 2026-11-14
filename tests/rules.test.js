@@ -192,6 +192,33 @@ test('nextText says what the outcome does next session', () => {
   assert.equal(R.nextText(D.ohp, 'normal', {weight:55, reps:7, sets:3}), '+2.5 kg → 57.5 kg × 3 next');
 });
 
+test('confirmTwice: isolation progresses on the second success in a row at the same working set', () => {
+  const s = {weight:10, reps:12, sets:2};
+  assert.equal(R.confirmTwice('hold', null, s), 'hold');
+  assert.equal(R.confirmTwice('normal', null, s), 'once');
+  assert.equal(R.confirmTwice('normal', {outcome:'normal', before:{...s}}, s), 'once');
+  assert.equal(R.confirmTwice('normal', {outcome:'hold', before:{...s}}, s), 'once');
+  assert.equal(R.confirmTwice('normal', {outcome:'once', before:{...s}}, s), 'normal');
+  assert.equal(R.confirmTwice('hold', {outcome:'once', before:{...s}}, s), 'hold');
+  // a different weight or reps since the first success starts the count again
+  assert.equal(R.confirmTwice('normal', {outcome:'once', before:{...s, weight:7.5}}, s), 'once');
+  assert.equal(R.confirmTwice('normal', {outcome:'once', before:{...s, reps:11}}, s), 'once');
+  assert.equal(R.confirmTwice('normal', {outcome:'once', before:null}, s), 'once');
+  // 'once' leaves the working set as it is
+  const t = {...s}; R.advance(R.DEFAULT_RULES.bicepcurl, 'once', t); assert.deepEqual(t, s);
+  assert.equal(R.nextText(R.DEFAULT_RULES.bicepcurl, 'once', s), '1 of 2 — repeat 10 kg × 12 to progress');
+});
+
+test('pull-up hold: 3 × 3 adding 1.25 kg; lat prayer double progression 10–20', () => {
+  assert.equal(R.DEFAULT_RULES.pullhold.scheme, 'straight');
+  assert.equal(R.DEFAULT_RULES.pullhold.progression, 'linear');
+  assert.equal(R.DEFAULT_RULES.pullhold.inc, 1.25);
+  const s = {weight:0, reps:3, sets:3}; R.advance(R.DEFAULT_RULES.pullhold, 'normal', s);
+  assert.deepEqual(s, {weight:1.25, reps:3, sets:3});
+  assert.equal(R.DEFAULT_RULES.latprayer.repFloor, 10);
+  assert.equal(R.DEFAULT_RULES.latprayer.repCap, 20);
+});
+
 test('rules survive progress.md: only the custom ones, and they come back usable', () => {
   const rules = {shoulderfly: {...D.shoulderfly, repCap:15}, dip: R.normalize({...D.dip, scheme:'straight'})};
   const data = {state: {dip: {weight:27.5, reps:5, sets:3}}, history: [], rules};

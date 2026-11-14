@@ -53,6 +53,9 @@ const DEFAULT_RULES = {
   tricepext:   straightDouble(2.5, 10, 20),
   squat:       topset(2.5, 5, 2.5),
   frontsquat:  straightLinear(2.5),
+  /* pull-up hold (2026-11-14): 3 × 3 from bodyweight, +1.25 kg on success */
+  pullhold:    straightLinear(1.25),
+  latprayer:   straightDouble(1.25, 10, 20),
 };
 /* an arm variant starts with its movement's rule */
 for(const [key, m] of Object.entries(Movements.MOVEMENTS))
@@ -150,6 +153,19 @@ function outcome(rule, n, target, rpe){
   return rule.scheme === 'topset' && rpe != null && rpe > TOP_RPE_MAX ? 'hold' : o;
 }
 
+/* isolation work progresses only after two successful sessions in a row (2026-11-14). The first
+   success logs as 'once' (the working set stays); a success right after a 'once' at the same weight
+   and reps progresses as usual. o = outcome(); prev = the movement's previous session-log row
+   ({outcome, before}) or null; s = the working set as done today. A weight entered for today on the
+   'once' session makes before differ from the new working set, so that costs one more 'once' session
+   (conservative on purpose: accessories log no weight to compare against). */
+const ONCE_TEXT = 'success 1 of 2';
+function confirmTwice(o, prev, s){
+  if(o !== 'normal' && o !== 'double') return o;
+  const b = prev && prev.outcome === 'once' ? prev.before : null;
+  return b && b.weight === s.weight && b.reps === s.reps ? o : 'once';
+}
+
 /* move working set s (in place) after a session with this outcome */
 function advance(rule, outcome, s){
   if(outcome !== 'normal' && outcome !== 'double') return;
@@ -208,6 +224,7 @@ function summary(rule){
    loadText(kg) formats a load (e.g. "+20 kg" for belt weight). */
 function nextText(rule, outcome, s, loadText){
   const load = loadText || (kg => `${fmt(kg)} kg`);
+  if(outcome === 'once') return `1 of 2 — repeat ${load(s.weight)} × ${s.reps} to progress`;
   if(outcome !== 'normal' && outcome !== 'double') return `Hold — repeat ${load(s.weight)} × ${s.reps}`;
   const next = {...s};
   advance(rule, outcome, next);
@@ -218,7 +235,7 @@ function nextText(rule, outcome, s, loadText){
 
 const api = {
   SCHEMES, PROGRESSIONS, FIELDS, DEFAULT_RULES, CUSTOM_FALLBACK, normalize, problems, problem, sameRule, isDefault, effective,
-  RPES, TOP_RPE_MAX, outcomeFromCount, outcome, advance, fitState, describe, backoffText, summary, nextText,
+  RPES, TOP_RPE_MAX, ONCE_TEXT, outcomeFromCount, outcome, confirmTwice, advance, fitState, describe, backoffText, summary, nextText,
 };
 if(typeof module !== 'undefined' && module.exports) module.exports = api;
 else root.Rules = api;

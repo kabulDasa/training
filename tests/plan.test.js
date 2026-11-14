@@ -2,7 +2,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const P = require('../plan.js');
-const {MOVEMENTS, movementsFor} = require('../movements.js');
+const {MOVEMENTS} = require('../movements.js');
 
 const KEY = {'Pull-up':'pullup', 'Dip':'dip', 'Squat':'squat', 'Lat Pulldown':'latpulldown', 'OHP':'ohp', 'Dumbbell Row':'invertedrow', 'Inverted Row':'invertedrow'};
 const keyOf = e => KEY[e] || null;
@@ -96,13 +96,40 @@ test('lastTrained finds the newest row for a key, across shared names', () => {
   assert.equal(P.lastTrained(HIST, 'ohp', keyOf), null);
 });
 
-test('suggestDay picks the day trained longest ago', () => {
-  // pull: pull-up 5 d ago; push: dip 3 d ago; legs: squat 10 d ago
-  assert.equal(P.suggestDay(movementsFor, HIST, keyOf), 'legs');
-  assert.equal(P.suggestDay(movementsFor, [], keyOf), 'push');
-  const withLegs = [...HIST, {date: ago(2), exercise:'Lat Pulldown'}];
-  assert.equal(P.suggestDay(movementsFor, withLegs, keyOf), 'pull');
-  assert.equal(P.suggestDay(movementsFor, [...withLegs, {date: ago(1), exercise:'Pull-up'}], keyOf), 'push');
+test('presets: the six-session rotation, accessories repeated across sessions', () => {
+  assert.deepEqual(Object.keys(P.PRESETS), ['pushprime', 'pullprime', 'legsprime', 'pushsec', 'pullsec', 'legssec']);
+  assert.deepEqual(P.presetKeys('pushprime'), ['dip', 'tricepext', 'shoulderfly', 'chestfly']);
+  assert.deepEqual(P.presetKeys('pullprime'), ['pullup', 'invertedrow', 'bicepcurl', 'facepull']);
+  assert.deepEqual(P.presetKeys('legsprime'), ['squat']);
+  assert.deepEqual(P.presetKeys('pushsec'), ['ohp', 'tricepext', 'shoulderfly', 'chestfly']);
+  assert.deepEqual(P.presetKeys('pullsec'), ['pullhold', 'latprayer', 'bicepcurl', 'facepull']);
+  assert.deepEqual(P.presetKeys('legssec'), ['frontsquat']);
+  assert.deepEqual(P.presetKeys('nope'), []);
+  for(const p of Object.values(P.PRESETS)) for(const k of p.keys) assert.ok(MOVEMENTS[k] && !MOVEMENTS[k].retired && P.KIND[k], k);
+});
+
+test('presets add the custom exercises on their day', () => {
+  const M = require('../movements.js');
+  try{
+    M.setCustom([{key:'cablecrunch', name:'Cable Crunch', day:'pull', category:'isolation', pattern:'isolation', kind:'accessory'}]);
+    assert.deepEqual(P.presetKeys('pullsec'), ['pullhold', 'latprayer', 'bicepcurl', 'facepull', 'cablecrunch']);
+    assert.deepEqual(P.presetKeys('pullprime').at(-1), 'cablecrunch');
+    assert.ok(!P.presetKeys('pushprime').includes('cablecrunch'));
+  } finally { M.setCustom([]); }
+});
+
+test('suggestPreset picks the session whose anchor was trained longest ago', () => {
+  const K = {...KEY, 'Front Squat':'frontsquat', 'Pull-Up Hold':'pullhold', 'Bicep Curl':'bicepcurl'};
+  const kOf = e => K[e] || null;
+  assert.equal(P.suggestPreset([], kOf), 'pushprime');
+  const all = [
+    {date: ago(6), exercise:'Dip'}, {date: ago(5), exercise:'Pull-up'}, {date: ago(4), exercise:'Squat'},
+    {date: ago(3), exercise:'OHP'}, {date: ago(2), exercise:'Pull-Up Hold'}, {date: ago(1), exercise:'Front Squat'},
+  ];
+  assert.equal(P.suggestPreset(all, kOf), 'pushprime');
+  assert.equal(P.suggestPreset([...all, {date: ago(0), exercise:'Dip'}], kOf), 'pullprime');
+  // a shared accessory doesn't count: curl today doesn't move pull prime back
+  assert.equal(P.suggestPreset([...all, {date: ago(0), exercise:'Dip'}, {date: ago(0), exercise:'Bicep Curl'}], kOf), 'pullprime');
 });
 
 test('checklist chips: warm-ups plus the top set when there is one', () => {
