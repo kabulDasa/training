@@ -67,7 +67,7 @@ const MOVEMENTS = {
                 muscles: {side_delts: 1}, arms: 'both'},
   squat:       {name: 'Competition Squat',       day: 'legs', category: 'compound',  pattern: 'squat',
                 muscles: {quads: 1, glutes: 0.5, adductors: 0.5}},
-  frontsquat:  {name: 'Front Squat',             day: 'legs', category: 'isolation', pattern: 'squat',
+  frontsquat:  {name: 'Front Squat',             day: 'legs', category: 'compound',  pattern: 'squat',
                 muscles: {quads: 1, glutes: 0.5}, arms: 'both'},
   latpulldown: {name: 'Lat Pulldown (single arm)', day: 'legs', category: 'isolation', pattern: 'vertical_pull',
                 muscles: {lats: 1, biceps: 0.5}, arms: 'single'},

@@ -10,6 +10,8 @@
   progression 10–20 reps). Shoulder Fly moves to the Push day on the Program tab.
 - **Isolation work progresses only after two successful sessions in a row** at the same weight and reps. The first
   success is logged as "Success 1 of 2" (outcome `once`) and the working set stays.
+- **Front Squat counts as a big compound** (was isolation), so it progresses on every success and shows with the
+  compounds on the Program tab.
 
 - H2 tracker: **Peak tab**. Add a competition date and each main lift (Pull-Up, Dip, Squat) gets an estimated 1RM
   from its newest top set and RPE, a week-by-week taper (triples → doubles → top singles → meet simulation) and

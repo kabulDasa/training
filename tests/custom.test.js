@@ -186,8 +186,8 @@ test('setCustom registers added exercises everywhere movements.js is read, and r
     assert.equal(M.familyName('cablecrunch'), 'Cable Crunch');
     // after the program's movements in their day and category; retired ones aren't listed
     assert.deepEqual(M.movementsFor('pull'), ['pullup', 'invertedrow', 'bicepcurl', 'facepull', 'pullhold', 'latprayer', 'cablecrunch']);
-    assert.deepEqual(M.movementsFor('legs', 'compound'), ['squat', 'romaniandeadlift']);
-    assert.deepEqual(M.movementsFor('legs', 'isolation'), ['frontsquat', 'latpulldown']);
+    assert.deepEqual(M.movementsFor('legs', 'compound'), ['squat', 'frontsquat', 'romaniandeadlift']);
+    assert.deepEqual(M.movementsFor('legs', 'isolation'), ['latpulldown']);
     // re-registering (an edit / retire / delete) replaces the earlier set, built-ins untouched
     M.setCustom([{...CRUNCH, name: 'Cable Crunch Kneeling', retired: true}]);
     assert.deepEqual(M.customKeys(), ['cablecrunch']);

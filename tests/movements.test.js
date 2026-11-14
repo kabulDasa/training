@@ -147,10 +147,10 @@ test('valid day, category, pattern, name and muscle weights', () => {
   }
 });
 
-test('big compounds: dip and OHP on push, pull-up, dumbbell row and pull-up hold on pull, squat on legs', () => {
+test('big compounds: dip and OHP on push, pull-up, dumbbell row and pull-up hold on pull, squat and front squat on legs', () => {
   assert.deepEqual(M.movementsFor('push', 'compound'), ['dip', 'ohp']);
   assert.deepEqual(M.movementsFor('pull', 'compound'), ['pullup', 'invertedrow', 'pullhold']);
-  assert.deepEqual(M.movementsFor('legs', 'compound'), ['squat']);
+  assert.deepEqual(M.movementsFor('legs', 'compound'), ['squat', 'frontsquat']);
 });
 
 test('the three days are push, pull, legs + accessories', () => {
