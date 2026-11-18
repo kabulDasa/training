@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- New note: `notes/injury/ulnar-nerve.md` on ring/pinky finger tingling (cubital tunnel vs wrist vs neck,
+  nerve glides, training changes, prevention and when to see someone).
 - H2 tracker: **Today Plan presets are a six-session rotation**: Push prime (Dip, Tricep Extension, Shoulder Fly,
   Chest Fly), Pull prime (Pull-Up, Dumbbell Row, Bicep Curl, Face Pull), Legs prime (Squat), Push secondary (OHP,
   Tricep Extension, Shoulder Fly, Chest Fly), Pull secondary (Pull-Up Hold, Lat Prayer, Bicep Curl, Face Pull) and
