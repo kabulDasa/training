@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Pull-Up Hold cue now says how long to hold: 3 s at the top of each rep.
 - New note: `notes/injury/ulnar-nerve.md` on ring/pinky finger tingling (cubital tunnel vs wrist vs neck,
   nerve glides, training changes, prevention and when to see someone).
 - H2 tracker: **Today Plan presets are a six-session rotation**: Push prime (Dip, Tricep Extension, Shoulder Fly,
