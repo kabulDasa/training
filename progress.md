@@ -12,7 +12,7 @@ pull the `data` branch first; the page will ask to reload if it was open.
 | latpulldown | 12.5 | 20 | 2 |
 | invertedrow | 22.5 | 8 | 2 |
 | bicepcurl | 10 | 17 | 2 |
-| facepull | 15 | 18 | 2 |
+| facepull | 10 | 10 | 2 |
 | dip | 27.5 | 3 |  |
 | ohp | 55 | 5 | 3 |
 | shoulderfly | 12.5 | 11 | 2 |
