@@ -20,6 +20,8 @@ pull the `data` branch first; the page will ask to reload if it was open.
 | tricepext | 12.5 | 20 | 2 |
 | squat | 112.5 | 3 |  |
 | frontsquat | 32.5 | 20 | 2 |
+| pullhold | 1.25 | 3 | 3 |
+| latprayer | 10 | 10 | 2 |
 | invertedrowboth | 45 | 6 | 2 |
 | latpulldownboth | 25 | 19 | 2 |
 | bicepcurlboth | 25 | 16 | 2 |
@@ -234,6 +236,10 @@ pull the `data` branch first; the page will ask to reload if it was open.
 | 2026-11-12T09:52:20.041Z | Shoulder Fly (single arm) | 2 × 11 @ 6.25 kg | normal |  | 137.5 | 6.25 kg, 11 reps, 2 sets |
 | 2026-11-12T09:52:20.041Z | Cardio | 0.48 km in 10:00 (20:50/km) · Elliptical | normal |  |  |  |
 | 2026-11-13T10:57:19.381Z | Squat | 3 reps top @ 110 kg RPE 8, 2×5 backoff @ 87.5 kg | normal | 110 | 875 | 110 kg, 3 reps |
+| 2026-11-21T11:52:25.240Z | Pull-Up Hold | 3 × 3 @ +0 kg | normal | 0 | 0 | 0 kg, 3 reps, 3 sets |
+| 2026-11-21T11:52:25.241Z | Lat Prayer | 2 × 10 @ 10 kg | once |  | 200 | 10 kg, 10 reps, 2 sets |
+| 2026-11-21T11:52:25.241Z | Bicep Curl | 2 × 17 @ 10 kg | once |  | 340 | 10 kg, 17 reps, 2 sets |
+| 2026-11-21T11:52:25.241Z | Face Pull | 2 × 18 @ 15 kg | once |  | 540 | 15 kg, 18 reps, 2 sets |
 
 ## Bodyweight
 
