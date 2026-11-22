@@ -14,7 +14,7 @@ pull the `data` branch first; the page will ask to reload if it was open.
 | bicepcurl | 10 | 17 | 2 |
 | facepull | 10 | 10 | 2 |
 | dip | 27.5 | 3 |  |
-| ohp | 50 | 5 | 3 |
+| ohp | 50 | 3 | 3 |
 | shoulderfly | 12.5 | 11 | 2 |
 | chestfly | 5 | 12 | 2 |
 | tricepext | 12.5 | 20 | 2 |
