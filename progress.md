@@ -240,6 +240,10 @@ pull the `data` branch first; the page will ask to reload if it was open.
 | 2026-11-21T11:52:25.241Z | Lat Prayer | 2 × 10 @ 10 kg | once |  | 200 | 10 kg, 10 reps, 2 sets |
 | 2026-11-21T11:52:25.241Z | Bicep Curl | 2 × 17 @ 10 kg | once |  | 340 | 10 kg, 17 reps, 2 sets |
 | 2026-11-21T11:52:25.241Z | Face Pull | 2 × 18 @ 15 kg | once |  | 540 | 15 kg, 18 reps, 2 sets |
+| 2026-11-22T11:43:42.745Z | OHP | 3 × 3 @ 50 kg | hold | 50 | 450 | 50 kg, 3 reps, 3 sets |
+| 2026-11-22T11:43:42.746Z | Tricep Extension | 2 × 20 @ 12.5 kg | once |  | 500 | 12.5 kg, 20 reps, 2 sets |
+| 2026-11-22T11:43:42.746Z | Shoulder Fly (single arm) | 2 × 12 @ 6.25 kg | once |  | 150 | 6.25 kg, 12 reps, 2 sets |
+| 2026-11-22T11:43:42.746Z | Chest Fly | 2 × 12 @ 5 kg | once |  | 120 | 5 kg, 12 reps, 2 sets |
 
 ## Bodyweight
 
