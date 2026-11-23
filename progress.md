@@ -18,7 +18,7 @@ pull the `data` branch first; the page will ask to reload if it was open.
 | shoulderfly | 12.5 | 11 | 2 |
 | chestfly | 5 | 12 | 2 |
 | tricepext | 12.5 | 20 | 2 |
-| squat | 112.5 | 3 |  |
+| squat | 115 | 3 |  |
 | frontsquat | 32.5 | 20 | 2 |
 | pullhold | 1.25 | 3 | 3 |
 | latprayer | 10 | 10 | 2 |
@@ -244,6 +244,7 @@ pull the `data` branch first; the page will ask to reload if it was open.
 | 2026-11-22T11:43:42.746Z | Tricep Extension | 2 × 20 @ 12.5 kg | once |  | 500 | 12.5 kg, 20 reps, 2 sets |
 | 2026-11-22T11:43:42.746Z | Shoulder Fly (single arm) | 2 × 12 @ 6.25 kg | once |  | 150 | 6.25 kg, 12 reps, 2 sets |
 | 2026-11-22T11:43:42.746Z | Chest Fly | 2 × 12 @ 5 kg | once |  | 120 | 5 kg, 12 reps, 2 sets |
+| 2026-11-23T11:37:52.201Z | Squat | 3 reps top @ 112.5 kg, 2×5 backoff @ 90 kg | normal | 112.5 | 900 | 112.5 kg, 3 reps |
 
 ## Bodyweight
 
